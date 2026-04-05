@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>InnerFlow Tap</title>
+    <style>
+        body {
+            font-family: Arial;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: #f0f4f8;
+        }
+        #tap-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            cursor: pointer;
+            font-size: 48px;
+            color: white;
+            transition: transform 0.1s;
+            box-shadow: 0 10px 30px rgba(102,126,234,0.4);
+        }
+        #tap-btn:active { transform: scale(0.95); }
+        #emoji { font-size: 60px; margin: 20px; min-height: 80px; }
+        #message {
+            font-size: 18px;
+            color: #555;
+            text-align: center;
+            max-width: 400px;
+            min-height: 30px;
+        }
+        #count { font-size: 48px; font-weight: bold; color: #667eea; }
+        #bpm { font-size: 14px; color: #999; margin: 5px; }
+        #music {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 10px;
+            display: none;
+        }
+        .mode-btn {
+            padding: 8px 20px;
+            margin: 5px;
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            background: white;
+            color: #667eea;
+        }
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        #continue-prompt {
+            position: fixed;
+            top: 20px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+<div style="margin-bottom:20px">
+    <button class="mode-btn active"
+            onclick="setMode(event, 'relief')">解压模式</button>
+    <button class="mode-btn"
+            onclick="setMode(event, 'meditation')">冥想模式</button>
+</div>
+
+<div id="count">0</div>
+<div id="bpm">BPM: 0</div>
+<div id="emoji">🌱</div>
+<button id="tap-btn" onclick="tap()">TAP</button>
+<div id="message">准备好了，开始吧</div>
+<div id="music"></div>
+
+<script>
+    let mode = "relief";
+    const userId = "1";
+    const ws = new WebSocket(
+        `ws://localhost:8080/ws/tap?userId=${userId}`);
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "connected") {
+            document.getElementById("message")
+                .textContent = data.message;
+
+            // 有上次未完成的会话
+            if (data.hasLastSession && data.lastCount > 0) {
+                showContinuePrompt(data.lastCount);
+            }
+        }
+
+        if (data.type === "continued") {
+            document.getElementById("count").textContent = data.count;
+            document.getElementById("message").textContent = data.message;
+            document.getElementById("continue-prompt")?.remove();
+        }
+
+        if (data.type === "feedback") {
+            document.getElementById("count").textContent =
+                data.count;
+            document.getElementById("bpm").textContent =
+                `BPM: ${data.bpm}`;
+            document.getElementById("emoji").textContent =
+                data.emoji;
+            document.getElementById("message").textContent =
+                data.message;
+
+            // 音乐推荐
+            if (data.music) {
+                const music = JSON.parse(data.music);
+                const musicDiv = document.getElementById("music");
+                musicDiv.style.display = "block";
+                musicDiv.innerHTML = `
+                        🎵 推荐音乐：${music.title}
+                        <audio controls src="${music.url}"></audio>
+                    `;
+            }
+
+            // 按钮动画
+            const btn = document.getElementById("tap-btn");
+            btn.style.transform = "scale(0.95)";
+            setTimeout(() => btn.style.transform = "scale(1)", 100);
+        }
+
+        if (data.type === "reset") {
+            document.getElementById("count").textContent = "0";
+            document.getElementById("bpm").textContent = "BPM: 0";
+            document.getElementById("emoji").textContent = "🌱";
+            document.getElementById("message").textContent =
+                data.message;
+            document.getElementById("music").style.display = "none";
+        }
+    };
+
+    function tap() {
+        ws.send(JSON.stringify({type: "tap", mode: mode}));
+    }
+
+    function setMode(e, newMode) {
+        mode = newMode;
+        document.querySelectorAll(".mode-btn").forEach(btn => {
+            btn.classList.remove("active");
+        });
+        e.target.classList.add("active");
+
+        ws.send(JSON.stringify(
+            {type: "mode_change", mode: mode}));
+
+        const messages = {
+            "relief": "解压模式：尽情发泄吧 💥",
+            "meditation": "冥想模式：跟着节奏慢慢来 🌙"
+        };
+        document.getElementById("message")
+            .textContent = messages[mode];
+    }
+
+    function showContinuePrompt(lastCount) {
+        const div = document.createElement("div");
+        div.id = "continue-prompt";
+        div.innerHTML = `
+                上次tap了 <b>${lastCount}</b> 下，
+                <span style="color:#667eea;cursor:pointer"
+                    onclick="continueLastSession(${lastCount})">
+                    继续上次
+                </span> 或
+                <span style="color:#999;cursor:pointer"
+                    onclick="this.parentElement.remove()">
+                    重新开始
+                </span>
+            `;
+        document.body.appendChild(div);
+    }
+
+    function continueLastSession(lastCount) {
+        document.getElementById("count").textContent = lastCount;
+        document.getElementById("continue-prompt")?.remove();
+        document.getElementById("message").textContent =
+            "继续上次，加油 💪";
+        ws.send(JSON.stringify(
+            {type: "continue", count: lastCount}));
+    }
+
+    // 键盘空格键也可以Tap
+    document.addEventListener("keypress", (e) => {
+        if (e.code === "Space") tap();
+    });
+    // 页面关闭前主动通知后端保存
+    window.addEventListener("beforeunload", () => {
+        ws.send(JSON.stringify({type: "save"}));
+    });
+    // 每5秒自动保存一次
+    setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({type: "save"}));
+        }
+    }, 5000);
+</script>
+</body>
+</html>
