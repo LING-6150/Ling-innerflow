@@ -1,0 +1,120 @@
+@import "tailwindcss/preflight";
+@import "tailwindcss";
+
+:root {
+  /* 主交互色（保留紫粉，用于按钮和点缀）*/
+  --gradient-primary: linear-gradient(135deg, #f093fb, #667eea);
+
+  /* 背景（浅蓝绿，心理安全色）*/
+  --gradient-bg: linear-gradient(180deg, #e8f4f8 0%, #f0f7ff 50%, #f5f0ff 100%);
+
+  /* 各情绪状态背景 */
+  --bg-calm: linear-gradient(180deg, #e0f2f7 0%, #f0f9ff 100%);
+  --bg-anxious: linear-gradient(180deg, #e8f4fd 0%, #eef5ff 100%);
+  --bg-tired: linear-gradient(180deg, #f5f0ff 0%, #fdf5f8 100%);
+  --bg-night: linear-gradient(180deg, #1a2a3a 0%, #0d1b2a 100%);
+
+  /* 粉色点缀光晕 */
+  --pink-glow: rgba(240, 147, 251, 0.12);
+
+  /* 毛玻璃（白色系，适配浅色背景）*/
+  --glass-strong: rgba(255, 255, 255, 0.75);
+  --glass-light: rgba(255, 255, 255, 0.55);
+  --surface: rgba(255, 255, 255, 0.35);
+
+  /* 文字（深色，适配浅色背景）*/
+  --text-primary: #2d1b4e;
+  --text-secondary: rgba(45, 27, 78, 0.7);
+  --text-muted: rgba(45, 27, 78, 0.4);
+
+  /* 阴影（柔和紫色调）*/
+  --shadow-sm: 0 4px 16px rgba(100, 80, 150, 0.1);
+  --shadow-md: 0 8px 32px rgba(100, 80, 150, 0.15);
+
+  /* 圆角 */
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+
+  /* 动效 */
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 200ms;
+  --duration-normal: 400ms;
+  --duration-breath: 3000ms;
+
+  letter-spacing: 0.3px;
+  line-height: 1.6;
+}
+
+/* 情绪状态层（动态切换背景）*/
+.mood-calm {
+  --gradient-bg: var(--bg-calm);
+}
+
+.mood-anxious {
+  --gradient-bg: var(--bg-anxious);
+}
+
+.mood-tired {
+  --gradient-bg: var(--bg-tired);
+  filter: saturate(0.9);
+}
+
+.mood-night {
+  --gradient-bg: var(--bg-night);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --glass-strong: rgba(255, 255, 255, 0.15);
+  --glass-light: rgba(255, 255, 255, 0.08);
+}
+
+/* 全局背景 */
+body {
+  background: var(--gradient-bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif;
+  transition: background var(--duration-breath) var(--ease-soft);
+}
+
+/* 毛玻璃卡片 */
+.glass-card {
+  background: var(--glass-light);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.glass-card-strong {
+  background: var(--glass-strong);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+/* 渐变按钮 */
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-soft);
+  box-shadow: 0 4px 20px rgba(240, 147, 251, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(240, 147, 251, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}

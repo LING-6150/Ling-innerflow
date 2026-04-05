@@ -34,3 +34,7 @@ build/
 
 ###我的密码
 application-local.properties
+
+# 前端
+frontend/node_modules/
+frontend/dist/
