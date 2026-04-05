@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -17,34 +18,23 @@ public class CheckInController {
 
     private final CheckInService checkInService;
 
-    /**
-     * 提交打卡
-     * userId从JWT Token自动解析
-     */
     @PostMapping
-    public CheckIn submitCheckIn(@RequestBody CheckInRequest request)
-            throws Exception {
+    public CheckIn submitCheckIn(@RequestBody CheckInRequest request) {
         String userId = getUserIdFromToken();
         return checkInService.submitCheckIn(
                 userId,
                 request.getContent(),
-                request.getVisibility()
+                request.getVisibility(),
+                request.getNeedAI()
         );
     }
 
-    /**
-     * 查询个人历史打卡
-     * userId从JWT Token自动解析
-     */
     @GetMapping("/history")
     public List<CheckIn> getUserHistory() {
         String userId = getUserIdFromToken();
         return checkInService.getUserHistory(userId);
     }
 
-    /**
-     * 查询公开树洞广场
-     */
     @GetMapping("/wall")
     public List<CheckIn> getPublicWall() {
         return checkInService.getPublicWall();
@@ -58,8 +48,45 @@ public class CheckInController {
 
     @Data
     public static class CheckInRequest {
-        // userId从Token解析，不需要前端传
         private String content;
         private String visibility;
+        private Boolean needAI = true;
+    }
+
+    private final CheckInReactionRepository reactionRepository;
+
+    /**
+     * 抱抱/取消抱抱
+     */
+    @PostMapping("/{id}/react")
+    public Map<String, Object> react(@PathVariable Long id) {
+        String userId = getUserIdFromToken();
+
+        if (reactionRepository.existsByCheckInIdAndUserId(id, userId)) {
+            // 已抱抱→取消
+            reactionRepository.deleteByCheckInIdAndUserId(id, userId);
+            long count = reactionRepository.countByCheckInId(id);
+            return Map.of("hugged", false, "count", count);
+        } else {
+            // 未抱抱→添加
+            CheckInReaction reaction = new CheckInReaction();
+            reaction.setCheckInId(id);
+            reaction.setUserId(userId);
+            reactionRepository.save(reaction);
+            long count = reactionRepository.countByCheckInId(id);
+            return Map.of("hugged", true, "count", count);
+        }
+    }
+
+    /**
+     * 查询某条打卡的抱抱数量和当前用户是否抱抱
+     */
+    @GetMapping("/{id}/react")
+    public Map<String, Object> getReact(@PathVariable Long id) {
+        String userId = getUserIdFromToken();
+        long count = reactionRepository.countByCheckInId(id);
+        boolean hugged = reactionRepository
+                .existsByCheckInIdAndUserId(id, userId);
+        return Map.of("hugged", hugged, "count", count);
     }
 }

@@ -42,6 +42,10 @@ public class CheckIn {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    // CheckIn.java 加一个字段
+    @Column(nullable = false)
+    private Boolean needAI = true;
+
     @PrePersist
     public void prePersist() {
         createdAt = LocalDateTime.now();
