@@ -37,6 +37,11 @@ public class UserMemory {
     @Column(length = 2000)
     private String conversationSummary;
 
+    // 在 updatedAt 字段前面加
+// 陪伴人格偏好：WARM / QUIET / RATIONAL，默认WARM
+    @Column(length = 20)
+    private String persona = "WARM";
+
     // 最后更新时间
     private LocalDateTime updatedAt;
 
@@ -45,4 +50,5 @@ public class UserMemory {
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
 }

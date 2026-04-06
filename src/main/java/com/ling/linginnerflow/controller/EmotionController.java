@@ -3,6 +3,7 @@ package com.ling.linginnerflow.controller;
 import com.ling.linginnerflow.agent.EmotionGraph;
 import com.ling.linginnerflow.emotion.EmotionLogService;
 import com.ling.linginnerflow.memory.MemoryService;
+import com.ling.linginnerflow.memory.Persona;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -112,5 +113,25 @@ public class EmotionController {
     public static class AnalyzeRequest {
         private String userInput;
         // userId从Token解析，不需要前端传
+    }
+
+    @PostMapping("/persona")
+    public Map<String, Object> setPersona(@RequestBody Map<String, String> body) {
+        String userId = getUserIdFromToken();
+        String personaStr = body.getOrDefault("persona", "WARM").toUpperCase();
+        try {
+            Persona persona = Persona.valueOf(personaStr);
+            memoryService.setPersona(userId, persona);
+            return Map.of("success", true, "persona", persona.name());
+        } catch (Exception e) {
+            return Map.of("success", false, "message", "无效的人格类型");
+        }
+    }
+
+    @GetMapping("/persona")
+    public Map<String, Object> getPersona() {
+        String userId = getUserIdFromToken();
+        Persona persona = memoryService.getPersona(userId);
+        return Map.of("persona", persona.name());
     }
 }

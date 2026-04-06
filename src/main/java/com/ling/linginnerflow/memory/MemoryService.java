@@ -33,6 +33,31 @@ public class MemoryService {
     private final ChatClient.Builder chatClientBuilder;
     private final ObjectMapper objectMapper;
 
+    // 获取用户人格，默认WARM
+    public Persona getPersona(String userId) {
+        return userMemoryRepository.findByUserId(userId)
+                .map(m -> {
+                    try {
+                        return Persona.valueOf(m.getPersona());
+                    } catch (Exception e) {
+                        return Persona.WARM;
+                    }
+                })
+                .orElse(Persona.WARM);
+    }
+
+    // 设置用户人格
+    public void setPersona(String userId, Persona persona) {
+        UserMemory memory = userMemoryRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    UserMemory m = new UserMemory();
+                    m.setUserId(userId);
+                    return m;
+                });
+        memory.setPersona(persona.name());
+        userMemoryRepository.save(memory);
+    }
+
     // 短期记忆Key前缀
     private static final String SHORT_MEMORY_PREFIX = "memory:short:";
     // 短期记忆TTL：30分钟无操作则过期

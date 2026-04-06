@@ -30,6 +30,14 @@
               @click="visibility = 'private'"
           >🔒 私密</button>
         </div>
+        <!-- AI开关 -->
+        <div class="ai-switch">
+          <span class="ai-switch-label">🤖 AI解析</span>
+          <button
+              :class="['ai-toggle', { active: needAI }]"
+              @click="needAI = !needAI"
+          >{{ needAI ? '开' : '关' }}</button>
+        </div>
         <button
             class="submit-btn"
             :disabled="!newContent.trim() || submitting"
@@ -42,7 +50,7 @@
 
     <!-- 成功提示 -->
     <div v-if="showSuccess" class="success-toast">
-      🌸 已记录，AI正在分析中...
+      🌸 已记录{{ needAI ? '，AI正在分析中...' : '' }}
     </div>
 
     <!-- Tab切换 -->
@@ -58,7 +66,7 @@
     </div>
 
     <!-- 内容列表 -->
-    <div class="cards-area">
+    <div class="cards-area" @scroll="onWallScroll">
       <div v-if="loading" class="loading-text">加载中...</div>
 
       <div
@@ -68,7 +76,7 @@
       >
         <!-- 情绪等级标签 -->
         <div class="card-header">
-          <span class="emotion-badge" :class="`level-${item.emotionLevel}`">
+          <span class="emotion-badge">
             {{ emotionEmoji(item.emotionLevel) }}
           </span>
           <span class="card-time">{{ formatTime(item.createdAt) }}</span>
@@ -87,7 +95,25 @@
         <div v-else-if="item.emotionLevel === 0" class="ai-pending">
           AI分析中...
         </div>
+
+        <!-- 抱抱按钮 -->
+        <div class="card-footer">
+          <button
+              class="hug-btn"
+              :class="{ hugged: item.hugged }"
+              @click="toggleHug(item)"
+          >
+            {{ item.hugged ? '💜 已抱抱' : '🤍 抱抱' }}
+            <span v-if="item.hugCount && item.hugCount > 0">
+              {{ item.hugCount }}
+            </span>
+          </button>
+        </div>
       </div>
+
+      <!-- 新增这两行 -->
+      <div v-if="loadingMore" class="loading-text" style="padding: 12px 0">加载更多...</div>
+      <div v-if="!hasMore && wallList.length > 0" class="loading-text" style="padding: 12px 0">已经到底啦 🌿</div>
 
       <div v-if="!loading && displayList.length === 0" class="empty-text">
         还没有记录，写下今天的第一句话吧
@@ -119,6 +145,8 @@ interface CheckIn {
   aiResponse: string
   visibility: string
   createdAt: string
+  hugCount?: number
+  hugged?: boolean
 }
 
 const activeTab = ref<'wall' | 'mine'>('wall')
@@ -128,8 +156,12 @@ const loading = ref(false)
 const showInput = ref(false)
 const newContent = ref('')
 const visibility = ref<'public' | 'private'>('public')
+const needAI = ref(true)
 const submitting = ref(false)
 const showSuccess = ref(false)
+const page = ref(0)
+const hasMore = ref(true)
+const loadingMore = ref(false)
 
 const displayList = computed(() =>
     activeTab.value === 'wall' ? wallList.value : myList.value
@@ -141,7 +173,7 @@ function goTo(path: string) {
 
 function emotionEmoji(level: number): string {
   const map: Record<number, string> = {
-    0: '⏳', 1: '🌱', 2: '💙', 3: '💜', 4: '🖤', 5: '🆘'
+    0: '⏳', 1: '🌱', 2: '💙', 3: '💜', 4: '🖤', 5: '🆘', [-1]: '✍️'
   }
   return map[level] || '🌱'
 }
@@ -156,13 +188,41 @@ function formatTime(time: string): string {
   return `${Math.floor(hours / 24)}天前`
 }
 
-async function loadWall() {
-  loading.value = true
+async function loadReactions(list: CheckIn[]) {
+  for (const item of list) {
+    try {
+      const res = await request.get(`/api/checkin/${item.id}/react`) as any
+      item.hugged = res.hugged
+      item.hugCount = res.count
+    } catch (e) {
+      item.hugged = false
+      item.hugCount = 0
+    }
+  }
+}
+
+async function loadWall(reset = true) {
+  if (reset) {
+    page.value = 0
+    hasMore.value = true
+    wallList.value = []
+  }
+  if (!hasMore.value || loadingMore.value) return
+  loading.value = reset
+  loadingMore.value = !reset
+
   try {
-    const res = await request.get('/api/checkin/wall')
-    wallList.value = res as unknown as CheckIn[]
+    const res = await request.get('/api/checkin/wall', {
+      params: { page: page.value, size: 10 }
+    }) as any
+    const newItems = res.content as CheckIn[]
+    await loadReactions(newItems)
+    wallList.value = reset ? newItems : [...wallList.value, ...newItems]
+    hasMore.value = res.hasMore
+    page.value++
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
 }
 
@@ -172,8 +232,19 @@ async function loadMyHistory() {
   try {
     const res = await request.get('/api/checkin/history')
     myList.value = res as unknown as CheckIn[]
+    await loadReactions(myList.value)
   } finally {
     loading.value = false
+  }
+}
+
+async function toggleHug(item: CheckIn) {
+  try {
+    const res = await request.post(`/api/checkin/${item.id}/react`) as any
+    item.hugged = res.hugged
+    item.hugCount = res.count
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -183,7 +254,8 @@ async function submitCheckIn() {
   try {
     await request.post('/api/checkin', {
       content: newContent.value,
-      visibility: visibility.value
+      visibility: visibility.value,
+      needAI: needAI.value
     })
     newContent.value = ''
     showInput.value = false
@@ -198,6 +270,16 @@ async function submitCheckIn() {
 onMounted(() => {
   loadWall()
 })
+
+function onWallScroll(e: Event) {
+  if (activeTab.value !== 'wall') return
+  const el = e.target as HTMLElement
+  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100
+  if (nearBottom && hasMore.value && !loadingMore.value) {
+    loadWall(false)
+  }
+}
+
 </script>
 
 <style scoped>
@@ -262,7 +344,6 @@ onMounted(() => {
   box-shadow: 0 4px 15px rgba(240,147,251,0.3);
 }
 
-/* 输入卡片 */
 .input-card {
   margin: 0 12px 12px;
   padding: 16px;
@@ -291,6 +372,8 @@ onMounted(() => {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid rgba(255,255,255,0.3);
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .visibility-switch {
@@ -315,6 +398,35 @@ onMounted(() => {
   border-color: transparent;
 }
 
+/* AI开关 */
+.ai-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-switch-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ai-toggle {
+  padding: 4px 12px;
+  border: 1px solid rgba(240, 147, 251, 0.3);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-soft);
+}
+
+.ai-toggle.active {
+  background: rgba(240, 147, 251, 0.15);
+  border-color: rgba(240, 147, 251, 0.4);
+  color: #c471ed;
+}
+
 .submit-btn {
   padding: 8px 20px;
   background: var(--gradient-primary);
@@ -330,7 +442,6 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* 成功提示 */
 .success-toast {
   margin: 0 12px 8px;
   padding: 10px 16px;
@@ -342,7 +453,6 @@ onMounted(() => {
   text-align: center;
 }
 
-/* Tab */
 .tab-bar {
   display: flex;
   margin: 0 12px 12px;
@@ -370,12 +480,13 @@ onMounted(() => {
   color: white;
 }
 
-/* 卡片列表 */
 .cards-area {
   padding: 0 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;                    /* 加这行 */
+  max-height: calc(100vh - 260px);     /* 加这行 */
 }
 
 .wall-card {
@@ -410,6 +521,7 @@ onMounted(() => {
   border-left: 3px solid #f093fb;
   padding: 10px 12px;
   border-radius: 0 8px 8px 0;
+  margin-bottom: 8px;
 }
 
 .ai-label {
@@ -430,6 +542,39 @@ onMounted(() => {
   font-size: 12px;
   color: var(--text-muted);
   font-style: italic;
+  margin-bottom: 8px;
+}
+
+.card-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.hug-btn {
+  padding: 6px 16px;
+  border: 1px solid rgba(240, 147, 251, 0.3);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-soft);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hug-btn:hover {
+  background: rgba(240, 147, 251, 0.1);
+  border-color: rgba(240, 147, 251, 0.5);
+  color: var(--text-secondary);
+}
+
+.hug-btn.hugged {
+  background: rgba(240, 147, 251, 0.15);
+  border-color: rgba(240, 147, 251, 0.4);
+  color: #c471ed;
 }
 
 .loading-text,
@@ -440,7 +585,6 @@ onMounted(() => {
   padding: 40px 0;
 }
 
-/* 底部导航 */
 .bottom-nav {
   position: fixed;
   bottom: 16px;

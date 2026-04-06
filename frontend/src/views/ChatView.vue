@@ -1,6 +1,5 @@
 <template>
   <div class="chat-container" :class="`mood-${currentMood}`">
-    <!-- 背景光晕 -->
     <div class="bg-orb bg-orb-1"></div>
     <div class="bg-orb bg-orb-2"></div>
 
@@ -10,7 +9,14 @@
         <span class="logo-text">🌸 InnerFlow</span>
       </div>
       <div class="top-center">
-        <span class="mood-indicator">{{ moodText }}</span>
+        <span class="mood-indicator" @click="showPersonaMenu = !showPersonaMenu" style="cursor:pointer">
+          {{ moodText }} {{ personaEmoji }}
+        </span>
+        <div v-if="showPersonaMenu" class="persona-menu glass-card">
+          <button @click="switchPersona('WARM')">🌸 温柔</button>
+          <button @click="switchPersona('QUIET')">🌙 安静</button>
+          <button @click="switchPersona('RATIONAL')">🧠 理性</button>
+        </div>
       </div>
       <div class="top-right">
         <button class="nav-btn" @click="goTo('/tap')">🎯</button>
@@ -21,14 +27,12 @@
 
     <!-- 对话区域 -->
     <div class="messages-area" ref="messagesRef">
-      <!-- 欢迎消息 -->
       <div v-if="messages.length === 0" class="welcome-msg">
         <div class="welcome-icon">🌸</div>
         <p>你好，{{ authStore.username }}</p>
         <p class="welcome-sub">今天想聊聊什么？</p>
       </div>
 
-      <!-- 消息列表 -->
       <div
           v-for="(msg, index) in messages"
           :key="index"
@@ -37,13 +41,29 @@
         <div class="bubble" :class="msg.role">
           <span>{{ msg.content }}</span>
         </div>
-        <!-- 情绪标签 -->
-        <div v-if="msg.emotionLevel" class="emotion-tag">
+        <div v-if="msg.companionText" class="emotion-tag">
+          {{ msg.companionText }}
+        </div>
+        <div v-else-if="msg.emotionLevel" class="emotion-tag">
           {{ emotionLevelText(msg.emotionLevel) }}
         </div>
       </div>
 
-      <!-- AI正在输入 -->
+      <!-- 情绪画像（放在消息列表里面） -->
+      <div v-if="latestImage" class="emotion-image-card glass-card">
+        <p class="image-label">🎨 今日情绪画像</p>
+        <img
+            :src="`data:image/png;base64,${latestImage}`"
+            class="emotion-image"
+            alt="情绪画像"
+        />
+      </div>
+
+      <!-- 画像加载中提示 -->
+      <div v-if="imageLoading" class="image-loading">
+        🎨 正在生成今日情绪画像...
+      </div>
+
       <div v-if="isTyping" class="message assistant">
         <div class="bubble assistant typing">
           <span class="dot"></span>
@@ -79,6 +99,7 @@
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import request from '@/api/request'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -87,6 +108,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   emotionLevel?: number
+  companionText?: string
 }
 
 const messages = ref<Message[]>([])
@@ -95,54 +117,123 @@ const isTyping = ref(false)
 const messagesRef = ref<HTMLElement>()
 const textareaRef = ref<HTMLTextAreaElement>()
 const currentMood = ref('calm')
+const showPersonaMenu = ref(false)
+const currentPersona = ref('WARM')
+const latestImage = ref<string | null>(null)
+const imageLoading = ref(false)
 
 let ws: WebSocket | null = null
+let pollTimer: ReturnType<typeof setTimeout> | null = null
 
 const moodTextMap: Record<string, string> = {
   calm: '🌙 平静中',
   anxious: '💜 有些焦虑',
   tired: '🌫️ 有些疲惫'
 }
-
 const moodText = computed(() => moodTextMap[currentMood.value])
+
+const personaEmoji = computed(() =>
+    ({'WARM': '🌸', 'QUIET': '🌙', 'RATIONAL': '🧠'} as Record<string, string>)[currentPersona.value] || '🌸'
+)
 
 function emotionLevelText(level: number): string {
   const map: Record<number, string> = {
-    1: '🌱 平静',
-    2: '💙 轻度焦虑',
-    3: '💜 中度困扰',
-    4: '🖤 需要支持',
-    5: '🆘 危机'
+    1: '🌿 我听到你了',
+    2: '🤍 我在这里陪你',
+    3: '💜 我感受到你的不容易',
+    4: '🫂 我在，你不是一个人',
+    5: '🆘 我非常担心你'
   }
   return map[level] || ''
 }
 
-function goTo(path: string) {
-  router.push(path)
+function goTo(path: string) { router.push(path) }
+
+// ===== 加载历史对话 =====
+async function loadHistory() {
+  try {
+    const res = await request.get('/api/chat/history') as any[]
+    if (res && res.length > 0) {
+      messages.value = res.map((msg: any) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        emotionLevel: msg.emotionLevel ?? undefined,
+        companionText: undefined
+      }))
+      await scrollToBottom()
+    }
+  } catch (e) {
+    console.error('加载历史失败', e)
+  }
 }
 
-function connectWS() {
-  ws = new WebSocket(
-      `ws://localhost:8080/ws/emotion?userId=${authStore.userId}`
-  )
+// ===== 加载人格偏好 =====
+async function loadPersona() {
+  try {
+    const res = await request.get('/api/emotion/persona') as any
+    currentPersona.value = res.persona
+  } catch (e) {}
+}
 
-  ws.onopen = () => {
-    console.log('WebSocket connected')
+// ===== 切换人格 =====
+async function switchPersona(p: string) {
+  try {
+    await request.post('/api/emotion/persona', { persona: p })
+    currentPersona.value = p
+  } catch (e) {
+    console.error('切换人格失败', e)
+  } finally {
+    showPersonaMenu.value = false
   }
+}
+
+// ===== 拉取最新画像 =====
+async function loadLatestImage() {
+  try {
+    const res = await request.get('/api/emotion-image/latest') as any
+    if (res.imageBase64) {
+      latestImage.value = res.imageBase64
+      imageLoading.value = false
+      return true  // 拉到了
+    }
+  } catch (e) {}
+  return false  // 没拉到
+}
+
+// ===== 轮询画像（最多试6次，每10秒一次，共1分钟）=====
+function pollForImage(attempts = 0) {
+  if (attempts >= 6) {
+    imageLoading.value = false
+    return
+  }
+  pollTimer = setTimeout(async () => {
+    const success = await loadLatestImage()
+    if (!success) {
+      pollForImage(attempts + 1)
+    } else {
+      await scrollToBottom()
+    }
+  }, 10000)
+}
+
+// ===== WebSocket连接（Token鉴权）=====
+function connectWS() {
+  const token = authStore.token
+  ws = new WebSocket(`ws://localhost:8080/ws/emotion?token=${token}`)
+
+  ws.onopen = () => console.log('WebSocket connected')
 
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data)
 
     if (data.type === 'emotion') {
       const level = data.level
-      if (level >= 4) currentMood.value = 'anxious'
-      else if (level >= 3) currentMood.value = 'calm'
-      else currentMood.value = 'calm'
-
-      const lastUserMsg = [...messages.value]
-          .reverse()
-          .find(m => m.role === 'user')
-      if (lastUserMsg) lastUserMsg.emotionLevel = level
+      currentMood.value = level >= 4 ? 'anxious' : level >= 2 ? 'tired' : 'calm'
+      const lastUserMsg = [...messages.value].reverse().find(m => m.role === 'user')
+      if (lastUserMsg) {
+        lastUserMsg.emotionLevel = level
+        lastUserMsg.companionText = data.companion
+      }
       isTyping.value = true
 
     } else if (data.type === 'chunk') {
@@ -168,26 +259,23 @@ function connectWS() {
 
   ws.onclose = () => {
     console.log('WebSocket disconnected')
+    // WS关闭时（用户刷新/离开）开始轮询画像
+    imageLoading.value = true
+    pollForImage()
   }
+
+  ws.onerror = (err) => console.error('WebSocket error', err)
 }
 
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isTyping.value) return
-
   messages.value.push({ role: 'user', content: text })
   inputText.value = ''
   isTyping.value = true
-
-  if (textareaRef.value) {
-    textareaRef.value.style.height = 'auto'
-  }
-
+  if (textareaRef.value) textareaRef.value.style.height = 'auto'
   scrollToBottom()
-
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(text)
-  }
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(text)
 }
 
 function autoResize(e: Event) {
@@ -198,17 +286,19 @@ function autoResize(e: Event) {
 
 async function scrollToBottom() {
   await nextTick()
-  if (messagesRef.value) {
-    messagesRef.value.scrollTop = messagesRef.value.scrollHeight
-  }
+  if (messagesRef.value) messagesRef.value.scrollTop = messagesRef.value.scrollHeight
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadHistory()
+  await loadPersona()
+  await loadLatestImage()  // 进入页面先拉一次历史画像
   connectWS()
 })
 
 onUnmounted(() => {
   ws?.close()
+  if (pollTimer) clearTimeout(pollTimer)
 })
 </script>
 
@@ -227,7 +317,6 @@ onUnmounted(() => {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.5;  /* 从0.3改成0.5 */
   pointer-events: none;
 }
 
@@ -249,7 +338,6 @@ onUnmounted(() => {
   opacity: 0.4;
 }
 
-/* 顶部导航 */
 .top-bar {
   display: flex;
   align-items: center;
@@ -267,9 +355,43 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 
+.top-center {
+  position: relative;
+}
+
 .mood-indicator {
   font-size: 13px;
   color: var(--text-secondary);
+  user-select: none;
+}
+
+.persona-menu {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  z-index: 20;
+  white-space: nowrap;
+}
+
+.persona-menu button {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.persona-menu button:hover {
+  background: var(--glass-strong);
+  color: var(--text-primary);
 }
 
 .top-right {
@@ -293,7 +415,6 @@ onUnmounted(() => {
   transform: scale(1.1);
 }
 
-/* 消息区域 */
 .messages-area {
   flex: 1;
   overflow-y: auto;
@@ -303,16 +424,12 @@ onUnmounted(() => {
   gap: 16px;
 }
 
-.messages-area::-webkit-scrollbar {
-  width: 4px;
-}
-
+.messages-area::-webkit-scrollbar { width: 4px; }
 .messages-area::-webkit-scrollbar-thumb {
   background: var(--glass-strong);
   border-radius: 2px;
 }
 
-/* 欢迎消息 */
 .welcome-msg {
   text-align: center;
   padding: 40px 20px;
@@ -341,7 +458,6 @@ onUnmounted(() => {
   to { transform: translateY(-8px); }
 }
 
-/* 消息气泡 */
 .message {
   display: flex;
   flex-direction: column;
@@ -381,7 +497,6 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* 打字动画 */
 .bubble.typing {
   display: flex;
   gap: 4px;
@@ -405,7 +520,6 @@ onUnmounted(() => {
   30% { transform: translateY(-8px); }
 }
 
-/* 情绪标签 */
 .emotion-tag {
   font-size: 11px;
   color: var(--text-muted);
@@ -413,7 +527,34 @@ onUnmounted(() => {
   padding: 0 4px;
 }
 
-/* 输入区域 */
+/* 情绪画像 */
+.emotion-image-card {
+  padding: 16px;
+  text-align: center;
+  margin: 8px 0;
+}
+
+.image-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.emotion-image {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 16px;
+  opacity: 0.9;
+}
+
+.image-loading {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 16px;
+  font-style: italic;
+}
+
 .input-area {
   display: flex;
   align-items: flex-end;
@@ -438,9 +579,7 @@ onUnmounted(() => {
   font-family: inherit;
 }
 
-.input-box::placeholder {
-  color: var(--text-muted);
-}
+.input-box::placeholder { color: var(--text-muted); }
 
 .send-btn {
   width: 40px;
@@ -459,12 +598,6 @@ onUnmounted(() => {
   box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
 }
 
-.send-btn:hover:not(:disabled) {
-  transform: scale(1.1);
-}
-
-.send-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+.send-btn:hover:not(:disabled) { transform: scale(1.1); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
