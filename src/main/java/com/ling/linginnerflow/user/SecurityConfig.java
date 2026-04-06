@@ -45,6 +45,7 @@ public class SecurityConfig {
                                 "/ws/**",
                                 "/*.html",
                                 "/static/**"
+
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

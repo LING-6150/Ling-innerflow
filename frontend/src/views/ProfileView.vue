@@ -13,7 +13,7 @@
       <button class="logout-btn" @click="logout">退出</button>
     </div>
 
-    <!-- 情绪解读（最重要的模块）-->
+    <!-- 情绪解读 -->
     <div v-if="insight.summary" class="insight-card" :class="`tone-${insight.tone}`">
       <div class="insight-icon">🌸</div>
       <div class="insight-content">
@@ -48,14 +48,10 @@
       <div v-else class="chart-area">
         <svg :width="chartWidth" height="120" class="trend-svg">
           <line
-              v-for="i in 5"
-              :key="i"
-              x1="0"
-              :y1="(i-1) * 25"
-              :x2="chartWidth"
-              :y2="(i-1) * 25"
-              stroke="rgba(100,80,150,0.1)"
-              stroke-width="1"
+              v-for="i in 5" :key="i"
+              x1="0" :y1="(i-1) * 25"
+              :x2="chartWidth" :y2="(i-1) * 25"
+              stroke="rgba(100,80,150,0.1)" stroke-width="1"
           />
           <defs>
             <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
@@ -68,36 +64,18 @@
             </linearGradient>
           </defs>
           <path :d="areaPath" fill="url(#areaGrad)"/>
-          <path
-              :d="linePath"
-              fill="none"
-              stroke="url(#lineGrad)"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-          />
-          <circle
-              v-for="(point, i) in chartPoints"
-              :key="i"
-              :cx="point.x"
-              :cy="point.y"
-              r="4"
-              fill="white"
-              stroke="#f093fb"
-              stroke-width="2"
-          />
+          <path :d="linePath" fill="none" stroke="url(#lineGrad)"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle v-for="(point, i) in chartPoints" :key="i"
+                  :cx="point.x" :cy="point.y" r="4"
+                  fill="white" stroke="#f093fb" stroke-width="2"/>
         </svg>
         <div class="chart-labels">
-          <span
-              v-for="(item, i) in trendData"
-              :key="i"
-              class="chart-label"
-          >{{ formatDate(item.date) }}</span>
+          <span v-for="(item, i) in trendData" :key="i" class="chart-label">
+            {{ formatDate(item.date) }}
+          </span>
         </div>
-        <!-- 趋势总结 -->
-        <p v-if="insight.pattern" class="trend-summary">
-          {{ insight.pattern }}
-        </p>
+        <p v-if="insight.pattern" class="trend-summary">{{ insight.pattern }}</p>
       </div>
     </div>
 
@@ -105,39 +83,73 @@
     <div class="dist-card glass-card">
       <h3 class="chart-title">情绪分布（近30天）</h3>
       <div class="dist-bars">
-        <div
-            v-for="(count, level) in distribution"
-            :key="level"
-            class="dist-row"
-        >
+        <div v-for="(count, level) in distribution" :key="level" class="dist-row">
           <span class="dist-label">{{ emotionLevelLabel(level as string) }}</span>
           <div class="dist-bar-bg">
-            <div
-                class="dist-bar-fill"
-                :style="{ width: barWidth(count) + '%' }"
-            ></div>
+            <div class="dist-bar-fill" :style="{ width: barWidth(count) + '%' }"></div>
           </div>
           <span class="dist-count">{{ count }}</span>
         </div>
       </div>
     </div>
 
+    <!-- ===== 情绪画像墙 ===== -->
+    <div class="gallery-card glass-card">
+      <div class="gallery-header">
+        <h3 class="chart-title" style="margin-bottom:0">🎨 情绪画像</h3>
+        <span class="gallery-sub">每次对话后生成</span>
+      </div>
+
+      <div v-if="recentImages.length === 0" class="chart-empty">
+        还没有画像，结束一次对话后自动生成
+      </div>
+
+      <div v-else class="gallery-grid">
+        <div
+            v-for="img in recentImages"
+            :key="img.id"
+            class="gallery-item"
+            @click="openImage(img)"
+        >
+          <img
+              :src="`data:image/png;base64,${img.imageBase64}`"
+              class="gallery-img"
+              :alt="`情绪画像 ${img.emotionLevel}`"
+          />
+          <div class="gallery-meta">
+            <span class="gallery-emoji">{{ emotionEmoji(img.emotionLevel) }}</span>
+            <span class="gallery-time">{{ formatTime(img.createdAt) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 画像全屏预览 -->
+    <div v-if="selectedImage" class="image-overlay" @click="selectedImage = null">
+      <div class="image-preview-card" @click.stop>
+        <img
+            :src="`data:image/png;base64,${selectedImage.imageBase64}`"
+            class="image-preview-full"
+            alt="情绪画像"
+        />
+        <div class="image-preview-meta">
+          <span>{{ emotionEmoji(selectedImage.emotionLevel) }} {{ emotionLevelLabel2(selectedImage.emotionLevel) }}</span>
+          <span>{{ formatTime(selectedImage.createdAt) }}</span>
+        </div>
+        <button class="close-btn" @click="selectedImage = null">✕</button>
+      </div>
+    </div>
+
     <!-- 功能列表 -->
     <div class="menu-list glass-card">
       <div class="menu-item" @click="goTo('/')">
-        <span>💬</span>
-        <span>开始对话</span>
-        <span class="arrow">→</span>
+        <span>💬</span><span>开始对话</span><span class="arrow">→</span>
       </div>
       <div class="menu-item" @click="goTo('/tap')">
-        <span>🎯</span>
-        <span>Tap解压</span>
-        <span class="arrow">→</span>
+        <span>🎯</span><span>Tap解压</span><span class="arrow">→</span>
       </div>
       <div class="menu-item" @click="goTo('/wall')">
-        <span>🌿</span>
-        <span>打卡树洞</span>
-        <span class="arrow">→</span>
+        <span>🌿</span><span>打卡树洞</span><span class="arrow">→</span>
       </div>
     </div>
 
@@ -166,13 +178,21 @@ const distribution = ref<Record<string, number>>({})
 const insight = ref<any>({})
 const chartWidth = 320
 
+// 画像相关
+interface EmotionImage {
+  id: number
+  imageBase64: string
+  emotionLevel: number
+  createdAt: string
+}
+const recentImages = ref<EmotionImage[]>([])
+const selectedImage = ref<EmotionImage | null>(null)
+
 const usernameInitial = computed(() =>
     authStore.username?.charAt(0).toUpperCase() || '?'
 )
 
-function goTo(path: string) {
-  router.push(path)
-}
+function goTo(path: string) { router.push(path) }
 
 function logout() {
   authStore.logout()
@@ -188,17 +208,35 @@ function emotionEmoji(level: number): string {
 
 function emotionLevelLabel(level: string): string {
   const map: Record<string, string> = {
-    'L1': '🌱 平静',
-    'L2': '💙 低落',
-    'L3': '💜 困扰',
-    'L4': '🖤 沉重',
-    'L5': '🆘 危机'
+    'L1': '🌱 平静', 'L2': '💙 低落',
+    'L3': '💜 困扰', 'L4': '🖤 沉重', 'L5': '🆘 危机'
   }
   return map[level] || level
 }
 
+function emotionLevelLabel2(level: number): string {
+  const map: Record<number, string> = {
+    1: '平静', 2: '低落', 3: '困扰', 4: '沉重', 5: '危机'
+  }
+  return map[level] || ''
+}
+
 function formatDate(date: string): string {
   return date?.slice(5) || ''
+}
+
+function formatTime(time: string): string {
+  const d = new Date(time)
+  const now = new Date()
+  const diff = now.getTime() - d.getTime()
+  const hours = Math.floor(diff / 3600000)
+  if (hours < 1) return '刚刚'
+  if (hours < 24) return `${hours}小时前`
+  return `${Math.floor(hours / 24)}天前`
+}
+
+function openImage(img: EmotionImage) {
+  selectedImage.value = img
 }
 
 const chartPoints = computed(() => {
@@ -207,7 +245,6 @@ const chartPoints = computed(() => {
   const padding = 20
   const w = chartWidth - padding * 2
   const h = 100
-
   return trendData.value.map((item, i) => ({
     x: padding + (i / Math.max(trendData.value.length - 1, 1)) * w,
     y: h - ((item.avgLevel / maxLevel) * h)
@@ -251,8 +288,18 @@ async function loadData() {
   }
 }
 
+async function loadImages() {
+  try {
+    const res = await request.get('/api/emotion-image/recent') as any[]
+    recentImages.value = res || []
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 onMounted(() => {
   loadData()
+  loadImages()
 })
 </script>
 
@@ -272,24 +319,17 @@ onMounted(() => {
 }
 
 .bg-orb-1 {
-  width: 300px;
-  height: 300px;
+  width: 300px; height: 300px;
   background: radial-gradient(circle, #d4b8ff, #b8e0ff);
-  top: -80px;
-  right: -60px;
-  opacity: 0.4;
+  top: -80px; right: -60px; opacity: 0.4;
 }
 
 .bg-orb-2 {
-  width: 250px;
-  height: 250px;
+  width: 250px; height: 250px;
   background: radial-gradient(circle, #b8f0e0, #c8d8ff);
-  bottom: 100px;
-  left: -60px;
-  opacity: 0.3;
+  bottom: 100px; left: -60px; opacity: 0.3;
 }
 
-/* 用户卡片 */
 .user-card {
   display: flex;
   align-items: center;
@@ -299,8 +339,7 @@ onMounted(() => {
 }
 
 .avatar {
-  width: 56px;
-  height: 56px;
+  width: 56px; height: 56px;
   border-radius: 50%;
   background: var(--gradient-primary);
   display: flex;
@@ -312,9 +351,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.user-info {
-  flex: 1;
-}
+.user-info { flex: 1; }
 
 .username {
   font-size: 18px;
@@ -338,7 +375,6 @@ onMounted(() => {
   cursor: pointer;
 }
 
-/* 情绪解读卡片 */
 .insight-card {
   padding: 20px;
   margin-bottom: 12px;
@@ -349,31 +385,20 @@ onMounted(() => {
 }
 
 .tone-calm {
-  background: linear-gradient(135deg,
-  rgba(184, 224, 255, 0.4),
-  rgba(200, 216, 255, 0.3));
-  border: 1px solid rgba(184, 224, 255, 0.6);
+  background: linear-gradient(135deg, rgba(184,224,255,0.4), rgba(200,216,255,0.3));
+  border: 1px solid rgba(184,224,255,0.6);
 }
-
 .tone-gentle {
-  background: linear-gradient(135deg,
-  rgba(240, 147, 251, 0.1),
-  rgba(200, 216, 255, 0.2));
-  border: 1px solid rgba(240, 147, 251, 0.2);
+  background: linear-gradient(135deg, rgba(240,147,251,0.1), rgba(200,216,255,0.2));
+  border: 1px solid rgba(240,147,251,0.2);
 }
-
 .tone-supportive {
-  background: linear-gradient(135deg,
-  rgba(196, 113, 237, 0.1),
-  rgba(102, 126, 234, 0.15));
-  border: 1px solid rgba(196, 113, 237, 0.2);
+  background: linear-gradient(135deg, rgba(196,113,237,0.1), rgba(102,126,234,0.15));
+  border: 1px solid rgba(196,113,237,0.2);
 }
-
 .tone-caring {
-  background: linear-gradient(135deg,
-  rgba(240, 147, 251, 0.15),
-  rgba(118, 75, 162, 0.1));
-  border: 1px solid rgba(240, 147, 251, 0.3);
+  background: linear-gradient(135deg, rgba(240,147,251,0.15), rgba(118,75,162,0.1));
+  border: 1px solid rgba(240,147,251,0.3);
 }
 
 .insight-icon {
@@ -387,9 +412,7 @@ onMounted(() => {
   to { transform: translateY(-6px); }
 }
 
-.insight-content {
-  flex: 1;
-}
+.insight-content { flex: 1; }
 
 .insight-summary {
   font-size: 16px;
@@ -411,12 +434,11 @@ onMounted(() => {
   color: var(--text-muted);
   font-style: italic;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255,255,255,0.4);
   border-radius: var(--radius-sm);
-  border-left: 3px solid rgba(240, 147, 251, 0.4);
+  border-left: 3px solid rgba(240,147,251,0.4);
 }
 
-/* 概览卡片 */
 .overview-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -424,10 +446,7 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
-.ov-card {
-  padding: 16px 12px;
-  text-align: center;
-}
+.ov-card { padding: 16px 12px; text-align: center; }
 
 .ov-value {
   display: block;
@@ -446,11 +465,7 @@ onMounted(() => {
   margin-top: 4px;
 }
 
-/* 图表 */
-.chart-card {
-  padding: 16px;
-  margin-bottom: 12px;
-}
+.chart-card { padding: 16px; margin-bottom: 12px; }
 
 .chart-title {
   font-size: 14px;
@@ -466,13 +481,8 @@ onMounted(() => {
   padding: 20px 0;
 }
 
-.chart-area {
-  overflow-x: auto;
-}
-
-.trend-svg {
-  display: block;
-}
+.chart-area { overflow-x: auto; }
+.trend-svg { display: block; }
 
 .chart-labels {
   display: flex;
@@ -480,10 +490,7 @@ onMounted(() => {
   margin-top: 8px;
 }
 
-.chart-label {
-  font-size: 10px;
-  color: var(--text-muted);
-}
+.chart-label { font-size: 10px; color: var(--text-muted); }
 
 .trend-summary {
   font-size: 12px;
@@ -493,23 +500,11 @@ onMounted(() => {
   font-style: italic;
 }
 
-/* 分布 */
-.dist-card {
-  padding: 16px;
-  margin-bottom: 12px;
-}
+.dist-card { padding: 16px; margin-bottom: 12px; }
 
-.dist-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+.dist-bars { display: flex; flex-direction: column; gap: 10px; }
 
-.dist-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.dist-row { display: flex; align-items: center; gap: 10px; }
 
 .dist-label {
   font-size: 12px;
@@ -540,11 +535,118 @@ onMounted(() => {
   text-align: right;
 }
 
-/* 菜单 */
-.menu-list {
+/* ===== 情绪画像墙 ===== */
+.gallery-card {
+  padding: 16px;
   margin-bottom: 12px;
-  overflow: hidden;
 }
+
+.gallery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.gallery-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.gallery-item {
+  cursor: pointer;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.3);
+  transition: transform 0.2s;
+}
+
+.gallery-item:hover {
+  transform: scale(1.02);
+}
+
+.gallery-img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+}
+
+.gallery-emoji { font-size: 14px; }
+
+.gallery-time {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* 全屏预览 */
+.image-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.image-preview-card {
+  background: var(--glass-strong);
+  border-radius: 20px;
+  overflow: hidden;
+  max-width: 360px;
+  width: 100%;
+  position: relative;
+}
+
+.image-preview-full {
+  width: 100%;
+  display: block;
+}
+
+.image-preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.4);
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 菜单 */
+.menu-list { margin-bottom: 12px; overflow: hidden; }
 
 .menu-item {
   display: flex;
@@ -558,18 +660,9 @@ onMounted(() => {
   color: var(--text-primary);
 }
 
-.menu-item:last-child {
-  border-bottom: none;
-}
-
-.menu-item:hover {
-  background: rgba(240,147,251,0.05);
-}
-
-.arrow {
-  margin-left: auto;
-  color: var(--text-muted);
-}
+.menu-item:last-child { border-bottom: none; }
+.menu-item:hover { background: rgba(240,147,251,0.05); }
+.arrow { margin-left: auto; color: var(--text-muted); }
 
 /* 底部导航 */
 .bottom-nav {
@@ -585,8 +678,7 @@ onMounted(() => {
 }
 
 .bottom-nav button {
-  width: 48px;
-  height: 48px;
+  width: 48px; height: 48px;
   border: none;
   background: transparent;
   border-radius: 50%;

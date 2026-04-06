@@ -49,7 +49,7 @@
         </div>
       </div>
 
-      <!-- 情绪画像（放在消息列表里面） -->
+      <!-- 情绪画像 -->
       <div v-if="latestImage" class="emotion-image-card glass-card">
         <p class="image-label">🎨 今日情绪画像</p>
         <img
@@ -59,11 +59,12 @@
         />
       </div>
 
-      <!-- 画像加载中提示 -->
+      <!-- 画像加载中 -->
       <div v-if="imageLoading" class="image-loading">
         🎨 正在生成今日情绪画像...
       </div>
 
+      <!-- AI正在输入 -->
       <div v-if="isTyping" class="message assistant">
         <div class="bubble assistant typing">
           <span class="dot"></span>
@@ -73,8 +74,32 @@
       </div>
     </div>
 
+    <!-- 录音提示 -->
+    <div v-if="isRecording" class="recording-hint">
+      🎙️ 松开发送
+    </div>
+
+    <!-- 转录中提示 -->
+    <div v-if="isTranscribing" class="recording-hint" style="background: rgba(102,126,234,0.9)">
+      ✨ 正在识别语音...
+    </div>
+
     <!-- 底部输入区 -->
     <div class="input-area glass-card">
+      <!-- 麦克风按钮 -->
+      <button
+          class="mic-btn"
+          :class="{ recording: isRecording }"
+          @mousedown="startRecording"
+          @mouseup="stopRecording"
+          @touchstart.prevent="startRecording"
+          @touchend.prevent="stopRecording"
+          :disabled="isTyping || isTranscribing"
+          title="按住说话"
+      >
+        {{ isRecording ? '🔴' : '🎙️' }}
+      </button>
+
       <textarea
           v-model="inputText"
           placeholder="说说你的感受..."
@@ -84,6 +109,7 @@
           @input="autoResize"
           ref="textareaRef"
       ></textarea>
+
       <button
           class="send-btn"
           :disabled="!inputText.trim() || isTyping"
@@ -121,6 +147,12 @@ const showPersonaMenu = ref(false)
 const currentPersona = ref('WARM')
 const latestImage = ref<string | null>(null)
 const imageLoading = ref(false)
+
+// 录音相关
+const isRecording = ref(false)
+const isTranscribing = ref(false)
+let mediaRecorder: MediaRecorder | null = null
+let audioChunks: Blob[] = []
 
 let ws: WebSocket | null = null
 let pollTimer: ReturnType<typeof setTimeout> | null = null
@@ -194,13 +226,13 @@ async function loadLatestImage() {
     if (res.imageBase64) {
       latestImage.value = res.imageBase64
       imageLoading.value = false
-      return true  // 拉到了
+      return true
     }
   } catch (e) {}
-  return false  // 没拉到
+  return false
 }
 
-// ===== 轮询画像（最多试6次，每10秒一次，共1分钟）=====
+// ===== 轮询画像 =====
 function pollForImage(attempts = 0) {
   if (attempts >= 6) {
     imageLoading.value = false
@@ -216,7 +248,80 @@ function pollForImage(attempts = 0) {
   }, 10000)
 }
 
-// ===== WebSocket连接（Token鉴权）=====
+// ===== 录音开始 =====
+async function startRecording() {
+  if (isTyping.value || isTranscribing.value) return
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    audioChunks = []
+
+    // Chrome优先用webm，Safari用mp4
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : MediaRecorder.isTypeSupported('audio/mp4')
+                ? 'audio/mp4'
+                : ''
+
+    mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream)
+
+    mediaRecorder.ondataavailable = (e) => {
+      console.log('收到音频数据:', e.data.size)  // 加这行
+      if (e.data.size > 0) audioChunks.push(e.data)
+    }
+
+    mediaRecorder.start(100)  // 每100ms收集一次数据
+    isRecording.value = true
+    console.log('录音开始, mimeType:', mimeType)  // 加这行
+  } catch (e) {
+    console.error('麦克风权限被拒绝', e)
+  }
+}
+
+// ===== 录音结束，上传Whisper =====
+async function stopRecording() {
+  if (!mediaRecorder || !isRecording.value) return
+  isRecording.value = false
+
+  mediaRecorder.stop()
+  mediaRecorder.onstop = async () => {
+    mediaRecorder!.stream.getTracks().forEach(t => t.stop())
+
+    const mimeType = mediaRecorder?.mimeType || 'audio/webm'
+    const cleanExt = mimeType.includes('mp4') ? 'mp4' : 'webm'
+    const audioBlob = new Blob(audioChunks, { type: mimeType })
+
+    isTranscribing.value = true
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob, `audio.${cleanExt}`)
+
+      const token = authStore.token
+      const res = await fetch('http://localhost:8080/api/whisper/transcribe', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      })
+      const data = await res.json()
+
+      if (data.text && data.text.trim()) {
+        inputText.value = data.text.trim()
+        isTranscribing.value = false
+        await sendMessage()
+      } else {
+        isTranscribing.value = false
+      }
+    } catch (e) {
+      console.error('语音识别失败', e)
+      isTranscribing.value = false
+    }
+  }
+}
+
+// ===== WebSocket连接 =====
 function connectWS() {
   const token = authStore.token
   ws = new WebSocket(`ws://localhost:8080/ws/emotion?token=${token}`)
@@ -259,7 +364,6 @@ function connectWS() {
 
   ws.onclose = () => {
     console.log('WebSocket disconnected')
-    // WS关闭时（用户刷新/离开）开始轮询画像
     imageLoading.value = true
     pollForImage()
   }
@@ -292,7 +396,7 @@ async function scrollToBottom() {
 onMounted(async () => {
   await loadHistory()
   await loadPersona()
-  await loadLatestImage()  // 进入页面先拉一次历史画像
+  await loadLatestImage()
   connectWS()
 })
 
@@ -321,21 +425,15 @@ onUnmounted(() => {
 }
 
 .bg-orb-1 {
-  width: 500px;
-  height: 500px;
+  width: 500px; height: 500px;
   background: radial-gradient(circle, #b8e0ff, #d4b8ff);
-  top: -200px;
-  right: -150px;
-  opacity: 0.5;
+  top: -200px; right: -150px; opacity: 0.5;
 }
 
 .bg-orb-2 {
-  width: 400px;
-  height: 400px;
+  width: 400px; height: 400px;
   background: radial-gradient(circle, #b8f0e0, #c8d8ff);
-  bottom: 0;
-  left: -150px;
-  opacity: 0.4;
+  bottom: 0; left: -150px; opacity: 0.4;
 }
 
 .top-bar {
@@ -355,9 +453,7 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 
-.top-center {
-  position: relative;
-}
+.top-center { position: relative; }
 
 .mood-indicator {
   font-size: 13px;
@@ -394,14 +490,10 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 
-.top-right {
-  display: flex;
-  gap: 8px;
-}
+.top-right { display: flex; gap: 8px; }
 
 .nav-btn {
-  width: 36px;
-  height: 36px;
+  width: 36px; height: 36px;
   border: none;
   background: var(--glass-light);
   border-radius: 50%;
@@ -464,15 +556,8 @@ onUnmounted(() => {
   max-width: 80%;
 }
 
-.message.user {
-  align-self: flex-end;
-  align-items: flex-end;
-}
-
-.message.assistant {
-  align-self: flex-start;
-  align-items: flex-start;
-}
+.message.user { align-self: flex-end; align-items: flex-end; }
+.message.assistant { align-self: flex-start; align-items: flex-start; }
 
 .bubble {
   padding: 12px 16px;
@@ -505,8 +590,7 @@ onUnmounted(() => {
 }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: 8px; height: 8px;
   background: var(--text-secondary);
   border-radius: 50%;
   animation: bounce 1.2s ease-in-out infinite;
@@ -527,7 +611,6 @@ onUnmounted(() => {
   padding: 0 4px;
 }
 
-/* 情绪画像 */
 .emotion-image-card {
   padding: 16px;
   text-align: center;
@@ -555,6 +638,20 @@ onUnmounted(() => {
   font-style: italic;
 }
 
+/* 录音提示 */
+.recording-hint {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 80, 80, 0.9);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 20;
+}
+
 .input-area {
   display: flex;
   align-items: flex-end;
@@ -564,6 +661,37 @@ onUnmounted(() => {
   border-radius: var(--radius-lg);
   position: relative;
   z-index: 10;
+}
+
+/* 麦크风按钮 */
+.mic-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--glass-light);
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.mic-btn.recording {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.mic-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .input-box {
@@ -582,8 +710,7 @@ onUnmounted(() => {
 .input-box::placeholder { color: var(--text-muted); }
 
 .send-btn {
-  width: 40px;
-  height: 40px;
+  width: 40px; height: 40px;
   border-radius: 50%;
   background: var(--gradient-primary);
   border: none;
