@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.Map;
 
 @Slf4j
@@ -31,41 +32,55 @@ public class WhisperController {
             log.info("收到语音文件: size={}bytes, type={}",
                     audio.getSize(), audio.getContentType());
 
-            // 构建multipart请求
+            // 1. 把webm存到临时文件
+            File tempWebm = File.createTempFile("audio_", ".webm");
+            audio.transferTo(tempWebm);
+
+            // 2. 用FFmpeg转成wav
+            File tempWav = File.createTempFile("audio_", ".wav");
+            ProcessBuilder pb = new ProcessBuilder(
+                    "ffmpeg", "-y",
+                    "-i", tempWebm.getAbsolutePath(),
+                    "-ar", "16000",  // 16kHz采样率
+                    "-ac", "1",      // 单声道
+                    "-f", "wav",
+                    tempWav.getAbsolutePath()
+            );
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            process.waitFor();
+
+            // 3. 读取wav文件
+            byte[] wavBytes = java.nio.file.Files.readAllBytes(tempWav.toPath());
+
+            // 4. 上传Whisper
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
             headers.set("Authorization", "Bearer " + openaiApiKey);
 
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-
-            // 音频文件
-            // 改成
-            String contentType = audio.getContentType() != null ? audio.getContentType() : "";
-            String ext = contentType.contains("mp4") ? "mp4" : "webm";
-            ByteArrayResource audioResource = new ByteArrayResource(audio.getBytes()) {
+            ByteArrayResource wavResource = new ByteArrayResource(wavBytes) {
                 @Override
-                public String getFilename() {
-                    return "audio." + ext;
-                }
+                public String getFilename() { return "audio.wav"; }
             };
 
-            body.add("file", audioResource);
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", wavResource);
             body.add("model", "whisper-1");
             body.add("language", "zh");
 
             HttpEntity<MultiValueMap<String, Object>> request =
                     new HttpEntity<>(body, headers);
-
-            // 调Whisper API
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     "https://api.openai.com/v1/audio/transcriptions",
-                    request,
-                    Map.class
+                    request, Map.class
             );
+
+            // 5. 清理临时文件
+            tempWebm.delete();
+            tempWav.delete();
 
             String text = (String) response.getBody().get("text");
             log.info("Whisper转录结果: {}", text);
-
             return Map.of("text", text != null ? text : "");
 
         } catch (Exception e) {

@@ -17,7 +17,9 @@
       <div v-if="pet.level >= 4" class="aura-ring"></div>
 
       <!-- 精灵本体 -->
-      <div class="sprite-wrapper" :class="`emotion-${pet.currentEmotion}`">
+      <div class="sprite-wrapper"
+           :class="`emotion-${pet.currentEmotion}`"
+           :style="spriteStyle">
         <svg class="sprite-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <filter id="glow">
@@ -183,6 +185,15 @@ const pet = ref<Pet>({
   growthPoints: 0,
   primaryColor: '#b8f0e0',
   currentEmotion: 1
+})
+
+const spriteStyle = computed(() => {
+  const v = Number(pet.value.vitality) || 0
+  return {
+    opacity: 0.5 + (v / 200),           // 0→0.5, 100→1.0
+    filter: `saturate(${50 + v / 2}%)`, // 0→50%, 100→100%
+    '--particle-speed': `${3 - (v / 50)}s`  // 活力高粒子转得快
+  }
 })
 
 function goTo(path: string) { router.push(path) }
@@ -400,7 +411,8 @@ onMounted(() => {
   background: var(--color, #b8f0e0);
   top: 50%; left: 50%;
   opacity: 0;
-  animation: orbit 3s var(--delay, 0s) ease-in-out infinite;
+  /* 把原来的 animation: orbit 3s ... 改成 */
+  animation: orbit var(--particle-speed, 3s) var(--delay, 0s) ease-in-out infinite;
 }
 
 @keyframes orbit {

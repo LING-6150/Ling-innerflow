@@ -50,9 +50,16 @@ public class PetService {
     public PetStatus addVitality(String userId, int tapCount) {
         PetStatus pet = getOrCreate(userId);
 
-        double gain = Math.min(tapCount * 0.1, 5.0); // 最多加5
-        pet.setVitality(pet.getVitality()
-                .add(BigDecimal.valueOf(gain)));
+        double gain = Math.min(tapCount * 0.1, 5.0);
+        BigDecimal newVitality = pet.getVitality()
+                .add(BigDecimal.valueOf(gain));
+
+        // 上限100
+        if (newVitality.compareTo(BigDecimal.valueOf(100)) > 0) {
+            newVitality = BigDecimal.valueOf(100);
+        }
+
+        pet.setVitality(newVitality);
         pet.setGrowthPoints(pet.getGrowthPoints() + (long) gain);
 
         return evolveAndSave(pet, pet.getCurrentEmotion());
@@ -73,11 +80,11 @@ public class PetService {
     // ===== 核心：计算凝聚度，触发进化 =====
     private PetStatus evolveAndSave(PetStatus pet, int emotionLevel) {
 
-        // 加权公式：cohesion = awareness×0.5 + stability×0.3 + vitality×0.2
+
+        // 改成（vitality不参与进化计算）
         BigDecimal newCohesion = pet.getAwareness()
-                .multiply(BigDecimal.valueOf(0.5))
-                .add(pet.getStability().multiply(BigDecimal.valueOf(0.3)))
-                .add(pet.getVitality().multiply(BigDecimal.valueOf(0.2)));
+                .multiply(BigDecimal.valueOf(0.6))
+                .add(pet.getStability().multiply(BigDecimal.valueOf(0.4)));
 
         // 上限100
         int cohesionInt = Math.min(newCohesion

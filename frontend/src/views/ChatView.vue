@@ -292,13 +292,20 @@ async function stopRecording() {
     mediaRecorder!.stream.getTracks().forEach(t => t.stop())
 
     const mimeType = mediaRecorder?.mimeType || 'audio/webm'
-    const cleanExt = mimeType.includes('mp4') ? 'mp4' : 'webm'
     const audioBlob = new Blob(audioChunks, { type: mimeType })
 
     isTranscribing.value = true
     try {
+      // 用AudioContext把webm转成wav
+      const arrayBuffer = await audioBlob.arrayBuffer()
+      const audioContext = new AudioContext()
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+
+      // 转wav
+      const wavBlob = audioBufferToWav(audioBuffer)
+
       const formData = new FormData()
-      formData.append('audio', audioBlob, `audio.${cleanExt}`)
+      formData.append('audio', wavBlob, 'audio.wav')
 
       const token = authStore.token
       const res = await fetch('http://localhost:8080/api/whisper/transcribe', {
@@ -318,8 +325,56 @@ async function stopRecording() {
     } catch (e) {
       console.error('语音识别失败', e)
       isTranscribing.value = false
+    } finally {
+      isTranscribing.value = false
     }
   }
+}
+
+// wav转换函数（放在script里，函数外面）
+function audioBufferToWav(buffer: AudioBuffer): Blob {
+  const numChannels = buffer.numberOfChannels
+  const sampleRate = buffer.sampleRate
+  const format = 1 // PCM
+  const bitDepth = 16
+
+  const dataLength = buffer.length * numChannels * (bitDepth / 8)
+  const bufferLength = 44 + dataLength
+  const arrayBuffer = new ArrayBuffer(bufferLength)
+  const view = new DataView(arrayBuffer)
+
+  // WAV header
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i))
+    }
+  }
+
+  writeString(0, 'RIFF')
+  view.setUint32(4, 36 + dataLength, true)
+  writeString(8, 'WAVE')
+  writeString(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, format, true)
+  view.setUint16(22, numChannels, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * numChannels * (bitDepth / 8), true)
+  view.setUint16(32, numChannels * (bitDepth / 8), true)
+  view.setUint16(34, bitDepth, true)
+  writeString(36, 'data')
+  view.setUint32(40, dataLength, true)
+
+  // PCM数据
+  let offset = 44
+  for (let i = 0; i < buffer.length; i++) {
+    for (let ch = 0; ch < numChannels; ch++) {
+      const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i] ?? 0))
+      view.setInt16(offset, sample < 0 ? sample * 32768 : sample * 32767, true)
+      offset += 2
+    }
+  }
+
+  return new Blob([arrayBuffer], { type: 'audio/wav' })
 }
 
 // ===== WebSocket连接 =====
