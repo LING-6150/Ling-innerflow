@@ -6,6 +6,7 @@ import com.ling.linginnerflow.agent.state.EmotionState;
 import com.ling.linginnerflow.image.EmotionImageService;
 import com.ling.linginnerflow.memory.MemoryService;
 import com.ling.linginnerflow.memory.Persona;
+import com.ling.linginnerflow.pet.PetService;
 import com.ling.linginnerflow.user.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,8 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
     private final ChatMessageRepository chatMessageRepository;
     // 注入
     private final EmotionImageService emotionImageService;
+    // 注入PetService
+    private final PetService petService;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session)
@@ -165,6 +168,11 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
 
                         // 存短期记忆
                         memoryService.addMessage(userId, "assistant", aiReply);
+
+                        // doOnComplete里，存完记忆后加
+                        petService.addAwareness(userId,
+                                (Integer) session.getAttributes()
+                                        .getOrDefault("lastEmotionLevel", 1));
 
                         log.info("流式回复完成: userId={}", userId);
                     } catch (Exception e) {

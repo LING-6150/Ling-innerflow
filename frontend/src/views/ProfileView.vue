@@ -158,6 +158,7 @@
       <button @click="goTo('/')">💬</button>
       <button @click="goTo('/tap')">🎯</button>
       <button @click="goTo('/wall')">🌿</button>
+      <button @click="goTo('/pet')">✨</button>
       <button @click="goTo('/profile')" class="active">👤</button>
     </div>
   </div>

@@ -3,6 +3,7 @@ package com.ling.linginnerflow.checkin;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ling.linginnerflow.agent.EmotionGraph;
 import com.ling.linginnerflow.emotion.EmotionLogService;
+import com.ling.linginnerflow.pet.PetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -14,7 +15,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 
 import java.security.MessageDigest;
 import java.util.HashMap;
@@ -51,6 +51,9 @@ public class CheckInConsumer {
     private static final String PROCESSED_KEY = "kafka:processed:checkin";
 
     private final EmotionLogService emotionLogService;
+
+    // 注入PetService
+    private final PetService petService;
 
 
     @KafkaListener(

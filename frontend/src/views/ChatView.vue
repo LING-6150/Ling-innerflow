@@ -21,6 +21,7 @@
       <div class="top-right">
         <button class="nav-btn" @click="goTo('/tap')">🎯</button>
         <button class="nav-btn" @click="goTo('/wall')">🌿</button>
+        <button class="nav-btn" @click="goTo('/pet')">✨</button>
         <button class="nav-btn" @click="goTo('/profile')">👤</button>
       </div>
     </div>

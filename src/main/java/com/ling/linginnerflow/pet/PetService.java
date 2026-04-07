@@ -60,6 +60,7 @@ public class PetService {
 
     // ===== 打卡，增加稳定性 =====
     public PetStatus addStability(String userId) {
+        log.info("addStability被调用: userId={}", userId);  // 加这行
         PetStatus pet = getOrCreate(userId);
 
         pet.setStability(pet.getStability()

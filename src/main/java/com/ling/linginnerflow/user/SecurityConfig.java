@@ -68,7 +68,8 @@ public class SecurityConfig {
                 "http://localhost:3000",  // Vue开发服务器
                 "http://localhost:8080",  // 本地测试
                 "http://localhost:5173",  // Vite开发服务器
-                "http://localhost:5174"  // 加这行
+                "http://localhost:5174",// 加这行
+                "http://localhost:5175"
         ));
 
         config.setAllowedMethods(List.of(

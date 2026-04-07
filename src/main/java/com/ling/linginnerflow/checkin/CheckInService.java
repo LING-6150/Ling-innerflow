@@ -1,5 +1,6 @@
 package com.ling.linginnerflow.checkin;
 
+import com.ling.linginnerflow.pet.PetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ public class CheckInService {
 
     private final CheckInRepository checkInRepository;
     private final CheckInProducer checkInProducer;
+    private final PetService petService;
 
     /**
      * 提交打卡（异步版）
@@ -37,6 +39,7 @@ public class CheckInService {
         }
 
         CheckIn saved = checkInRepository.save(checkIn);
+        petService.addStability(userId);  // 加这行
         log.info("打卡记录已保存: id={}, needAI={}", saved.getId(), needAI);
 
         // 只有needAI=true才发Kafka

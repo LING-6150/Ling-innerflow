@@ -125,6 +125,7 @@
       <button @click="goTo('/')">💬</button>
       <button @click="goTo('/tap')">🎯</button>
       <button @click="goTo('/wall')" class="active">🌿</button>
+      <button @click="goTo('/pet')">✨</button>
       <button @click="goTo('/profile')">👤</button>
     </div>
   </div>
@@ -203,23 +204,16 @@ async function loadReactions(list: CheckIn[]) {
 
 async function loadWall(reset = true) {
   if (reset) {
-    page.value = 0
-    hasMore.value = true
     wallList.value = []
   }
-  if (!hasMore.value || loadingMore.value) return
-  loading.value = reset
-  loadingMore.value = !reset
+  loading.value = true
 
   try {
-    const res = await request.get('/api/checkin/wall', {
-      params: { page: page.value, size: 10 }
-    }) as any
-    const newItems = res.content as CheckIn[]
+    const res = await request.get('/api/checkin/wall') as any
+    const newItems = res as CheckIn[]
     await loadReactions(newItems)
     wallList.value = reset ? newItems : [...wallList.value, ...newItems]
-    hasMore.value = res.hasMore
-    page.value++
+    hasMore.value = false  // 暂时关闭分页
   } finally {
     loading.value = false
     loadingMore.value = false

@@ -73,6 +73,7 @@
       <button @click="goTo('/')">💬</button>
       <button @click="goTo('/tap')" class="active">🎯</button>
       <button @click="goTo('/wall')">🌿</button>
+      <button @click="goTo('/pet')">✨</button>
       <button @click="goTo('/profile')">👤</button>
     </div>
   </div>
@@ -82,6 +83,8 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+// 在import区域加
+import request from '@/api/request'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -118,16 +121,21 @@ function setMode(newMode: 'relief' | 'meditation') {
   ws?.send(JSON.stringify({ type: 'mode_change', mode: newMode }))
 }
 
-function handleTap() {
+// 在count.value等变量定义处加一个本地tap计数
+const localTapCount = ref(0)
 
-  // 震动反馈
-  if (navigator.vibrate) {
-    navigator.vibrate(15)  // 15ms短促震动
-  }
+function handleTap() {
+  if (navigator.vibrate) navigator.vibrate(15)
 
   isRippling.value = false
   setTimeout(() => { isRippling.value = true }, 10)
   ws?.send(JSON.stringify({ type: 'tap', mode: mode.value }))
+
+  // 本地计数，每10次通知宠物
+  localTapCount.value++
+  if (localTapCount.value % 10 === 0) {
+    request.post('/api/pet/tap', { count: 10 }).catch(() => {})
+  }
 }
 
 function continueSession() {
