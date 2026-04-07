@@ -40,8 +40,13 @@
           :class="['message', msg.role]"
       >
         <div class="bubble" :class="msg.role">
-          <span>{{ msg.content }}</span>
+          <img v-if="msg.isImage"
+               :src="msg.content"
+               style="max-width:200px; border-radius:12px; display:block"
+               alt="分享的图片" />
+          <span v-else>{{ msg.content }}</span>
         </div>
+
         <div v-if="msg.companionText" class="emotion-tag">
           {{ msg.companionText }}
         </div>
@@ -101,6 +106,18 @@
         {{ isRecording ? '🔴' : '🎙️' }}
       </button>
 
+      <!-- 图片上传按钮 -->
+      <label class="img-btn" :class="{ disabled: isTyping }">
+        📷
+        <input
+            type="file"
+            accept="image/*"
+            style="display:none"
+            @change="handleImageUpload"
+            ref="imageInputRef"
+        />
+      </label>
+
       <textarea
           v-model="inputText"
           placeholder="说说你的感受..."
@@ -136,6 +153,7 @@ interface Message {
   content: string
   emotionLevel?: number
   companionText?: string
+  isImage?: boolean  // 加这行
 }
 
 const messages = ref<Message[]>([])
@@ -149,9 +167,58 @@ const currentPersona = ref('WARM')
 const latestImage = ref<string | null>(null)
 const imageLoading = ref(false)
 
+//加载图片
+const imageInputRef = ref<HTMLInputElement>()
+const imageEmotionLevel = ref(-1)
+
+async function handleImageUpload(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+
+  isTranscribing.value = true
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const token = authStore.token
+    const res = await fetch('http://localhost:8080/api/emotion/analyze-image', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    })
+    const data = await res.json()
+    imageEmotionLevel.value = data.emotionLevel || -1
+
+    // 显示图片预览消息
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string
+      messages.value.push({
+        role: 'user',
+        content: base64,  // 存base64
+        isImage: true,    // 标记是图片
+        emotionLevel: imageEmotionLevel.value
+      })
+      scrollToBottom()
+    }
+    reader.readAsDataURL(file)
+
+    // 自动发一条消息触发AI回复
+    inputText.value = '我分享了一张图片'
+    await sendMessage()
+
+  } catch (e) {
+    console.error('图片上传失败', e)
+  } finally {
+    isTranscribing.value = false
+    if (imageInputRef.value) imageInputRef.value.value = ''
+  }
+}
 // 录音相关
 const isRecording = ref(false)
 const isTranscribing = ref(false)
+const voiceEmotionLevel = ref(-1)  // 加在这里
+
 let mediaRecorder: MediaRecorder | null = null
 let audioChunks: Blob[] = []
 
@@ -318,6 +385,10 @@ async function stopRecording() {
       if (data.text && data.text.trim()) {
         inputText.value = data.text.trim()
         isTranscribing.value = false
+
+        // 把语音情绪等级存起来，发消息时带上
+        voiceEmotionLevel.value = data.voiceEmotionLevel || -1
+
         await sendMessage()
       } else {
         isTranscribing.value = false
@@ -435,7 +506,15 @@ async function sendMessage() {
   isTyping.value = true
   if (textareaRef.value) textareaRef.value.style.height = 'auto'
   scrollToBottom()
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(text)
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      text: text,
+      voiceEmotionLevel: voiceEmotionLevel.value,
+      imageEmotionLevel: imageEmotionLevel.value  // 加这行
+    }))
+    voiceEmotionLevel.value = -1 // 重置
+    imageEmotionLevel.value = -1  // 加这行
+  }
 }
 
 function autoResize(e: Event) {
@@ -780,6 +859,22 @@ onUnmounted(() => {
   flex-shrink: 0;
   box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
 }
+
+.img-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--glass-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.img-btn:hover { background: var(--glass-strong); }
+.img-btn.disabled { opacity: 0.4; pointer-events: none; }
 
 .send-btn:hover:not(:disabled) { transform: scale(1.1); }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }

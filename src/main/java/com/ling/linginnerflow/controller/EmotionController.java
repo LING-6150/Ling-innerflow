@@ -4,6 +4,7 @@ import com.ling.linginnerflow.agent.EmotionGraph;
 import com.ling.linginnerflow.emotion.EmotionLogService;
 import com.ling.linginnerflow.memory.MemoryService;
 import com.ling.linginnerflow.memory.Persona;
+import com.ling.linginnerflow.multimodal.EmotionFusionService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.bsc.langgraph4j.state.AgentState;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +26,7 @@ public class EmotionController {
     private final EmotionGraph emotionGraph;
     private final MemoryService memoryService;
     private final EmotionLogService emotionLogService;
+    private final EmotionFusionService emotionFusionService;
 
     /**
      * 情绪分析接口（带记忆版）
@@ -133,5 +136,17 @@ public class EmotionController {
         String userId = getUserIdFromToken();
         Persona persona = memoryService.getPersona(userId);
         return Map.of("persona", persona.name());
+    }
+    @PostMapping("/analyze-image")
+    public Map<String, Object> analyzeImage(
+            @RequestParam("image") MultipartFile image) {
+        try {
+            int imageLevel = emotionFusionService
+                    .analyzeImageEmotion(image.getBytes(),
+                            image.getContentType());
+            return Map.of("emotionLevel", imageLevel);
+        } catch (Exception e) {
+            return Map.of("emotionLevel", -1);
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.ling.linginnerflow.agent.state.EmotionState;
 import com.ling.linginnerflow.image.EmotionImageService;
 import com.ling.linginnerflow.memory.MemoryService;
 import com.ling.linginnerflow.memory.Persona;
+import com.ling.linginnerflow.multimodal.EmotionFusionService;
 import com.ling.linginnerflow.pet.PetService;
 import com.ling.linginnerflow.user.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,8 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
     private final EmotionImageService emotionImageService;
     // 注入PetService
     private final PetService petService;
+
+    private final EmotionFusionService emotionFusionService;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session)
@@ -66,22 +69,41 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
         String userId = (String) session.getAttributes().get("userId");
         if (userId == null) return;
 
-        String userInput = message.getPayload();
-        log.info("收到消息: userId={}, input={}", userId, userInput);
+// 解析消息（支持纯文字和JSON两种格式）
+        String payload = message.getPayload();
+        String userInput;
+        int voiceEmotionLevel = -1;
+        int imageEmotionLevel = -1;
 
-        // 存短期记忆
+        if (payload.startsWith("{")) {
+            Map<String, Object> msg = objectMapper.readValue(payload, Map.class);
+            userInput = (String) msg.getOrDefault("text", "");
+            voiceEmotionLevel = (int) msg.getOrDefault("voiceEmotionLevel", -1);
+            imageEmotionLevel = (int) msg.getOrDefault("imageEmotionLevel", -1);  // 加这行
+        } else {
+            userInput = payload;
+        }
+
+        log.info("收到消息: userId={}, input={}, voiceLevel={}",
+                userId, userInput, voiceEmotionLevel);
+
+// 存短期记忆
         memoryService.addMessage(userId, "user", userInput);
 
-        // 分析情绪
+// 文字情绪分析
         EmotionState state = new EmotionState();
         state.setUserInput(userInput);
         state.setUserId(userId);
         state = emotionAnalyzerNode.analyze(state);
 
+// 多模态融合
+        int textLevel = state.getEmotionLevel();
+        int level = emotionFusionService.fuseEmotions(
+                textLevel, voiceEmotionLevel, imageEmotionLevel);
+        state.setEmotionLevel(level);
+        Persona persona = memoryService.getPersona(userId);  // 加这行
 
-        // 分析情绪后，获取用户人格
-        int level = state.getEmotionLevel();
-        Persona persona = memoryService.getPersona(userId); // 加这行
+
 
         // 分析完情绪后加
         session.getAttributes().put("lastEmotionLevel", level);
