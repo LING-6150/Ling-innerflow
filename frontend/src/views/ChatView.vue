@@ -13,9 +13,9 @@
           {{ moodText }} {{ personaEmoji }}
         </span>
         <div v-if="showPersonaMenu" class="persona-menu glass-card">
-          <button @click="switchPersona('WARM')">🌸 温柔</button>
-          <button @click="switchPersona('QUIET')">🌙 安静</button>
-          <button @click="switchPersona('RATIONAL')">🧠 理性</button>
+          <button @click="switchPersona('WARM')">🌸 Warm</button>
+          <button @click="switchPersona('QUIET')">🌙 Quiet</button>
+          <button @click="switchPersona('RATIONAL')">🧠 Rational</button>
         </div>
       </div>
       <div class="top-right">
@@ -27,12 +27,11 @@
     </div>
 
     <!-- 对话区域 -->
-    <div class="messages-area" ref="messagesRef">
-      <div v-if="messages.length === 0" class="welcome-msg">
-        <div class="welcome-icon">🌸</div>
-        <p>你好，{{ authStore.username }}</p>
-        <p class="welcome-sub">今天想聊聊什么？</p>
-      </div>
+    <div v-if="messages.length === 0" class="welcome-msg">
+      <div class="welcome-icon">🌸</div>
+      <p>Hello, {{ authStore.username }}</p>
+      <p class="welcome-sub">What's on your mind today?</p>
+    </div>
 
       <div
           v-for="(msg, index) in messages"
@@ -43,7 +42,7 @@
           <img v-if="msg.isImage"
                :src="msg.content"
                style="max-width:200px; border-radius:12px; display:block"
-               alt="分享的图片" />
+               alt="Shared image" />
           <span v-else>{{ msg.content }}</span>
         </div>
 
@@ -57,17 +56,17 @@
 
       <!-- 情绪画像 -->
       <div v-if="latestImage" class="emotion-image-card glass-card">
-        <p class="image-label">🎨 今日情绪画像</p>
+        <p class="image-label">🎨 Emotional Canvas</p>
         <img
             :src="`data:image/png;base64,${latestImage}`"
             class="emotion-image"
-            alt="情绪画像"
+            alt="Emotion Canvas"
         />
       </div>
 
       <!-- 画像加载中 -->
       <div v-if="imageLoading" class="image-loading">
-        🎨 正在生成今日情绪画像...
+        🎨 Painting your inner flow...
       </div>
 
       <!-- AI正在输入 -->
@@ -82,12 +81,12 @@
 
     <!-- 录音提示 -->
     <div v-if="isRecording" class="recording-hint">
-      🎙️ 松开发送
+      🎙️ Release to Send
     </div>
 
     <!-- 转录中提示 -->
     <div v-if="isTranscribing" class="recording-hint" style="background: rgba(102,126,234,0.9)">
-      ✨ 正在识别语音...
+      ✨ Transcribing...
     </div>
 
     <!-- 底部输入区 -->
@@ -101,7 +100,7 @@
           @touchstart.prevent="startRecording"
           @touchend.prevent="stopRecording"
           :disabled="isTyping || isTranscribing"
-          title="按住说话"
+          title="Hold to Speak"
       >
         {{ isRecording ? '🔴' : '🎙️' }}
       </button>
@@ -120,7 +119,7 @@
 
       <textarea
           v-model="inputText"
-          placeholder="说说你的感受..."
+          placeholder="Share your feelings..."
           class="input-box"
           rows="1"
           @keydown.enter.prevent="sendMessage"
@@ -136,7 +135,6 @@
         <span>→</span>
       </button>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -147,6 +145,8 @@ import request from '@/api/request'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const voiceConfidence = ref(0.0)
+const imageConfidence = ref(0.0)
 
 interface Message {
   role: 'user' | 'assistant'
@@ -204,11 +204,11 @@ async function handleImageUpload(e: Event) {
     reader.readAsDataURL(file)
 
     // 自动发一条消息触发AI回复
-    inputText.value = '我分享了一张图片'
+    inputText.value = 'I Shared an image'
     await sendMessage()
 
   } catch (e) {
-    console.error('图片上传失败', e)
+    console.error('Image upload failed', e)
   } finally {
     isTranscribing.value = false
     if (imageInputRef.value) imageInputRef.value.value = ''
@@ -226,9 +226,9 @@ let ws: WebSocket | null = null
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 
 const moodTextMap: Record<string, string> = {
-  calm: '🌙 平静中',
-  anxious: '💜 有些焦虑',
-  tired: '🌫️ 有些疲惫'
+  calm: '🌙 Feeling Calm',
+  anxious: '💜 Feeling Anxious',
+  tired: '🌫️ Feeling Tired'
 }
 const moodText = computed(() => moodTextMap[currentMood.value])
 
@@ -238,11 +238,11 @@ const personaEmoji = computed(() =>
 
 function emotionLevelText(level: number): string {
   const map: Record<number, string> = {
-    1: '🌿 我听到你了',
-    2: '🤍 我在这里陪你',
-    3: '💜 我感受到你的不容易',
-    4: '🫂 我在，你不是一个人',
-    5: '🆘 我非常担心你'
+    1: '🌿 I hear you.',
+    2: "🤍 I'm here with you.",
+    3: "💜 I can see how hard this is.",
+    4: "🫂 I'm here. You're not alone.",
+    5: "🆘 I'm very concerned about you."
   }
   return map[level] || ''
 }
@@ -263,7 +263,7 @@ async function loadHistory() {
       await scrollToBottom()
     }
   } catch (e) {
-    console.error('加载历史失败', e)
+    console.error('Failed to load history', e)
   }
 }
 
@@ -281,7 +281,7 @@ async function switchPersona(p: string) {
     await request.post('/api/emotion/persona', { persona: p })
     currentPersona.value = p
   } catch (e) {
-    console.error('切换人格失败', e)
+    console.error('Failed to switch persona', e)
   } finally {
     showPersonaMenu.value = false
   }
@@ -337,15 +337,15 @@ async function startRecording() {
         : new MediaRecorder(stream)
 
     mediaRecorder.ondataavailable = (e) => {
-      console.log('收到音频数据:', e.data.size)  // 加这行
+      console.log('Audio chunk received:', e.data.size)  // 加这行
       if (e.data.size > 0) audioChunks.push(e.data)
     }
 
     mediaRecorder.start(100)  // 每100ms收集一次数据
     isRecording.value = true
-    console.log('录音开始, mimeType:', mimeType)  // 加这行
+    console.log('Recording started, mimeType:', mimeType)  // 加这行
   } catch (e) {
-    console.error('麦克风权限被拒绝', e)
+    console.error('Audio capture started', e)
   }
 }
 
@@ -388,13 +388,14 @@ async function stopRecording() {
 
         // 把语音情绪等级存起来，发消息时带上
         voiceEmotionLevel.value = data.voiceEmotionLevel || -1
+        voiceConfidence.value = data.voiceConfidence || 0.0  // 加这行
 
         await sendMessage()
       } else {
         isTranscribing.value = false
       }
     } catch (e) {
-      console.error('语音识别失败', e)
+      console.error('Voice recognition failed', e)
       isTranscribing.value = false
     } finally {
       isTranscribing.value = false
@@ -510,7 +511,9 @@ async function sendMessage() {
     ws.send(JSON.stringify({
       text: text,
       voiceEmotionLevel: voiceEmotionLevel.value,
-      imageEmotionLevel: imageEmotionLevel.value  // 加这行
+      voiceConfidence: voiceConfidence.value,   // 加这行
+      imageEmotionLevel: imageEmotionLevel.value,  // 加这行
+      imageConfidence: imageConfidence.value    // 加这行
     }))
     voiceEmotionLevel.value = -1 // 重置
     imageEmotionLevel.value = -1  // 加这行

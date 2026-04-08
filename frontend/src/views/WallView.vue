@@ -5,9 +5,9 @@
 
     <!-- 顶部 -->
     <div class="top-bar glass-card">
-      <h2 class="page-title">🌿 树洞</h2>
+      <h2 class="page-title">🌿 Space</h2>
       <button class="write-btn" @click="showInput = !showInput">
-        {{ showInput ? '取消' : '+ 写下来' }}
+        {{ showInput ? 'Cancel' : '+ Write it down' }}
       </button>
     </div>
 
@@ -15,7 +15,7 @@
     <div v-if="showInput" class="input-card glass-card-strong">
       <textarea
           v-model="newContent"
-          placeholder="今天想说点什么..."
+          placeholder="What’s on your mind today..."
           class="wall-input"
           rows="3"
       ></textarea>
@@ -24,33 +24,33 @@
           <button
               :class="['vis-btn', { active: visibility === 'public' }]"
               @click="visibility = 'public'"
-          >🌍 公开</button>
+          >🌍 Public</button>
           <button
               :class="['vis-btn', { active: visibility === 'private' }]"
               @click="visibility = 'private'"
-          >🔒 私密</button>
+          >🔒 Private</button>
         </div>
         <!-- AI开关 -->
         <div class="ai-switch">
-          <span class="ai-switch-label">🤖 AI解析</span>
+          <span class="ai-switch-label">🤖 AI Insights</span>
           <button
               :class="['ai-toggle', { active: needAI }]"
               @click="needAI = !needAI"
-          >{{ needAI ? '开' : '关' }}</button>
+          >{{ needAI ? 'On' : 'Off' }}</button>
         </div>
         <button
             class="submit-btn"
             :disabled="!newContent.trim() || submitting"
             @click="submitCheckIn"
         >
-          {{ submitting ? '发送中...' : '发送' }}
+          {{ submitting ? 'Sending...' : 'Sent' }}
         </button>
       </div>
     </div>
 
     <!-- 成功提示 -->
     <div v-if="showSuccess" class="success-toast">
-      🌸 已记录{{ needAI ? '，AI正在分析中...' : '' }}
+      🌸 Saved {{ needAI ? '，AI is analyzing...' : '' }}
     </div>
 
     <!-- Tab切换 -->
@@ -58,16 +58,16 @@
       <button
           :class="['tab-btn', { active: activeTab === 'wall' }]"
           @click="activeTab = 'wall'"
-      >公开树洞</button>
+      >Open Space</button>
       <button
           :class="['tab-btn', { active: activeTab === 'mine' }]"
           @click="loadMyHistory"
-      >我的记录</button>
+      >My History</button>
     </div>
 
     <!-- 内容列表 -->
     <div class="cards-area" @scroll="onWallScroll">
-      <div v-if="loading" class="loading-text">加载中...</div>
+      <div v-if="loading" class="loading-text">Loading...</div>
 
       <div
           v-for="item in displayList"
@@ -93,7 +93,7 @@
 
         <!-- 等待AI -->
         <div v-else-if="item.emotionLevel === 0" class="ai-pending">
-          AI分析中...
+          AI is reflecting...
         </div>
 
         <!-- 抱抱按钮 -->
@@ -103,7 +103,7 @@
               :class="{ hugged: item.hugged }"
               @click="toggleHug(item)"
           >
-            {{ item.hugged ? '💜 已抱抱' : '🤍 抱抱' }}
+            {{ item.hugged ? '💜 Sent a hug' : '🤍 Give a hug' }}
             <span v-if="item.hugCount && item.hugCount > 0">
               {{ item.hugCount }}
             </span>
@@ -112,11 +112,11 @@
       </div>
 
       <!-- 新增这两行 -->
-      <div v-if="loadingMore" class="loading-text" style="padding: 12px 0">加载更多...</div>
-      <div v-if="!hasMore && wallList.length > 0" class="loading-text" style="padding: 12px 0">已经到底啦 🌿</div>
+      <div v-if="loadingMore" class="loading-text" style="padding: 12px 0">Loading more...</div>
+      <div v-if="!hasMore && wallList.length > 0" class="loading-text" style="padding: 12px 0">You've reached the end 🌿</div>
 
       <div v-if="!loading && displayList.length === 0" class="empty-text">
-        还没有记录，写下今天的第一句话吧
+        A blank canvas... Share your first words today.
       </div>
     </div>
 
@@ -184,9 +184,9 @@ function formatTime(time: string): string {
   const now = new Date()
   const diff = now.getTime() - d.getTime()
   const hours = Math.floor(diff / 3600000)
-  if (hours < 1) return '刚刚'
-  if (hours < 24) return `${hours}小时前`
-  return `${Math.floor(hours / 24)}天前`
+  if (hours < 1) return 'Just now'
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}days ago`
 }
 
 async function loadReactions(list: CheckIn[]) {

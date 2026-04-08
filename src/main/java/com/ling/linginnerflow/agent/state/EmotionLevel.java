@@ -5,11 +5,11 @@ import lombok.Getter;
 @Getter
 public enum EmotionLevel {
 
-    L1(1, "日常压力", "你感觉有些疲惫，需要被倾听"),
-    L2(2, "轻度焦虑", "你有些负面情绪，需要引导"),
-    L3(3, "中度困扰", "你的情绪影响到了日常生活，需要CBT干预"),
-    L4(4, "严重困扰", "你需要专业帮助"),
-    L5(5, "危机状态", "你现在非常痛苦，我们需要立刻联系专业支持");
+    L1(1, "Everyday Stress", "You seem a little tired and just need to be heard."),
+    L2(2, "Mild Anxiety", "You're carrying some negative feelings and could use gentle support."),
+    L3(3, "Moderate Distress", "Your emotions are affecting your daily state. Some grounding may help."),
+    L4(4, "Severe Distress", "You're really struggling right now. You don't have to face this alone."),
+    L5(5, "Crisis", "You're in intense pain right now. Let's get you connected to real support immediately.");
 
     private final int level;
     private final String name;
@@ -25,6 +25,6 @@ public enum EmotionLevel {
         for (EmotionLevel e : values()) {
             if (e.level == level) return e;
         }
-        return L1; // 默认L1
+        return L1;
     }
 }

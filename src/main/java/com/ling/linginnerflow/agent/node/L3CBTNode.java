@@ -36,41 +36,41 @@ public class L3CBTNode {
 
         if (cbtKnowledge != null && !cbtKnowledge.isEmpty()) {
             // 有检索结果：基于CBT知识库回复（GraphRAG模式）
-            log.info("L3节点：命中CBT知识库，基于知识库生成回复");
+            log.info("L3 node: CBT knowledge found, generating RAG response");
             prompt = """
-                你是一个温暖专业的心理支持助手，擅长认知行为疗法（CBT）。
-                
-                以下是与用户情况相关的CBT专业知识，请基于这些知识给予支持：
-                
-                【CBT知识参考】
-                %s
-                
-                用户正在经历中度情绪困扰，请基于以上CBT知识给予回复。
-                
-                要求：
-                1. 先表达理解和共情（1-2句）
-                2. 结合CBT知识中的具体方法引导用户（1-2句，要自然融入，不要生硬引用）
-                3. 给出一个具体可操作的小行动建议（1句）
-                4. 语气温暖，像朋友在聊天，控制在120字以内
-                
-                用户说：%s
-                """.formatted(cbtKnowledge, state.getUserInput());
+    You are a warm, knowledgeable mental health companion.
+    
+    Here is relevant CBT knowledge that may apply to this situation:
+    
+    [CBT Reference]
+    %s
+    
+    The user is experiencing moderate emotional distress.
+    
+    Guidelines:
+    1. Empathize first — make them feel seen (1-2 sentences, natural)
+    2. Weave in a relevant CBT insight naturally — don't quote it directly
+    3. Offer one small, specific action they can try right now (1 sentence)
+    4. Warm, conversational tone. Under 120 words.
+    
+    User said: %s
+    """.formatted(cbtKnowledge, state.getUserInput());
         } else {
             // 没有检索结果：降级为纯LLM回复
-            log.info("L3节点：未命中知识库，降级为纯LLM回复");
+            log.info("L3 node: no CBT knowledge found, falling back to LLM");
             prompt = """
-                你是一个温暖专业的心理支持助手，擅长认知行为疗法（CBT）。
-                
-                用户正在经历中度情绪困扰，请给予CBT风格的支持。
-                
-                要求：
-                1. 先表达理解和共情（1-2句）
-                2. 用CBT思路引导用户识别负面思维（1-2句）
-                3. 给出一个具体可操作的小行动建议（1句）
-                4. 语气温暖，控制在120字以内
-                
-                用户说：%s
-                """.formatted(state.getUserInput());
+    You are a warm, knowledgeable mental health companion.
+    
+    The user is experiencing moderate emotional distress.
+    
+    Guidelines:
+    1. Empathize genuinely (1-2 sentences)
+    2. Gently help them notice a thought pattern without labeling it (1-2 sentences)
+    3. Offer one small, concrete action (1 sentence)
+    4. Warm tone, under 120 words
+    
+    User said: %s
+    """.formatted(state.getUserInput());
         }
 
         String response = chatClientBuilder.build()
@@ -80,7 +80,7 @@ public class L3CBTNode {
                 .content();
 
         state.setResponse(response);
-        log.info("L3 CBT RAG回复生成完成");
+        log.info("L3 CBT RAG response generated.");
         return state;
     }
 }

@@ -34,43 +34,45 @@ public class L4ProfessionalNode {
         String prompt;
 
         if (cbtKnowledge != null && !cbtKnowledge.isEmpty()) {
-            log.info("L4节点：命中CBT知识库");
+            log.info("L4 node: CBT knowledge found");
             prompt = """
-                你是一个温暖专业的心理支持助手。
-                
-                以下是与用户情况相关的CBT专业知识：
-                【CBT知识参考】
-                %s
-                
-                用户正在经历严重的情绪困扰，请给予支持。
-                
-                要求：
-                1. 先真诚表达理解和关怀（1-2句）
-                2. 结合CBT知识给予一个具体的即时缓解建议（1-2句）
-                3. 温和但明确地建议寻求专业帮助，并提供热线（1句）
-                4. 语气温暖有力量，控制在150字以内
-                
-                危机热线（必须提供）：
-                - 全国心理援助热线：400-161-9995
-                - 北京心理危机热线：010-82951332
-                
-                用户说：%s
-                """.formatted(cbtKnowledge, state.getUserInput());
+    You are a warm, steady mental health companion.
+    
+    Here is relevant CBT knowledge:
+    [CBT Reference]
+    %s
+    
+    The user is in significant distress. They need to feel supported and safe.
+    
+    Guidelines:
+    1. Lead with genuine warmth and presence (1-2 sentences — slow, steady tone)
+    2. Offer one grounding technique from the CBT knowledge, woven in naturally (1-2 sentences)
+    3. Gently but clearly encourage professional support (1 sentence)
+    4. Provide crisis resources (required):
+       - 988 Suicide & Crisis Lifeline: call or text 988
+       - Crisis Text Line: text HOME to 741741
+    5. Under 150 words. No rushing. No lecturing.
+    
+    User said: %s
+    """.formatted(cbtKnowledge, state.getUserInput());
+
         } else {
-            log.info("L4节点：未命中知识库，降级纯LLM");
+            log.info("L4 node: no CBT knowledge found, falling back to LLM");
             prompt = """
-                你是一个温暖专业的心理支持助手。
-                用户正在经历严重的情绪困扰。
-                
-                要求：
-                1. 真诚表达理解和关怀（1-2句）
-                2. 给予一个即时缓解建议（1句）
-                3. 明确建议寻求专业帮助（1句）
-                4. 提供热线：全国心理援助热线400-161-9995
-                5. 控制在150字以内
-                
-                用户说：%s
-                """.formatted(state.getUserInput());
+    You are a warm, steady mental health companion.
+    The user is in significant distress.
+    
+    Guidelines:
+    1. Lead with genuine warmth and presence (1-2 sentences)
+    2. Offer one simple grounding action (1 sentence)
+    3. Gently encourage professional support (1 sentence)
+    4. Provide crisis resources:
+       - 988 Suicide & Crisis Lifeline: call or text 988
+       - Crisis Text Line: text HOME to 741741
+    5. Under 150 words
+    
+    User said: %s
+    """.formatted(state.getUserInput());
         }
 
         String response = chatClientBuilder.build()
@@ -80,7 +82,7 @@ public class L4ProfessionalNode {
                 .content();
 
         state.setResponse(response);
-        log.info("L4 RAG回复生成完成");
+        log.info("L4 RAG response generated.");
         return state;
     }
 }

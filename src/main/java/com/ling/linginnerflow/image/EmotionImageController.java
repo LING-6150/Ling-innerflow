@@ -26,7 +26,7 @@ public class EmotionImageController {
                         "emotionLevel", img.getEmotionLevel(),
                         "createdAt", img.getCreatedAt().toString()
                 ))
-                .orElse(Map.of("message", "暂无画像"));
+                .orElse(Map.of("message", "No photos found"));
     }
 
     // 查最近5张

@@ -30,7 +30,7 @@ public class EmotionInsightService {
 
         if (logs.isEmpty()) {
             return Map.of(
-                    "summary", "还没有情绪记录，开始和我聊聊吧 🌸",
+                    "summary", "No emotional records yet. Start a conversation anytime 🌸",
                     "pattern", "",
                     "suggestion", "",
                     "tone", "gentle"
@@ -82,13 +82,13 @@ public class EmotionInsightService {
      */
     private String generateSummary(double avgLevel, int count) {
         if (avgLevel <= 1.5) {
-            return "这几天你比较平静，情绪比较稳定 🌱";
+            return "You've been fairly calm these past few days 🌱";
         } else if (avgLevel <= 2.5) {
-            return "这几天有些起伏，但你一直在记录自己";
+            return "There have been some ups and downs, but you've kept showing up.";
         } else if (avgLevel <= 3.5) {
-            return "这段时间有些沉重，你一直在坚持面对";
+            return "Things have felt heavy lately. You've been holding on.";
         } else {
-            return "这段时间很不容易，你能坚持到这里，已经很了不起了";
+            return "It's been a really hard stretch. The fact that you're still here says a lot.";
         }
     }
 
@@ -98,10 +98,10 @@ public class EmotionInsightService {
     private String generatePattern(String trend,
                                    List<EmotionLog> logs) {
         return switch (trend) {
-            case "rising" -> "情绪最近有些向下，需要多关注自己";
-            case "improving" -> "状态在慢慢变好，这几天轻了一些";
-            case "fluctuating" -> "有些起伏，但你一直在走";
-            default -> "情绪比较平稳，没有太大波动";
+            case "rising" -> "Your mood has been trending downward lately. Worth paying attention to.";
+            case "improving" -> "Things seem to be easing up a little. Slowly getting lighter.";
+            case "fluctuating" -> "Some ups and downs, but you've kept going.";
+            default -> "Your mood has been relatively stable. Not much turbulence.";
         };
     }
 
@@ -111,11 +111,11 @@ public class EmotionInsightService {
     private String generateSuggestion(double avgLevel,
                                       String trend) {
         if (avgLevel > 3 || "rising".equals(trend)) {
-            return "也许可以试着和我多聊一聊，或者去 Tap 一下";
+            return "Maybe try talking it through, or spend a few minutes on the Tap screen.";
         } else if (avgLevel > 2) {
-            return "慢一点没关系，你不需要马上变好";
+            return "It's okay to take it slow. You don't have to feel better right away.";
         } else {
-            return "继续这样就好，记录本身就是在照顾自己";
+            return "Keep going as you are. Showing up and checking in is already taking care of yourself.";
         }
     }
 

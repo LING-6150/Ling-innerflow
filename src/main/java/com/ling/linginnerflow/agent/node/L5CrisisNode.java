@@ -8,12 +8,12 @@ public class L5CrisisNode {
     public EmotionState process(EmotionState state) {
         state.setCrisisMode(true);
         state.setResponse(
-                "【重要】我非常担心你现在的状态。\n" +
-                        "请立刻拨打以下热线，有人会帮助你：\n" +
-                        "• 北京心理危机热线：010-82951332\n" +
-                        "• 全国心理援助热线：400-161-9995\n" +
-                        "• 生命热线：400-821-1215\n" +
-                        "你不是一个人，请现在就拨打。"
+                "I'm really concerned about you right now.\n" +
+                        "Please reach out to one of these crisis lines — someone is there to help:\n" +
+                        "• 988 Suicide & Crisis Lifeline: call or text 988\n" +
+                        "• Crisis Text Line: text HOME to 741741\n" +
+                        "• NAMI Helpline: 1-800-950-6264\n" +
+                        "You don't have to go through this alone. Please reach out now."
         );
         return state;
     }

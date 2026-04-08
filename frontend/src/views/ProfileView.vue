@@ -3,17 +3,17 @@
     <div class="bg-orb bg-orb-1"></div>
     <div class="bg-orb bg-orb-2"></div>
 
-    <!-- 顶部用户信息 -->
+    <!-- User Info -->
     <div class="user-card glass-card-strong">
       <div class="avatar">{{ usernameInitial }}</div>
       <div class="user-info">
         <h2 class="username">{{ authStore.username }}</h2>
-        <p class="user-sub">{{ overview.total || 0 }} 次情绪记录</p>
+        <p class="user-sub">{{ overview.total || 0 }} emotional check-ins</p>
       </div>
-      <button class="logout-btn" @click="logout">退出</button>
+      <button class="logout-btn" @click="logout">Sign Out</button>
     </div>
 
-    <!-- 情绪解读 -->
+    <!-- Emotional Insight -->
     <div v-if="insight.summary" class="insight-card" :class="`tone-${insight.tone}`">
       <div class="insight-icon">🌸</div>
       <div class="insight-content">
@@ -23,27 +23,27 @@
       </div>
     </div>
 
-    <!-- 情绪概览卡片 -->
+    <!-- Overview Cards -->
     <div class="overview-cards">
       <div class="ov-card glass-card">
         <span class="ov-value">{{ overview.avgLevel || '-' }}</span>
-        <span class="ov-label">平均情绪</span>
+        <span class="ov-label">Avg Mood</span>
       </div>
       <div class="ov-card glass-card">
         <span class="ov-value">{{ overview.total || 0 }}</span>
-        <span class="ov-label">7天记录</span>
+        <span class="ov-label">7-Day Records</span>
       </div>
       <div class="ov-card glass-card">
         <span class="ov-value">{{ emotionEmoji(overview.latestLevel) }}</span>
-        <span class="ov-label">最近状态</span>
+        <span class="ov-label">Latest Mood</span>
       </div>
     </div>
 
-    <!-- 情绪趋势图 -->
+    <!-- Mood Trend Chart -->
     <div class="chart-card glass-card">
-      <h3 class="chart-title">情绪趋势（近7天）</h3>
+      <h3 class="chart-title">Mood Trend (Last 7 Days)</h3>
       <div v-if="trendData.length === 0" class="chart-empty">
-        暂无数据，开始对话后会显示趋势
+        No data yet. Start a conversation to see your trend.
       </div>
       <div v-else class="chart-area">
         <svg :width="chartWidth" height="120" class="trend-svg">
@@ -79,9 +79,9 @@
       </div>
     </div>
 
-    <!-- 情绪分布 -->
+    <!-- Mood Distribution -->
     <div class="dist-card glass-card">
-      <h3 class="chart-title">情绪分布（近30天）</h3>
+      <h3 class="chart-title">Mood Distribution (Last 30 Days)</h3>
       <div class="dist-bars">
         <div v-for="(count, level) in distribution" :key="level" class="dist-row">
           <span class="dist-label">{{ emotionLevelLabel(level as string) }}</span>
@@ -93,15 +93,15 @@
       </div>
     </div>
 
-    <!-- ===== 情绪画像墙 ===== -->
+    <!-- Emotional Canvas Gallery -->
     <div class="gallery-card glass-card">
       <div class="gallery-header">
-        <h3 class="chart-title" style="margin-bottom:0">🎨 情绪画像</h3>
-        <span class="gallery-sub">每次对话后生成</span>
+        <h3 class="chart-title" style="margin-bottom:0">🎨 Emotional Canvas</h3>
+        <span class="gallery-sub">Generated after each conversation</span>
       </div>
 
       <div v-if="recentImages.length === 0" class="chart-empty">
-        还没有画像，结束一次对话后自动生成
+        No canvas yet. Finish a conversation to generate one.
       </div>
 
       <div v-else class="gallery-grid">
@@ -114,7 +114,7 @@
           <img
               :src="`data:image/png;base64,${img.imageBase64}`"
               class="gallery-img"
-              :alt="`情绪画像 ${img.emotionLevel}`"
+              :alt="`Emotional Canvas Level ${img.emotionLevel}`"
           />
           <div class="gallery-meta">
             <span class="gallery-emoji">{{ emotionEmoji(img.emotionLevel) }}</span>
@@ -124,13 +124,13 @@
       </div>
     </div>
 
-    <!-- 画像全屏预览 -->
+    <!-- Full Screen Preview -->
     <div v-if="selectedImage" class="image-overlay" @click="selectedImage = null">
       <div class="image-preview-card" @click.stop>
         <img
             :src="`data:image/png;base64,${selectedImage.imageBase64}`"
             class="image-preview-full"
-            alt="情绪画像"
+            alt="Emotional Canvas"
         />
         <div class="image-preview-meta">
           <span>{{ emotionEmoji(selectedImage.emotionLevel) }} {{ emotionLevelLabel2(selectedImage.emotionLevel) }}</span>
@@ -140,20 +140,20 @@
       </div>
     </div>
 
-    <!-- 功能列表 -->
+    <!-- Quick Menu -->
     <div class="menu-list glass-card">
       <div class="menu-item" @click="goTo('/')">
-        <span>💬</span><span>开始对话</span><span class="arrow">→</span>
+        <span>💬</span><span>Start Conversation</span><span class="arrow">→</span>
       </div>
       <div class="menu-item" @click="goTo('/tap')">
-        <span>🎯</span><span>Tap解压</span><span class="arrow">→</span>
+        <span>🎯</span><span>Tap Release</span><span class="arrow">→</span>
       </div>
       <div class="menu-item" @click="goTo('/wall')">
-        <span>🌿</span><span>打卡树洞</span><span class="arrow">→</span>
+        <span>🌿</span><span>Journal Wall</span><span class="arrow">→</span>
       </div>
     </div>
 
-    <!-- 底部导航 -->
+    <!-- Bottom Nav -->
     <div class="bottom-nav glass-card">
       <button @click="goTo('/')">💬</button>
       <button @click="goTo('/tap')">🎯</button>
@@ -209,15 +209,15 @@ function emotionEmoji(level: number): string {
 
 function emotionLevelLabel(level: string): string {
   const map: Record<string, string> = {
-    'L1': '🌱 平静', 'L2': '💙 低落',
-    'L3': '💜 困扰', 'L4': '🖤 沉重', 'L5': '🆘 危机'
+    'L1': '🌱 Calm', 'L2': '💙 Low',
+    'L3': '💜 Troubled', 'L4': '🖤 Heavy', 'L5': '🆘 Crisis'
   }
   return map[level] || level
 }
 
 function emotionLevelLabel2(level: number): string {
   const map: Record<number, string> = {
-    1: '平静', 2: '低落', 3: '困扰', 4: '沉重', 5: '危机'
+    1: 'Calm', 2: 'Low', 3: 'Troubled', 4: 'Heavy', 5: 'Crisis'
   }
   return map[level] || ''
 }
@@ -231,9 +231,9 @@ function formatTime(time: string): string {
   const now = new Date()
   const diff = now.getTime() - d.getTime()
   const hours = Math.floor(diff / 3600000)
-  if (hours < 1) return '刚刚'
-  if (hours < 24) return `${hours}小时前`
-  return `${Math.floor(hours / 24)}天前`
+  if (hours < 1) return 'Just now'
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
 }
 
 function openImage(img: EmotionImage) {

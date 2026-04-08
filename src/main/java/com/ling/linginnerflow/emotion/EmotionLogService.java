@@ -105,7 +105,7 @@ public class EmotionLogService {
 
         if (logs.isEmpty()) {
             return Map.of(
-                    "message", "最近7天暂无情绪记录",
+                    "message", "No emotion records found for the past 7 days",
                     "total", 0
             );
         }

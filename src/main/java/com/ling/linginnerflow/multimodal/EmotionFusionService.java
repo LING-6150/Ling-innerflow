@@ -1,4 +1,3 @@
-// src/main/java/com/ling/linginnerflow/multimodal/EmotionFusionService.java
 package com.ling.linginnerflow.multimodal;
 
 import lombok.RequiredArgsConstructor;
@@ -9,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
 import java.util.Map;
 
 @Slf4j
@@ -18,104 +16,108 @@ import java.util.Map;
 public class EmotionFusionService {
 
     private final RestTemplate restTemplate;
+    private static final String PYTHON_SERVICE_URL = "http://127.0.0.1:5001/analyze";
 
-    private static final String PYTHON_SERVICE_URL =
-            "http://127.0.0.1:5001/analyze";
-
-    // ===== 语音情绪分析 =====
-    public int analyzeVoiceEmotion(byte[] wavBytes) {
+    // ===== 语音情绪分析（返回level+confidence）=====
+    public EmotionAnalysisResult analyzeVoiceEmotion(byte[] wavBytes) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            ByteArrayResource audioResource =
-                    new ByteArrayResource(wavBytes) {
-                        @Override
-                        public String getFilename() { return "audio.wav"; }
-                    };
+            ByteArrayResource audioResource = new ByteArrayResource(wavBytes) {
+                @Override public String getFilename() { return "audio.wav"; }
+            };
 
-            MultiValueMap<String, Object> body =
-                    new LinkedMultiValueMap<>();
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("audio", audioResource);
 
-            HttpEntity<MultiValueMap<String, Object>> request =
-                    new HttpEntity<>(body, headers);
-
             ResponseEntity<Map> response = restTemplate.postForEntity(
-                    PYTHON_SERVICE_URL, request, Map.class);
+                    PYTHON_SERVICE_URL,
+                    new HttpEntity<>(body, headers), Map.class);
 
-            int voiceLevel = (int) response.getBody()
-                    .getOrDefault("emotionLevel", 2);
-            log.info("语音情绪分析结果: L{}", voiceLevel);
-            return voiceLevel;
+            int level = ((Number) response.getBody()
+                    .getOrDefault("emotionLevel", 2)).intValue();
+            double confidence = ((Number) response.getBody()
+                    .getOrDefault("probability", 0.5)).doubleValue();
+
+            log.info("语音情绪分析: L{}, confidence={}", level, confidence);
+            return new EmotionAnalysisResult(level, confidence);
 
         } catch (Exception e) {
-            log.warn("语音情绪分析失败，降级: {}", e.getMessage());
-            return -1; // -1表示分析失败，不参与融合
+            log.warn("语音情绪分析失败: {}", e.getMessage());
+            return new EmotionAnalysisResult(-1, 0.0);
         }
     }
 
-    // ===== 多模态融合（注意力加权）=====
-    // 三模态融合
-    public int fuseEmotions(int textLevel, int voiceLevel, int imageLevel) {
-        double weightedSum = 0;
-        double totalWeight = 0;
-
-        // 文字权重最高
-        weightedSum += textLevel * 0.5;
-        totalWeight += 0.5;
-
-        if (voiceLevel != -1) {
-            weightedSum += voiceLevel * 0.3;
-            totalWeight += 0.3;
-        }
-
-        if (imageLevel != -1) {
-            weightedSum += imageLevel * 0.2;
-            totalWeight += 0.2;
-        }
-
-        int fusedLevel = (int) Math.round(weightedSum / totalWeight);
-        fusedLevel = Math.max(1, Math.min(5, fusedLevel));
-
-        log.info("三模态融合: 文字L{} + 语音L{} + 图片L{} → 融合L{}",
-                textLevel, voiceLevel, imageLevel, fusedLevel);
-
-        return fusedLevel;
-    }
-
-
-    // 图片情绪分析
-    public int analyzeImageEmotion(byte[] imageBytes, String contentType) {
+    // ===== 图片情绪分析（返回level+confidence）=====
+    public EmotionAnalysisResult analyzeImageEmotion(
+            byte[] imageBytes, String contentType) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-            ByteArrayResource imageResource =
-                    new ByteArrayResource(imageBytes) {
-                        @Override
-                        public String getFilename() { return "image.jpg"; }
-                    };
+            ByteArrayResource imageResource = new ByteArrayResource(imageBytes) {
+                @Override public String getFilename() { return "image.jpg"; }
+            };
 
-            MultiValueMap<String, Object> body =
-                    new LinkedMultiValueMap<>();
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("image", imageResource);
-
-            HttpEntity<MultiValueMap<String, Object>> request =
-                    new HttpEntity<>(body, headers);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(
                     "http://127.0.0.1:5001/analyze-image",
-                    request, Map.class);
+                    new HttpEntity<>(body, headers), Map.class);
 
-            int imageLevel = (int) response.getBody()
-                    .getOrDefault("emotionLevel", -1);
-            log.info("图片情绪分析结果: L{}", imageLevel);
-            return imageLevel;
+            int level = ((Number) response.getBody()
+                    .getOrDefault("emotionLevel", -1)).intValue();
+            double confidence = ((Number) response.getBody()
+                    .getOrDefault("confidence", 0.0)).doubleValue();
+
+            log.info("图片情绪分析: L{}, confidence={}", level, confidence);
+            return new EmotionAnalysisResult(level, confidence);
 
         } catch (Exception e) {
             log.warn("图片情绪分析失败: {}", e.getMessage());
-            return -1;
+            return new EmotionAnalysisResult(-1, 0.0);
         }
+    }
+
+    // ===== 动态权重融合 =====
+    public int fuseEmotions(int textLevel,
+                            int voiceLevel, double voiceConf,
+                            int imageLevel, double imageConf) {
+        double textWeight = 0.6;
+        double voiceWeight = 0.0;
+        double imageWeight = 0.0;
+
+        if (voiceLevel != -1) {
+            if (voiceConf >= 0.8)      { voiceWeight = 0.4; textWeight = 0.4; }
+            else if (voiceConf >= 0.5) { voiceWeight = 0.3; textWeight = 0.5; }
+            else                       { voiceWeight = 0.15; }
+        }
+
+        if (imageLevel != -1) {
+            if (imageConf >= 0.5)      { imageWeight = 0.2; textWeight -= 0.2; }
+            else if (imageConf >= 0.3) { imageWeight = 0.1; textWeight -= 0.1; }
+        }
+
+        double total = textWeight + voiceWeight + imageWeight;
+        textWeight /= total;
+        voiceWeight /= total;
+        imageWeight /= total;
+
+        double score = textLevel * textWeight;
+        if (voiceLevel != -1) score += voiceLevel * voiceWeight;
+        if (imageLevel != -1) score += imageLevel * imageWeight;
+
+        int result = Math.max(1, Math.min(5, (int) Math.round(score)));
+
+        log.info("动态权重融合: 文字L{}({}) + 语音L{}(conf={},w={}) + 图片L{}(conf={},w={}) → L{}",
+                textLevel, String.format("%.2f", textWeight),
+                voiceLevel, String.format("%.2f", voiceConf),
+                String.format("%.2f", voiceWeight),
+                imageLevel, String.format("%.2f", imageConf),
+                String.format("%.2f", imageWeight), result);
+
+        return result;
     }
 }

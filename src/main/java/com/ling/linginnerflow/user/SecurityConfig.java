@@ -38,6 +38,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/checkin/wall",    // 加这行，公开树洞不需要登录
+                                "/mcp/**",              // 加这行
                                 "/doc.html",
                                 "/webjars/**",
                                 "/v3/api-docs/**",

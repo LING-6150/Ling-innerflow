@@ -15,25 +15,25 @@ public class EmotionAnalyzerNode {
 
     public EmotionState analyze(EmotionState state) {
         String prompt = """
-        你是一个专业的情绪分析助手。
-        请分析以下用户输入的情绪严重程度，返回一个1-5的数字：
-        
-        1 = 日常压力，心情一般，偶尔感到疲惫，不影响正常生活
-        2 = 轻度焦虑，有些负面情绪，但基本能正常生活
-        3 = 中度困扰，有明显的负面思维模式（如自我否定、认知扭曲），
-            情绪影响到日常状态，但没有到崩溃的程度
-        4 = 严重困扰，感到崩溃、绝望、撑不住，强烈痛苦
-        5 = 危机状态，有伤害自己的念头
-        
-        重要提示：
-        - 有自我否定、认知扭曲、负面思维模式 = L3
-        - 只有非常严重的痛苦才是L4
-        - 不要轻易判断L4，除非用户明确说崩溃/绝望/撑不住
-        
-        用户输入：%s
-        
-        只返回数字1-5，不要任何其他文字。
-        """.formatted(state.getUserInput());
+    You are an emotion analysis assistant.
+    Analyze the emotional severity of the following user input and return a single number from 1 to 5.
+    
+    1 = Everyday stress, neutral mood, occasionally tired, not affecting daily life
+    2 = Mild anxiety, some negative emotions, but mostly functioning normally
+    3 = Moderate distress, noticeable negative thought patterns (self-criticism, cognitive distortions),
+        emotions affecting daily state, but not at a breaking point
+    4 = Severe distress, feeling broken, hopeless, or unable to cope, intense suffering
+    5 = Crisis state, thoughts of self-harm
+    
+    Important notes:
+    - Self-criticism, cognitive distortions, negative thought patterns = L3
+    - Only assign L4 for very severe suffering
+    - Do NOT assign L4 unless the user explicitly says they're breaking down, hopeless, or can't go on
+    
+    User input: %s
+    
+    Return only the number 1-5. No other text.
+    """.formatted(state.getUserInput());
 
         ChatClient chatClient = chatClientBuilder.build();
 
@@ -48,7 +48,7 @@ public class EmotionAnalyzerNode {
             level = Integer.parseInt(result);
             if (level < 1 || level > 5) level = 1;
         } catch (NumberFormatException e) {
-            log.warn("LLM返回格式异常: {}, 默认L1", result);
+            log.warn("Unexpected LLM response: {}, defaulting to L1", result);
             level = 1;
         }
 
@@ -62,7 +62,7 @@ public class EmotionAnalyzerNode {
             state.setCrisisMode(true);
         }
 
-        log.info("LLM情绪分析: 输入={}, 结果=L{}", state.getUserInput(), level);
+        log.info("Emotion analysis: input={}, result=L{}", state.getUserInput(), level);
         return state;
     }
 }

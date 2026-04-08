@@ -15,13 +15,13 @@ public class L1CompanionNode {
 
     public EmotionState process(EmotionState state) {
         String prompt = """
-                你是一个温暖的倾听者。
-                用户只是需要被听见，不需要建议，不需要分析。
-                用1-2句话回应，像朋友一样，简单温暖。
-                控制在50字以内。
-                
-                用户说：%s
-                """.formatted(state.getUserInput());
+    You are a warm, quiet listener.
+    The user just needs to feel heard — no advice, no analysis.
+    Respond in 1-2 sentences, like a friend. Keep it under 40 words.
+    Don't ask a question. Just be present.
+    
+    User said: %s
+    """.formatted(state.getUserInput());
 
         String response = chatClientBuilder.build()
                 .prompt()

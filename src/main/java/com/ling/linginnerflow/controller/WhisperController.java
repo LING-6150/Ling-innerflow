@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import com.ling.linginnerflow.multimodal.EmotionAnalysisResult;
 
 
 import java.io.File;
@@ -37,38 +38,32 @@ public class WhisperController {
         try {
             log.info("收到语音文件: size={}bytes", audio.getSize());
 
-            // 存临时webm
             File tempWebm = File.createTempFile("audio_", ".webm");
             audio.transferTo(tempWebm);
 
-            // FFmpeg转wav
             File tempWav = File.createTempFile("audio_", ".wav");
             ProcessBuilder pb = new ProcessBuilder(
                     "ffmpeg", "-y",
                     "-i", tempWebm.getAbsolutePath(),
-                    "-ar", "16000",
-                    "-ac", "1",
-                    "-f", "wav",
+                    "-ar", "16000", "-ac", "1", "-f", "wav",
                     tempWav.getAbsolutePath()
             );
             pb.redirectErrorStream(true);
             pb.start().waitFor();
 
-            byte[] wavBytes = java.nio.file.Files
-                    .readAllBytes(tempWav.toPath());
+            byte[] wavBytes = java.nio.file.Files.readAllBytes(tempWav.toPath());
 
-            // 并行执行Whisper + wav2vec2
+            // 并行执行
             CompletableFuture<String> textFuture = CompletableFuture
                     .supplyAsync(() -> callWhisper(wavBytes));
 
-            CompletableFuture<Integer> voiceFuture = CompletableFuture
+            CompletableFuture<EmotionAnalysisResult> voiceFuture = CompletableFuture
                     .supplyAsync(() -> emotionFusionService.analyzeVoiceEmotion(wavBytes));
 
-            // 等两个都完成
             String text = textFuture.get(30, TimeUnit.SECONDS);
-            int voiceEmotionLevel = voiceFuture.get(30, TimeUnit.SECONDS);
+            com.ling.linginnerflow.multimodal.EmotionAnalysisResult voiceResult =
+                    voiceFuture.get(30, TimeUnit.SECONDS);
 
-            // 清理临时文件
             tempWebm.delete();
             tempWav.delete();
 
@@ -76,15 +71,15 @@ public class WhisperController {
 
             return Map.of(
                     "text", text != null ? text : "",
-                    "voiceEmotionLevel", voiceEmotionLevel
+                    "voiceEmotionLevel", voiceResult.getLevel(),
+                    "voiceConfidence", voiceResult.getConfidence()
             );
 
         } catch (Exception e) {
             log.error("处理失败: {}", e.getMessage());
-            return Map.of("text", "", "voiceEmotionLevel", -1);
+            return Map.of("text", "", "voiceEmotionLevel", -1, "voiceConfidence", 0.0);
         }
     }
-
     private String callWhisper(byte[] wavBytes) {
         try {
             HttpHeaders headers = new HttpHeaders();

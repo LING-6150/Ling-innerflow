@@ -29,55 +29,55 @@ public class TapWebSocketHandler extends TextWebSocketHandler {
 
     // Level 1：允许存在（tap < 20）
     private static final List<String> ACCEPTANCE_MESSAGES = List.of(
-            "没关系，让它在这里待一会儿",
-            "不用急着变好，现在这样也可以",
-            "你可以什么都不用做",
-            "这些感觉可以存在",
-            "慢一点也没关系",
-            "不需要解释，也不需要改变",
-            "只是待在这里就好",
-            "现在的你已经够了",
-            "不用控制它",
-            "你不需要把一切都弄明白"
+            "It's okay, let it stay here for a while.",
+            "You don't have to feel better right now.",
+            "You don't have to do anything.",
+            "These feelings are allowed to exist.",
+            "Slow is okay.",
+            "No explanation needed, no change required.",
+            "Just being here is enough.",
+            "You are enough, right now.",
+            "You don't have to control it.",
+            "You don't need to figure everything out."
     );
 
     // Level 2：陪伴感（tap 20-80）
     private static final List<String> COMPANION_MESSAGES = List.of(
-            "我在",
-            "你不是一个人在这里",
-            "继续就好，我会陪着你",
-            "我们一起慢慢来",
-            "不用快，也不用停",
-            "你可以靠一会儿",
-            "我在这里等你",
-            "不用说话也可以",
-            "我没有走开",
-            "你不是孤单的"
+            "I'm here.",
+            "You're not alone in this.",
+            "Keep going, I'm with you.",
+            "We'll take it slow together.",
+            "No rush, no need to stop.",
+            "You can lean for a moment.",
+            "I'm here waiting with you.",
+            "You don't have to say anything.",
+            "I haven't gone anywhere.",
+            "You are not alone."
     );
 
     // Level 3：轻微调节（tap > 80）
     private static final List<String> SOFT_GUIDANCE_MESSAGES = List.of(
-            "也许可以慢一点呼吸",
-            "注意一下你的呼吸节奏",
-            "身体也在慢慢放松",
-            "你可以轻轻地放松肩膀",
-            "让空气进来，再慢慢出去",
-            "不用刻意，就顺着它",
-            "你正在慢下来",
-            "你的身体知道怎么做"
+            "Maybe try breathing a little slower.",
+            "Notice the rhythm of your breath.",
+            "Your body is slowly relaxing.",
+            "You can gently soften your shoulders.",
+            "Let the air in, and slowly let it out.",
+            "No effort needed, just follow it.",
+            "You're starting to slow down.",
+            "Your body knows what to do."
     );
 
     // 节奏型（每3-5次才显示）
     private static final List<String> RHYTHM_MESSAGES = List.of(
-            "一下", "再一下", "慢慢来", "继续",
-            "可以的", "在这里", "不用急", "这样就好"
+            "one more", "again", "take it easy", "keep going",
+            "you've got this", "still here", "no rush", "just like that"
     );
 
     private static final Map<Integer, String> MILESTONES = Map.of(
-            10, "已经10下了，你在陪着自己 🌱",
-            50, "50下了，我们还在这里 🌸",
-            100, "100下了，可以休息一下了 ☁️",
-            200, "200下了，今天已经够了 🌙"
+            10, "10 taps — you're showing up for yourself 🌱",
+            50, "50 taps — we're still here 🌸",
+            100, "100 taps — time to rest a little ☁️",
+            200, "200 taps — that's enough for today 🌙"
     );
 
     // emoji分层
@@ -114,11 +114,11 @@ public class TapWebSocketHandler extends TextWebSocketHandler {
         redisTemplate.delete(countKey);
         redisTemplate.delete(TAP_TIME_PREFIX + userId);
 
-        log.info("Tap连接建立: userId={}, lastCount={}", userId, initCount);
+        log.info("Tap connection established: userId={}, lastCount={}", userId, initCount);
 
         sendMessage(session, Map.of(
                 "type", "connected",
-                "message", "准备好了，开始吧 🌱",
+                "message", "Ready when you are 🌱",
                 "lastCount", initCount,
                 "hasLastSession", initCount > 0
         ));
@@ -200,9 +200,9 @@ public class TapWebSocketHandler extends TextWebSocketHandler {
 
         sendMessage(session, Map.of(
                 "type", "reset",
-                "message", "重新开始 🌱"
+                "message", "Starting fresh 🌱"
         ));
-        log.info("Tap重置: userId={}", userId);
+        log.info("Tap reset: userId={}", userId);
     }
 
     private void handleContinue(WebSocketSession session,
@@ -214,12 +214,12 @@ public class TapWebSocketHandler extends TextWebSocketHandler {
         if (lastCount != null) {
             redisTemplate.opsForValue().set(
                     TAP_COUNT_PREFIX + userId, lastCount);
-            log.info("继续上次会话: userId={}, count={}", userId, lastCount);
+            log.info("Continuing last session: userId={}, count={}", userId, lastCount);
 
             sendMessage(session, Map.of(
                     "type", "continued",
                     "count", Long.parseLong(lastCount),
-                    "message", "继续上次，加油 💪"
+                    "message", "Picking up where you left off 💪"
             ));
         }
     }
@@ -234,7 +234,7 @@ public class TapWebSocketHandler extends TextWebSocketHandler {
                     countStr,
                     24, TimeUnit.HOURS
             );
-            log.info("主动保存Tap快照: userId={}, count={}", userId, countStr);
+            log.info("Tap snapshot saved: userId={}, count={}", userId, countStr);
         }
     }
 
@@ -258,16 +258,15 @@ public class TapWebSocketHandler extends TextWebSocketHandler {
                 record.setTotalCount(Integer.parseInt(countStr));
                 record.setMode("relief");
                 tapRecordRepository.save(record);
-                log.info("Tap会话结束，已保存: userId={}, count={}",
-                        userId, countStr);
+                log.info("Tap session ended, saved: userId={}, count={}", userId, countStr);
             } catch (Exception e) {
-                log.error("Tap记录保存失败: {}", e.getMessage());
+                log.error("Tap record save failed: {}", e.getMessage());
             }
         }
 
         redisTemplate.delete(countKey);
         redisTemplate.delete(TAP_TIME_PREFIX + userId);
-        log.info("Tap连接关闭: userId={}", userId);
+        log.info("Tap connection closed: userId={}", userId);
     }
 
     private int calculateBPM(String timeKey) {

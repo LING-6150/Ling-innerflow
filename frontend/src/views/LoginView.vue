@@ -8,18 +8,18 @@
       <div class="logo-area">
         <div class="logo-icon">🌸</div>
         <h1 class="logo-text">InnerFlow</h1>
-        <p class="logo-slogan">在这里，你不需要变好，只需要存在</p>
+        <p class="logo-slogan">You don't need to be better, just be.</p>
       </div>
 
       <div class="tab-switch">
         <button
             :class="['tab-btn', { active: mode === 'login' }]"
             @click="mode = 'login'"
-        >登录</button>
+        >Sign In</button>
         <button
             :class="['tab-btn', { active: mode === 'register' }]"
             @click="mode = 'register'"
-        >注册</button>
+        >Sign Up</button>
       </div>
 
       <div class="form-area">
@@ -27,7 +27,7 @@
           <input
               v-model="form.username"
               type="text"
-              placeholder="你的昵称"
+              placeholder="Username"
               class="input-field"
           />
         </div>
@@ -36,7 +36,7 @@
           <input
               v-model="form.email"
               type="email"
-              placeholder="邮箱"
+              placeholder="email address"
               class="input-field"
           />
         </div>
@@ -45,7 +45,7 @@
           <input
               v-model="form.password"
               type="password"
-              placeholder="密码"
+              placeholder="password"
               class="input-field"
           />
         </div>
@@ -57,8 +57,8 @@
             :disabled="loading"
             @click="handleSubmit"
         >
-          <span v-if="loading">进入中...</span>
-          <span v-else>{{ mode === 'login' ? '进入 InnerFlow' : '创建我的空间' }}</span>
+          <span v-if="loading">Entering...</span>
+          <span v-else>{{ mode === 'login' ? 'Entering InnerFlow' : 'Create my space' }}</span>
         </button>
       </div>
     </div>

@@ -106,7 +106,7 @@
     <!-- 凝聚度进度条 -->
     <div class="cohesion-section glass-card">
       <div class="cohesion-header">
-        <span class="cohesion-label">凝聚度</span>
+        <span class="cohesion-label">Cohesion</span>
         <span class="cohesion-value">{{ pet.cohesion }}/100</span>
       </div>
       <div class="cohesion-bar-bg">
@@ -115,7 +115,7 @@
         </div>
       </div>
       <div class="next-level-hint" v-if="pet.level < 5">
-        还差 {{ nextLevelThreshold - pet.cohesion }} 点进化为{{ nextLevelName }}
+        {{ nextLevelThreshold - pet.cohesion }} points until {{ nextLevelName }}
       </div>
     </div>
 
@@ -124,26 +124,26 @@
       <div class="energy-card glass-card">
         <span class="energy-icon">🧠</span>
         <span class="energy-value">{{ formatEnergy(pet.awareness) }}</span>
-        <span class="energy-label">感知力</span>
-        <span class="energy-hint">对话获得</span>
+        <span class="energy-label">Awareness</span>
+        <span class="energy-hint">via Chat</span>
       </div>
       <div class="energy-card glass-card">
         <span class="energy-icon">🎯</span>
         <span class="energy-value">{{ formatEnergy(pet.vitality) }}</span>
-        <span class="energy-label">生命力</span>
-        <span class="energy-hint">Tap获得</span>
+        <span class="energy-label">Vitality</span>
+        <span class="energy-hint">via Tapping</span>
       </div>
       <div class="energy-card glass-card">
         <span class="energy-icon">🌿</span>
         <span class="energy-value">{{ formatEnergy(pet.stability) }}</span>
-        <span class="energy-label">稳定性</span>
-        <span class="energy-hint">打卡获得</span>
+        <span class="energy-label">Stability</span>
+        <span class="energy-hint">via Journal</span>
       </div>
     </div>
 
     <!-- 成长值 -->
     <div class="growth-card glass-card">
-      <span class="growth-label">✨ 累计成长值</span>
+      <span class="growth-label">✨ Total Growth</span>
       <span class="growth-value">{{ pet.growthPoints }}</span>
     </div>
 
@@ -200,11 +200,11 @@ function goTo(path: string) { router.push(path) }
 
 const levelName = computed(() => {
   const map: Record<number, string> = {
-    1: 'Lv.1 雾气态',
-    2: 'Lv.2 成形态',
-    3: 'Lv.3 稳定态',
-    4: 'Lv.4 光环态',
-    5: 'Lv.5 晶核态'
+    1: 'Lv.1 Nebulous',
+    2: 'Lv.2 Formative',
+    3: 'Lv.3 Stabilized',
+    4: 'Lv.4 Radiant',
+    5: 'Lv.5 Crystalline'
   }
   return map[pet.value.level] || 'Lv.1'
 })
@@ -212,13 +212,13 @@ const levelName = computed(() => {
 const stateName = computed(() => {
   const emotion = pet.value.currentEmotion
   const map: Record<number, string> = {
-    1: '平静地漂浮着',
-    2: '轻轻晃动着',
-    3: '有些不安地收缩',
-    4: '缩在角落，但还在',
-    5: '静静地陪着你'
+    1: 'Floating calmly',
+    2: 'Swaying gently',
+    3: 'Contracting restlessly',
+    4: 'Withdrawn, yet present',
+    5: 'Guiding in silence'
   }
-  return map[emotion] || '平静地漂浮着'
+  return map[emotion] || 'Floating calmly'
 })
 
 const particleCount = computed(() => pet.value.level * 3)
@@ -230,7 +230,11 @@ const nextLevelThreshold = computed(() => {
 
 const nextLevelName = computed(() => {
   const map: Record<number, string> = {
-    1: '成形态', 2: '稳定态', 3: '光环态', 4: '晶核态', 5: '满级'
+    1: 'Formative',
+    2: 'Stabilized',
+    3: 'Radiant',
+    4: 'Crystalline',
+    5: 'Max Level'
   }
   return map[pet.value.level] || ''
 })
@@ -266,7 +270,7 @@ async function loadPet() {
       currentEmotion: res.currentEmotion || 1
     }
   } catch (e) {
-    console.error('加载宠物失败', e)
+    console.error('Failed to load pet data', e)
   }
 }
 

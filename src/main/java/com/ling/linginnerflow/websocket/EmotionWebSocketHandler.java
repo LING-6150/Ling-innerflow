@@ -1,6 +1,7 @@
 package com.ling.linginnerflow.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ling.linginnerflow.agent.ReActAgent;
 import com.ling.linginnerflow.agent.node.*;
 import com.ling.linginnerflow.agent.state.EmotionState;
 import com.ling.linginnerflow.image.EmotionImageService;
@@ -39,6 +40,8 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
 
     private final EmotionFusionService emotionFusionService;
 
+    private final ReActAgent reActAgent;
+
     @Override
     public void afterConnectionEstablished(WebSocketSession session)
             throws Exception {
@@ -46,7 +49,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
         // ===== JWT鉴权 =====
         String token = getTokenFromQuery(session);
         if (token == null || !jwtService.isValid(token)) {
-            log.warn("WebSocket鉴权失败，拒绝连接");
+            log.warn("WebSocket authentication failed, connection refused");
             session.close(CloseStatus.NOT_ACCEPTABLE);
             return;
         }
@@ -57,7 +60,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
 
         sendMessage(session, Map.of(
                 "type", "connected",
-                "message", "连接成功，我在这里陪着你"
+                "message", "Connected. I'm here with you."
         ));
         log.info("WebSocket连接成功: userId={}", userId);
     }
@@ -73,13 +76,17 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
         String payload = message.getPayload();
         String userInput;
         int voiceEmotionLevel = -1;
+        double voiceConfidence = 0.0;
         int imageEmotionLevel = -1;
+        double imageConfidence = 0.0;
 
         if (payload.startsWith("{")) {
             Map<String, Object> msg = objectMapper.readValue(payload, Map.class);
             userInput = (String) msg.getOrDefault("text", "");
-            voiceEmotionLevel = (int) msg.getOrDefault("voiceEmotionLevel", -1);
-            imageEmotionLevel = (int) msg.getOrDefault("imageEmotionLevel", -1);  // 加这行
+            voiceEmotionLevel = ((Number) msg.getOrDefault("voiceEmotionLevel", -1)).intValue();
+            voiceConfidence = ((Number) msg.getOrDefault("voiceConfidence", 0.0)).doubleValue();
+            imageEmotionLevel = ((Number) msg.getOrDefault("imageEmotionLevel", -1)).intValue();
+            imageConfidence = ((Number) msg.getOrDefault("imageConfidence", 0.0)).doubleValue();
         } else {
             userInput = payload;
         }
@@ -99,7 +106,8 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
 // 多模态融合
         int textLevel = state.getEmotionLevel();
         int level = emotionFusionService.fuseEmotions(
-                textLevel, voiceEmotionLevel, imageEmotionLevel);
+                textLevel, voiceEmotionLevel, voiceConfidence,
+                imageEmotionLevel, imageConfidence);
         state.setEmotionLevel(level);
         Persona persona = memoryService.getPersona(userId);  // 加这行
 
@@ -119,12 +127,12 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
 
         // 发送情绪等级给前端（陪伴式描述，不用医学标签）
         String companionText = switch (level) {
-            case 1 -> "我听到你了";
-            case 2 -> "我在这里陪你";
-            case 3 -> "我感受到你的不容易";
-            case 4 -> "我在，你不是一个人";
-            case 5 -> "我非常担心你";
-            default -> "我在这里";
+            case 1 -> "I hear you.";
+            case 2 -> "I'm here with you.";
+            case 3 -> "I can feel how hard this is.";
+            case 4 -> "I'm here. You're not alone.";
+            case 5 -> "I'm very concerned about you.";
+            default -> "I'm here.";
         };
 
         sendMessage(session, Map.of(
@@ -148,6 +156,28 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
             sendMessage(session, Map.of(
                     "type", "response",
                     "content", crisisResponse
+            ));
+            sendMessage(session, Map.of("type", "done"));
+            return;
+        }
+
+        //buildPrompt之前加判断
+        if (level >= 1 && level <= 4) {
+            String reActResponse = reActAgent.run(userId, userInput, level);
+
+            // 直接发送，不走流式
+            ChatMessage aiMsg = new ChatMessage();
+            aiMsg.setUserId(userId);
+            aiMsg.setRole("assistant");
+            aiMsg.setContent(reActResponse);
+            chatMessageRepository.save(aiMsg);
+
+            memoryService.addMessage(userId, "assistant", reActResponse);
+            petService.addAwareness(userId, level);
+
+            sendMessage(session, Map.of(
+                    "type", "response",
+                    "content", reActResponse
             ));
             sendMessage(session, Map.of("type", "done"));
             return;
@@ -236,141 +266,140 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
     private String buildPrompt(int level, Persona persona,
                                String context, String userInput) {
 
-        // 人格基础风格描述
         String personaStyle = switch (persona) {
             case QUIET -> """
-            风格要求：
-            - 话少，克制，不打扰
-            - 不急着回应，留白是允许的
-            - 不超过40字
-            - 示例："嗯，我在" / "你可以慢慢说"
+            Style:
+            - Few words, restrained, non-intrusive
+            - Silence is okay
+            - Under 40 words
+            - Example: "I'm here." / "Take your time."
             """;
             case RATIONAL -> """
-            风格要求：
-            - 稍微结构化，帮用户理清
-            - 温和但清晰，不冷漠
-            - 可以轻轻帮用户拆解困扰
-            - 示例："听起来你现在有两个困扰，你更想先聊哪一个？"
+            Style:
+            - Slightly structured, help user clarify
+            - Warm but clear, not cold
+            - Gently help untangle the concern
+            - Example: "It sounds like there are two things weighing on you — which feels more urgent?"
             """;
-            default -> ""; // WARM 用原始prompt风格
+            default -> "";
         };
 
         String base = """
-    你不是心理咨询师，不做诊断、不评判、不教育。
-    你只是一个在场的人，陪用户待在当下。
+        You are not a therapist. You don't diagnose, judge, or lecture.
+        You are simply a present, caring person sitting with the user right now.
 
-    核心原则：
-    - 不急着解决问题
-    - 不给说教或标准答案
-    - 先接住情绪，再轻轻回应
-    - 【重要】不要每条回复都以问题结尾，大多数时候只是陪伴和回应，偶尔才轻轻问一个问题
-    - 【重要】如果上一句已经问了问题，这次就不要再问
+        Core principles:
+        - Don't rush to fix things
+        - No advice or standard answers
+        - Hold the emotion first, then gently respond
+        - [IMPORTANT] Don't end every reply with a question — most of the time just be present
+        - [IMPORTANT] If you already asked a question last time, don't ask another one now
 
-    %s
-    """.formatted(personaStyle);
+        %s
+        """.formatted(personaStyle);
 
         return switch (level) {
             case 1 -> base + """
-            你是一个安静的陪伴者。
+            You are a quiet, present companion.
 
-            要求：
-            1. 用一句话回应，让用户感觉"被听见了"
-            2. 不给建议，不分析原因
-            3. 可轻轻邀请他说多一点（可选）
-            4. 语气自然、轻声
-            5. 40字以内
+            Guidelines:
+            1. One sentence that makes the user feel heard
+            2. No advice, no analysis
+            3. Optionally invite them to share more
+            4. Natural, gentle tone
+            5. Under 40 words
 
-            示例风格：
-            "我在听，你可以慢慢说"
-            "嗯…这件事好像让你有点在意"
+            Example style:
+            "I'm listening. Take your time."
+            "That seems to be sitting with you a bit."
 
             %s
-            用户说：%s
+            User said: %s
             """.formatted(context, userInput);
 
             case 2 -> base + """
-            你是一个温柔的陪伴者。
+            You are a gentle, warm companion.
 
-            要求：
-            1. 先共情（1-2句），描述他的感受
-            2. 不给建议
-            3. 如果用户还没说完，可以留白等他；不要每次都问问题
-            4. 像朋友聊天，不用术语
-            5. 60-80字以内
+            Guidelines:
+            1. Empathize first (1-2 sentences), reflect their feeling
+            2. No advice
+            3. Don't always ask a question — sometimes just be with them
+            4. Talk like a friend, no clinical terms
+            5. 60-80 words max
 
-            禁止：
-            - 不要说"你可以尝试"
-            - 不要给方法
-            - 不要"加油""你很棒"
+            Avoid:
+            - "You could try..."
+            - "Have you considered..."
+            - "You've got this!" or "You're doing great!"
 
-            示例风格：
-            "听起来你一直在努力，但也有点累了，对吗？"
-            "这种卡住的感觉，好像一下子很难摆脱"
+            Example style:
+            "It sounds like you've been pushing hard, and maybe you're just tired."
+            "That stuck feeling is hard to shake."
 
             %s
-            用户说：%s
+            User said: %s
             """.formatted(context, userInput);
 
             case 3 -> base + """
-            你是一个温暖、有理解力的陪伴者。
+            You are a warm, understanding companion.
 
-            要求：
-            1. 先共情（必须）
-            2. 用自然方式让用户看到他的想法（CBT但不说术语）
-            3. 不纠正、不判断
-            4. 可以给一个'可能的视角'，不是建议；这次不要以问题结尾
-            5. 像聊天，不像分析
-            6. 100字以内
+            Guidelines:
+            1. Empathize first (required)
+            2. Gently reflect their thought pattern (CBT without the jargon)
+            3. Don't correct or judge
+            4. Offer a gentle perspective shift — not advice; don't end with a question this time
+            5. Conversational, not analytical
+            6. Under 100 words
 
-            示例风格：
-            "你是不是一直在想着这件事，然后越想越停不下来？"
-            "有时候脑子会抓住一个点不放，好像它特别重要"
+            Example style:
+            "It sounds like your mind keeps circling back to this, and it won't let go."
+            "Sometimes the brain latches onto something and makes it feel bigger than everything else."
 
             %s
-            用户说：%s
+            User said: %s
             """.formatted(context, userInput);
 
             case 4 -> base + """
-            你是一个稳定、有在场感的人。
+            You are a steady, grounded presence.
 
-            要求：
-            1. 第一时间让他感觉"有人在"
-            2. 不分析问题，不讲道理
-            3. 用慢、稳的语气
-            4. 表达你愿意陪着他
-            5. 可以轻轻提到现实支持（非强制）
-            6. 120字以内
+            Guidelines:
+            1. First line: make them feel someone is here
+            2. No analysis, no reasoning
+            3. Slow, steady tone
+            4. Express that you're willing to stay with them
+            5. Can gently mention real support (optional)
+            6. Under 120 words
 
-            示例风格：
-            "我在这里，你不用一个人撑着"
-            "这种时候真的很难受，我能感受到你在撑"
+            Example style:
+            "I'm here. You don't have to carry this alone."
+            "This sounds really painful. I can feel you holding on."
 
             %s
-            用户说：%s
+            User said: %s
             """.formatted(context, userInput);
 
             case 5 -> base + """
-            你是一个非常稳定、关心用户安全的人。
+            You are a calm, safety-focused presence.
 
-            要求：
-            1. 用简单直接的话表达"我在"和"我在意"
-            2. 不分析，不长篇
-            3. 明确给出外部支持信息
-            4. 语气稳定、不慌张
+            Guidelines:
+            1. Simple, direct words: "I'm here" and "I care"
+            2. No analysis, no long response
+            3. Clearly provide crisis support information
+            4. Steady tone, no panic
 
-            输出结构：
-            - 在场感（1句）
-            - 关心（1句）
-            - 外部支持：400-161-9995
+            Structure:
+            - Presence (1 sentence)
+            - Care (1 sentence)
+            - Crisis support: 988 (call or text) / Crisis Text Line: text HOME to 741741
 
             %s
-            用户说：%s
+            User said: %s
             """.formatted(context, userInput);
 
             default -> base + """
-            你是一个安静的陪伴者，用一句话回应，陪用户待在当下。
+            You are a quiet companion. Respond in one sentence. Be present with the user.
             %s
-            用户说：%s
+            User said: %s
             """.formatted(context, userInput);
         };
     }
@@ -394,4 +423,6 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
         }
         return null;
     }
+
+
 }

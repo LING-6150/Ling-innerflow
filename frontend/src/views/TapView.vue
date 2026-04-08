@@ -11,11 +11,11 @@
         <button
             :class="['mode-btn', { active: mode === 'relief' }]"
             @click="setMode('relief')"
-        >解压</button>
+        >Relief</button>
         <button
             :class="['mode-btn', { active: mode === 'meditation' }]"
             @click="setMode('meditation')"
-        >冥想</button>
+        >Meditate</button>
       </div>
       <div style="width:40px"></div>
     </div>
@@ -26,7 +26,7 @@
     <!-- 计数 -->
     <div class="count-display">
       <span class="count-number">{{ count }}</span>
-      <span class="count-label">次</span>
+      <span class="count-label">Taps</span>
     </div>
 
     <!-- BPM -->
@@ -61,10 +61,10 @@
 
     <!-- 继续上次提示 -->
     <div v-if="showContinue" class="continue-prompt glass-card">
-      <span>上次tap了 <b>{{ lastCount }}</b> 下</span>
+      <span>Last session: <b>{{ lastCount }}</b> taps</span>
       <div class="continue-btns">
-        <button class="continue-yes" @click="continueSession">继续上次</button>
-        <button class="continue-no" @click="showContinue = false">重新开始</button>
+        <button class="continue-yes" @click="continueSession">Continue Session</button>
+        <button class="continue-no" @click="showContinue = false">Start Fresh</button>
       </div>
     </div>
 
@@ -104,8 +104,8 @@ let ws: WebSocket | null = null
 
 const hintText = computed(() => {
   return mode.value === 'relief'
-      ? '让情绪出来吧，这里很安全'
-      : '跟着节奏，慢慢呼吸'
+      ? "Let it all out. You're safe here."
+      : "Follow the rhythm. Breathe slowly."
 })
 
 function goBack() {

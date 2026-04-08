@@ -4,6 +4,7 @@ import com.ling.linginnerflow.agent.EmotionGraph;
 import com.ling.linginnerflow.emotion.EmotionLogService;
 import com.ling.linginnerflow.memory.MemoryService;
 import com.ling.linginnerflow.memory.Persona;
+import com.ling.linginnerflow.multimodal.EmotionAnalysisResult;
 import com.ling.linginnerflow.multimodal.EmotionFusionService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -137,16 +138,20 @@ public class EmotionController {
         Persona persona = memoryService.getPersona(userId);
         return Map.of("persona", persona.name());
     }
+
     @PostMapping("/analyze-image")
     public Map<String, Object> analyzeImage(
             @RequestParam("image") MultipartFile image) {
         try {
-            int imageLevel = emotionFusionService
+            EmotionAnalysisResult result = emotionFusionService
                     .analyzeImageEmotion(image.getBytes(),
                             image.getContentType());
-            return Map.of("emotionLevel", imageLevel);
+            return Map.of(
+                    "emotionLevel", result.getLevel(),
+                    "confidence", result.getConfidence()
+            );
         } catch (Exception e) {
-            return Map.of("emotionLevel", -1);
+            return Map.of("emotionLevel", -1, "confidence", 0.0);
         }
     }
 }
