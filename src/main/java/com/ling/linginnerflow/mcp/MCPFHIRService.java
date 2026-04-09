@@ -36,18 +36,18 @@ public class MCPFHIRService {
     public String getPatientSummary(
             String fhirPatientId, String innerflowUserId) {
         try {
-            // 1. 读取FHIR患者信息
             Map<String, Object> patient = getPatient(fhirPatientId);
             String patientName = extractPatientName(patient);
+            String gender = (String) patient.getOrDefault("gender", "unknown");
+            String birthDate = (String) patient.getOrDefault("birthDate", "");
+            int age = calculateAge(birthDate);
 
-            // 2. 获取InnerFlow情绪趋势
             String trendData = trendAnalyzer.execute(innerflowUserId);
 
-            // 3. 组装FHIR Observation
             Map<String, Object> observation = Map.of(
                     "resourceType", "Observation",
                     "id", "innerflow-" + innerflowUserId + "-" +
-                            Instant.now().getEpochSecond(),
+                            java.time.Instant.now().getEpochSecond(),
                     "status", "final",
                     "category", Map.of(
                             "coding", new Object[]{Map.of(
@@ -67,22 +67,16 @@ public class MCPFHIRService {
                     ),
                     "subject", Map.of(
                             "reference", "Patient/" + fhirPatientId,
-                            "display", patientName
+                            "display", patientName + ", " + gender + ", age " + age
                     ),
-                    "effectiveDateTime", Instant.now().toString(),
-                    "note", new Object[]{Map.of(
-                            "text", trendData
-                    )},
-                    "component", new Object[]{
-                            Map.of(
-                                    "code", Map.of("text",
-                                            "Emotion Trend Analysis"),
-                                    "valueString", trendData
-                            )
-                    }
+                    "effectiveDateTime", java.time.Instant.now().toString(),
+                    "note", new Object[]{Map.of("text", trendData)},
+                    "component", new Object[]{Map.of(
+                            "code", Map.of("text", "Emotion Trend Analysis"),
+                            "valueString", trendData
+                    )}
             );
 
-            // 转成JSON字符串返回
             com.fasterxml.jackson.databind.ObjectMapper mapper =
                     new com.fasterxml.jackson.databind.ObjectMapper();
             return "FHIR Observation:\n" +
@@ -95,6 +89,17 @@ public class MCPFHIRService {
         }
     }
 
+    private int calculateAge(String birthDate) {
+        try {
+            java.time.LocalDate birth =
+                    java.time.LocalDate.parse(birthDate);
+            return java.time.Period.between(
+                    birth, java.time.LocalDate.now()).getYears();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     private String extractPatientName(Map<String, Object> patient) {
         try {
             var names = (java.util.List<?>) patient.get("name");
@@ -104,7 +109,11 @@ public class MCPFHIRService {
                 String family = (String) name.get("family");
                 String first = given != null && !given.isEmpty()
                         ? (String) given.get(0) : "";
-                return first + " " + family;
+                // 替换原来的 return first + " " + family;
+                String fullName = first + " " + family;
+                return new String(fullName.getBytes(
+                        java.nio.charset.StandardCharsets.ISO_8859_1),
+                        java.nio.charset.StandardCharsets.UTF_8);
             }
         } catch (Exception e) {
             log.warn("Could not extract patient name");

@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +22,7 @@ public class MCPServerController {
     private final WellnessResourceSearch wellnessSearch;
     private final EmotionTrendAnalyzer trendAnalyzer;
     private final MCPFHIRService fhirService;
+    private final PHQ9ScreeningTool phq9Tool;
 
     // ===== MCP Server Info =====
     @GetMapping("/info")
@@ -139,6 +141,23 @@ public class MCPServerController {
                                 ),
                                 "required", List.of("fhirPatientId", "innerflowUserId")
                         ))
+                        .build(),
+
+                MCPToolDefinition.builder()
+                        .name("phq9_screening")
+                        .description("Generates a PHQ-9 depression screening estimate " +
+                                "based on the patient's recent conversation history. " +
+                                "Returns risk level and recommended clinical action.")
+                        .inputSchema(Map.of(
+                                "type", "object",
+                                "properties", Map.of(
+                                        "patientId", Map.of(
+                                                "type", "string",
+                                                "description", "The patient's user ID"
+                                        )
+                                ),
+                                "required", List.of("patientId")
+                        ))
                         .build()
         );
 
@@ -187,6 +206,10 @@ public class MCPServerController {
                     String fhirId = (String) args.get("fhirPatientId");
                     String userId = (String) args.get("innerflowUserId");
                     yield fhirService.getPatientSummary(fhirId, userId);
+                }
+                case "phq9_screening" -> {
+                    String patientId = (String) args.get("patientId");
+                    yield phq9Tool.execute(patientId);
                 }
                 default -> "Unknown tool: " + toolName;
             };
