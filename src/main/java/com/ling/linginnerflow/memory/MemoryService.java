@@ -176,6 +176,8 @@ public class MemoryService {
         } catch (Exception e) {
             log.error("长期记忆更新失败: {}", e.getMessage());
         }
+        // 每次更新长期记忆后尝试生成Reflection
+        generateReflection(userId);
     }
 
     // ==================== 摘要压缩 ====================
@@ -257,6 +259,11 @@ public class MemoryService {
                         .append(longMemory.getEffectiveCoping())
                         .append("\n");
             }
+            if (longMemory.getReflection() != null) {
+                context.append("Deep Insight: ")
+                        .append(longMemory.getReflection())
+                        .append("\n");
+            }
             context.append("\n");
         }
 
@@ -311,6 +318,57 @@ public class MemoryService {
         history.forEach(msg -> sb.append(msg.getRole())
                 .append(": ").append(msg.getContent()).append("\n"));
         return sb.toString();
+    }
+
+    // ==================== L4 Reflection ====================
+
+    public void generateReflection(String userId) {
+        try {
+            UserMemory memory = userMemoryRepository
+                    .findByUserId(userId).orElse(null);
+            if (memory == null) return;
+
+            // 收集现有记忆内容
+            StringBuilder memoryContent = new StringBuilder();
+            if (memory.getEmotionPattern() != null)
+                memoryContent.append("Emotion pattern: ")
+                        .append(memory.getEmotionPattern()).append("\n");
+            if (memory.getCoreStruggles() != null)
+                memoryContent.append("Core struggles: ")
+                        .append(memory.getCoreStruggles()).append("\n");
+            if (memory.getEffectiveCoping() != null)
+                memoryContent.append("Effective coping: ")
+                        .append(memory.getEffectiveCoping()).append("\n");
+            if (memory.getConversationSummary() != null)
+                memoryContent.append("Recent summary: ")
+                        .append(memory.getConversationSummary()).append("\n");
+
+            if (memoryContent.isEmpty()) return;
+
+            String prompt = """
+            Based on the following user memory data, generate a 
+            high-level insight about this user's emotional patterns 
+            and progress. Focus on trends, triggers, and what helps.
+            Keep it under 200 words, written as a clinical observation.
+            
+            Memory data:
+            %s
+            
+            Return only the insight text, no labels or formatting.
+            """.formatted(memoryContent.toString());
+
+            String reflection = chatClientBuilder.build()
+                    .prompt().user(prompt).call().content();
+
+            memory.setReflection(reflection);
+            userMemoryRepository.save(memory);
+
+            log.info("[Memory] L4 Reflection generated: userId={}", userId);
+
+        } catch (Exception e) {
+            log.error("[Memory] Reflection generation failed: {}",
+                    e.getMessage());
+        }
     }
 
     /**

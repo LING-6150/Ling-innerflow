@@ -45,6 +45,11 @@ public class UserMemory {
     // 最后更新时间
     private LocalDateTime updatedAt;
 
+    @Column(columnDefinition = "TEXT")
+    private String reflection;
+
+    private LocalDateTime lastActiveAt;
+
     @PrePersist
     @PreUpdate
     public void preUpdate() {
