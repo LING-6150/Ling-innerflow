@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import PetView from '@/views/PetView.vue'
+import DoctorDashboard from '@/views/DoctorDashboard.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -40,6 +41,12 @@ const router = createRouter({
             name: 'pet',
             component: PetView,
             meta: { requiresAuth: true }
+        },
+        {
+            path: '/doctor',
+            name: 'doctor',
+            component: DoctorDashboard,
+            meta: { requiresAuth: false }
         }
     ]
 })
