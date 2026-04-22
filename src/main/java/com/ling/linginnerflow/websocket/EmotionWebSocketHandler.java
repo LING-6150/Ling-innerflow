@@ -258,6 +258,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
             }
         }
 
+        memoryService.updateLastActiveAt(userId);
         memoryService.clearShortMemory(userId);
         sessionManager.removeSession(userId);
         log.info("连接关闭，记忆已保存: userId={}", userId);

@@ -150,6 +150,10 @@ public class MemoryService {
                     .call()
                     .content();
 
+            // 清洗LLM可能返回的markdown代码块包裹
+            extracted = extracted
+                    .replaceAll("(?s)```json\\s*|```\\s*", "").trim();
+
             // 解析LLM返回的JSON
             UserMemoryExtract extract = objectMapper
                     .readValue(extracted, UserMemoryExtract.class);
@@ -173,11 +177,12 @@ public class MemoryService {
             userMemoryRepository.save(memory);
             log.info("长期记忆更新完成: userId={}", userId);
 
+            // 提取成功后才生成Reflection，确保基于最新数据
+            generateReflection(userId);
+
         } catch (Exception e) {
             log.error("长期记忆更新失败: {}", e.getMessage());
         }
-        // 每次更新长期记忆后尝试生成Reflection
-        generateReflection(userId);
     }
 
     // ==================== 摘要压缩 ====================
@@ -318,6 +323,20 @@ public class MemoryService {
         history.forEach(msg -> sb.append(msg.getRole())
                 .append(": ").append(msg.getContent()).append("\n"));
         return sb.toString();
+    }
+
+    // ==================== 活跃时间更新 ====================
+
+    public void updateLastActiveAt(String userId) {
+        UserMemory memory = userMemoryRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    UserMemory m = new UserMemory();
+                    m.setUserId(userId);
+                    return m;
+                });
+        memory.setLastActiveAt(java.time.LocalDateTime.now());
+        userMemoryRepository.save(memory);
+        log.info("[Memory] lastActiveAt updated: userId={}", userId);
     }
 
     // ==================== L4 Reflection ====================
