@@ -22,4 +22,16 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     // 查询所有有过对话记录的不重复userId
     @Query("SELECT DISTINCT m.userId FROM ChatMessage m")
     List<String> findDistinctUserIds();
+
+    // 查询某用户最新的一条user消息（用于取最新情绪等级）
+    java.util.Optional<ChatMessage> findFirstByUserIdAndRoleOrderByCreatedAtDesc(
+            String userId, String role);
+
+    // 查询某用户指定时间段内的L5危机记录
+    @Query("SELECT m FROM ChatMessage m WHERE m.userId = :userId " +
+           "AND m.role = 'user' AND m.emotionLevel = 5 " +
+           "AND m.createdAt >= :since ORDER BY m.createdAt DESC")
+    List<ChatMessage> findCrisisAlerts(
+            @Param("userId") String userId,
+            @Param("since") LocalDateTime since);
 }
