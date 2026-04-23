@@ -620,7 +620,7 @@ async function generateFhirReport() {
           innerflowUserId: selectedUserId.value
         }
       }
-    })
+    }, { timeout: 60000 })
     showToast('success', 'Report Generated')
   } catch (e: any) {
     showToast('error', 'Failed to generate report', e?.message || 'Unknown error')
