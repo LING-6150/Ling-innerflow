@@ -35,14 +35,13 @@ public class DoctorService {
             Map<String, Object> patient = new LinkedHashMap<>();
             patient.put("userId", userId);
 
-            // Latest emotion level from most recent user message
-            int latestLevel = chatMessageRepository
+            // Return as "L{n}" string so the frontend levelPillClass works directly
+            int rawLevel = chatMessageRepository
                     .findFirstByUserIdAndRoleOrderByCreatedAtDesc(userId, "user")
                     .map(m -> m.getEmotionLevel() != null ? m.getEmotionLevel() : 0)
                     .orElse(0);
-            patient.put("latestEmotionLevel", latestLevel);
+            patient.put("latestEmotionLevel", rawLevel > 0 ? "L" + rawLevel : null);
 
-            // lastActiveAt from long-term memory
             LocalDateTime lastActive = userMemoryRepository
                     .findByUserId(userId)
                     .map(UserMemory::getLastActiveAt)
@@ -56,16 +55,16 @@ public class DoctorService {
         return result;
     }
 
-    // ── 2. 7-Day Emotion Trend ───────────────────────────────────────
+    // ── 2. Emotion Trend (configurable window) ───────────────────────
 
-    public List<Map<String, Object>> getEmotionTrend(String userId) {
-        LocalDateTime since = LocalDate.now().minusDays(6).atStartOfDay();
+    public List<Map<String, Object>> getEmotionTrend(String userId, int days) {
+        int window = Math.min(Math.max(days, 1), 90);
+        LocalDateTime since = LocalDate.now().minusDays(window - 1).atStartOfDay();
         List<ChatMessage> messages = chatMessageRepository
                 .findUserMessagesSince(userId, since);
 
-        // Group by calendar date, compute average emotionLevel per day
         Map<LocalDate, List<Integer>> byDay = new LinkedHashMap<>();
-        for (int i = 6; i >= 0; i--) {
+        for (int i = window - 1; i >= 0; i--) {
             byDay.put(LocalDate.now().minusDays(i), new ArrayList<>());
         }
         for (ChatMessage m : messages) {
@@ -87,15 +86,14 @@ public class DoctorService {
                 point.put("level", null);
                 point.put("sessionCount", 0);
             } else {
-                double avg = levels.stream()
-                        .mapToInt(Integer::intValue).average().orElse(0);
+                double avg = levels.stream().mapToInt(Integer::intValue).average().orElse(0);
                 point.put("level", Math.round(avg * 10.0) / 10.0);
                 point.put("sessionCount", levels.size());
             }
             trend.add(point);
         }
 
-        log.info("[Doctor] Emotion trend fetched: userId={}", userId);
+        log.info("[Doctor] Emotion trend fetched: userId={}, days={}", userId, window);
         return trend;
     }
 
@@ -105,7 +103,6 @@ public class DoctorService {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("userId", userId);
 
-        // L4 Reflection + long-term memory from MySQL
         userMemoryRepository.findByUserId(userId).ifPresentOrElse(mem -> {
             summary.put("emotionPattern", mem.getEmotionPattern());
             summary.put("coreStruggles", mem.getCoreStruggles());
@@ -120,11 +117,11 @@ public class DoctorService {
             summary.put("lastActiveAt", null);
         });
 
-        // PHQ-9 screening estimate via LLM
-        String phq9Result = phq9ScreeningTool.execute(userId);
-        summary.put("phq9Screening", phq9Result);
+        // PHQ-9: full text + parsed structured fields
+        String phq9Raw = phq9ScreeningTool.execute(userId);
+        summary.put("phq9Screening", phq9Raw);
+        parsePHQ9Into(phq9Raw, summary);
 
-        // Structured emotion trend summary via EmotionTrendAnalyzer
         String trendReport = emotionTrendAnalyzer.execute(userId);
         summary.put("emotionTrendReport", trendReport);
 
@@ -132,14 +129,13 @@ public class DoctorService {
         return summary;
     }
 
-    // ── 4. Crisis Alerts (L5, last 30 days) ─────────────────────────
+    // ── 4. Crisis Alerts (L5, configurable window) ───────────────────
 
     public List<Map<String, Object>> getCrisisAlerts(String userId) {
         LocalDateTime since = LocalDateTime.now().minusDays(30);
-        List<ChatMessage> alerts = chatMessageRepository
-                .findCrisisAlerts(userId, since);
+        List<ChatMessage> alerts = chatMessageRepository.findCrisisAlerts(userId, since);
 
-        List<Map<String, Object>> result = alerts.stream()
+        return alerts.stream()
                 .map(m -> {
                     Map<String, Object> alert = new LinkedHashMap<>();
                     alert.put("timestamp", m.getCreatedAt());
@@ -148,9 +144,49 @@ public class DoctorService {
                     return alert;
                 })
                 .collect(Collectors.toList());
+    }
 
-        log.info("[Doctor] Crisis alerts fetched: userId={}, count={}",
-                userId, result.size());
-        return result;
+    // ── PHQ-9 text parser ────────────────────────────────────────────
+
+    private void parsePHQ9Into(String raw, Map<String, Object> out) {
+        if (raw == null || raw.isBlank()) return;
+
+        boolean inIndicators = false;
+        boolean inRec = false;
+        List<String> indicators = new ArrayList<>();
+        StringBuilder rec = new StringBuilder();
+
+        for (String line : raw.split("\n")) {
+            String t = line.trim();
+            if (t.startsWith("Score Range:")) {
+                out.put("phq9ScoreRange", t.substring("Score Range:".length()).trim());
+                inIndicators = false;
+                inRec = false;
+            } else if (t.startsWith("Severity:")) {
+                out.put("phq9Severity", t.substring("Severity:".length()).trim());
+                inIndicators = false;
+                inRec = false;
+            } else if (t.startsWith("Key Indicators:")) {
+                inIndicators = true;
+                inRec = false;
+                String rest = t.substring("Key Indicators:".length()).trim();
+                if (!rest.isEmpty()) indicators.add(rest.replaceAll("^[-•·]\\s*", ""));
+            } else if (t.startsWith("Recommendation:")) {
+                inIndicators = false;
+                inRec = true;
+                String rest = t.substring("Recommendation:".length()).trim();
+                if (!rest.isEmpty()) rec.append(rest).append(" ");
+            } else if (t.startsWith("Disclaimer:") || t.startsWith("PHQ-9 SCREENING")) {
+                inIndicators = false;
+                inRec = false;
+            } else if (inIndicators && !t.isEmpty()) {
+                indicators.add(t.replaceAll("^[-•·]\\s*", ""));
+            } else if (inRec && !t.isEmpty()) {
+                rec.append(t).append(" ");
+            }
+        }
+
+        out.put("phq9KeyIndicators", String.join("\n", indicators));
+        out.put("phq9Recommendation", rec.toString().trim());
     }
 }

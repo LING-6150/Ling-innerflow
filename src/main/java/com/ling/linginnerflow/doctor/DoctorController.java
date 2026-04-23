@@ -40,9 +40,10 @@ public class DoctorController {
      */
     @GetMapping("/patients/{userId}/emotion-trend")
     public ResponseEntity<List<Map<String, Object>>> getEmotionTrend(
-            @PathVariable String userId) {
-        log.info("[Doctor] GET /api/doctor/patients/{}/emotion-trend", userId);
-        return ResponseEntity.ok(doctorService.getEmotionTrend(userId));
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "7") int days) {
+        log.info("[Doctor] GET /api/doctor/patients/{}/emotion-trend?days={}", userId, days);
+        return ResponseEntity.ok(doctorService.getEmotionTrend(userId, days));
     }
 
     /**
