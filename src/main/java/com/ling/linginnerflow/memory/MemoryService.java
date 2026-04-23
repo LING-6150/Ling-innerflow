@@ -217,7 +217,7 @@ public class MemoryService {
             List<ConversationMessage> compressed = new ArrayList<>();
             compressed.add(new ConversationMessage(
                     "system",
-                    "【之前对话摘要】" + summary,
+                    "[Previous conversation summary] " + summary,
                     System.currentTimeMillis()
             ));
 
@@ -248,19 +248,19 @@ public class MemoryService {
         // 加入长期记忆
         UserMemory longMemory = getLongMemory(userId);
         if (longMemory != null) {
-            context.append("【用户背景信息】\n");
+            context.append("[User Background]\n");
             if (longMemory.getEmotionPattern() != null) {
-                context.append("情绪模式：")
+                context.append("Emotion pattern: ")
                         .append(longMemory.getEmotionPattern())
                         .append("\n");
             }
             if (longMemory.getCoreStruggles() != null) {
-                context.append("核心困扰：")
+                context.append("Core struggles: ")
                         .append(longMemory.getCoreStruggles())
                         .append("\n");
             }
             if (longMemory.getEffectiveCoping() != null) {
-                context.append("有效应对：")
+                context.append("Effective coping: ")
                         .append(longMemory.getEffectiveCoping())
                         .append("\n");
             }
@@ -275,13 +275,13 @@ public class MemoryService {
         // 加入短期记忆（最近5轮）
         List<ConversationMessage> history = getShortMemory(userId);
         if (!history.isEmpty()) {
-            context.append("【最近对话记录】\n");
+            context.append("[Recent Conversation]\n");
             int start = Math.max(0, history.size() - 10);
             for (int i = start; i < history.size(); i++) {
                 ConversationMessage msg = history.get(i);
                 String roleLabel = "user".equals(msg.getRole())
-                        ? "用户" : "AI";
-                context.append(roleLabel).append("：")
+                        ? "User" : "AI";
+                context.append(roleLabel).append(": ")
                         .append(msg.getContent()).append("\n");
             }
             context.append("\n");
@@ -296,18 +296,18 @@ public class MemoryService {
     private String buildExtractPrompt(
             List<ConversationMessage> history) {
         StringBuilder sb = new StringBuilder();
-        sb.append("请从以下对话中提取用户的关键心理信息，");
-        sb.append("以JSON格式返回，只返回JSON不要其他文字：\n\n");
+        sb.append("Extract key psychological information from the following conversation. ");
+        sb.append("Return ONLY a JSON object with no extra text or markdown:\n\n");
         history.forEach(msg -> sb.append(msg.getRole())
                 .append(": ").append(msg.getContent()).append("\n"));
         sb.append("""
-            \n返回格式：
+            \nReturn format (all values must be in English):
             {
-              "emotionPattern": "情绪模式描述，如：容易焦虑，有全或无思维",
-              "coreStruggles": "核心困扰，如：工作压力、自我价值感低",
-              "effectiveCoping": "有效应对方式，如：对呼吸练习反应好"
+              "emotionPattern": "e.g. prone to anxiety, all-or-nothing thinking",
+              "coreStruggles": "e.g. work stress, low self-worth",
+              "effectiveCoping": "e.g. responds well to breathing exercises"
             }
-            如果信息不足，对应字段返回null。
+            If there is insufficient information for a field, return null.
             """);
         return sb.toString();
     }
@@ -318,8 +318,8 @@ public class MemoryService {
     private String buildSummaryPrompt(
             List<ConversationMessage> history) {
         StringBuilder sb = new StringBuilder();
-        sb.append("请将以下对话压缩成100字以内的摘要，");
-        sb.append("保留关键情绪信息和重要转折点：\n\n");
+        sb.append("Summarize the following conversation in under 100 words in English. ");
+        sb.append("Preserve key emotional information and important turning points:\n\n");
         history.forEach(msg -> sb.append(msg.getRole())
                 .append(": ").append(msg.getContent()).append("\n"));
         return sb.toString();
