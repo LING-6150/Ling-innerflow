@@ -84,13 +84,12 @@ public class DoctorService {
             point.put("date", entry.getKey().toString());
             List<Integer> levels = entry.getValue();
             if (levels.isEmpty()) {
-                point.put("avgEmotionLevel", null);
+                point.put("level", null);
                 point.put("sessionCount", 0);
             } else {
                 double avg = levels.stream()
                         .mapToInt(Integer::intValue).average().orElse(0);
-                point.put("avgEmotionLevel",
-                        Math.round(avg * 10.0) / 10.0);
+                point.put("level", Math.round(avg * 10.0) / 10.0);
                 point.put("sessionCount", levels.size());
             }
             trend.add(point);
