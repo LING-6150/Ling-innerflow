@@ -42,40 +42,52 @@ public class MCPFHIRService {
             String birthDate = (String) patient.getOrDefault("birthDate", "");
             int age = calculateAge(birthDate);
 
+            // Build a readable subject display — fall back gracefully when FHIR demographics are missing
+            String subjectDisplay;
+            if ("Unknown Patient".equals(patientName) || age == 0) {
+                subjectDisplay = "InnerFlow Patient #" + innerflowUserId +
+                        (fhirPatientId != null ? " (FHIR/" + fhirPatientId + ")" : "");
+            } else {
+                subjectDisplay = patientName + ", " + gender + ", age " + age;
+            }
+
             String trendData = trendAnalyzer.execute(innerflowUserId);
 
-            Map<String, Object> observation = Map.of(
-                    "resourceType", "Observation",
-                    "id", "innerflow-" + innerflowUserId + "-" +
-                            java.time.Instant.now().getEpochSecond(),
-                    "status", "final",
-                    "category", Map.of(
-                            "coding", new Object[]{Map.of(
-                                    "system", "http://terminology.hl7.org/CodeSystem" +
-                                            "/observation-category",
-                                    "code", "survey",
-                                    "display", "Survey"
-                            )}
-                    ),
-                    "code", Map.of(
-                            "coding", new Object[]{Map.of(
-                                    "system", "http://loinc.org",
-                                    "code", "89204-2",
-                                    "display", "Mental health assessment"
-                            )},
-                            "text", "InnerFlow Mental Health Emotion Assessment"
-                    ),
-                    "subject", Map.of(
-                            "reference", "Patient/" + fhirPatientId,
-                            "display", patientName + ", " + gender + ", age " + age
-                    ),
-                    "effectiveDateTime", java.time.Instant.now().toString(),
-                    "note", new Object[]{Map.of("text", trendData)},
-                    "component", new Object[]{Map.of(
-                            "code", Map.of("text", "Emotion Trend Analysis"),
-                            "valueString", trendData
+            // Brief note for human-readable annotation (not a duplicate of component)
+            String briefNote = "AI-generated mental health observation for InnerFlow user #" +
+                    innerflowUserId + ". Powered by Multimodal Emotion AI + CBT RAG. " +
+                    "Not a clinical diagnosis.";
+
+            java.util.LinkedHashMap<String, Object> observation = new java.util.LinkedHashMap<>();
+            observation.put("resourceType", "Observation");
+            observation.put("id", "innerflow-" + innerflowUserId + "-" +
+                    java.time.Instant.now().getEpochSecond());
+            observation.put("status", "final");
+            observation.put("category", Map.of(
+                    "coding", new Object[]{Map.of(
+                            "system", "http://terminology.hl7.org/CodeSystem/observation-category",
+                            "code", "survey",
+                            "display", "Survey"
                     )}
-            );
+            ));
+            observation.put("code", Map.of(
+                    "coding", new Object[]{Map.of(
+                            "system", "http://loinc.org",
+                            "code", "89204-2",
+                            "display", "Mental health assessment"
+                    )},
+                    "text", "InnerFlow Mental Health Emotion Assessment"
+            ));
+            observation.put("subject", Map.of(
+                    "reference", "Patient/" + fhirPatientId,
+                    "display", subjectDisplay
+            ));
+            observation.put("effectiveDateTime", java.time.Instant.now().toString());
+            observation.put("note", new Object[]{Map.of("text", briefNote)});
+            observation.put("component", new Object[]{Map.of(
+                    "code", Map.of("text", "Emotion Trend Analysis"),
+                    "valueString", trendData
+            )});
 
             com.fasterxml.jackson.databind.ObjectMapper mapper =
                     new com.fasterxml.jackson.databind.ObjectMapper();
