@@ -54,8 +54,17 @@
             <div class="border-b border-slate-100 px-4 py-3">
               <div class="text-sm font-semibold text-slate-900">Patients</div>
               <div class="mt-0.5 text-xs text-slate-500">Sorted by risk level</div>
+              <!-- Search box -->
+              <div class="relative mt-2">
+                <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+                  fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input v-model="patientSearch" type="text" placeholder="Search patients…"
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-blue-400 focus:bg-white" />
+              </div>
             </div>
-            <div class="max-h-[calc(100vh-148px)] overflow-y-auto">
+            <div class="max-h-[calc(100vh-180px)] overflow-y-auto">
               <!-- skeleton -->
               <div v-if="patientsLoading" class="space-y-2 p-3">
                 <div v-for="i in 6" :key="i"
@@ -75,9 +84,14 @@
                     @click="loadPatients">Retry</button>
                 </div>
               </div>
+              <!-- empty search result -->
+              <div v-else-if="filteredPatients.length === 0"
+                class="p-4 text-center text-xs text-slate-400">
+                No patients match "{{ patientSearch }}"
+              </div>
               <!-- list -->
               <div v-else class="space-y-0.5 p-2">
-                <button v-for="p in sortedPatients" :key="p.userId"
+                <button v-for="p in filteredPatients" :key="p.userId"
                   class="group w-full rounded-xl p-3 text-left transition-colors"
                   :class="selectedUserId === String(p.userId)
                     ? 'bg-blue-50 ring-1 ring-inset ring-blue-200'
@@ -114,9 +128,17 @@
           <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 px-4 py-3">
               <div class="text-sm font-semibold">Patients</div>
+              <div class="relative mt-2">
+                <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+                  fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input v-model="patientSearch" type="text" placeholder="Search patients…"
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-blue-400 focus:bg-white" />
+              </div>
             </div>
             <div class="space-y-0.5 p-2">
-              <button v-for="p in sortedPatients" :key="p.userId"
+              <button v-for="p in filteredPatients" :key="p.userId"
                 class="w-full rounded-xl p-3 text-left transition hover:bg-slate-50"
                 @click="selectPatient(p.userId, true)">
                 <div class="flex items-center gap-2.5">
@@ -224,15 +246,20 @@
                     <div class="text-sm font-semibold text-slate-900">Emotion Trend</div>
                     <div class="mt-0.5 text-xs text-slate-500">Daily avg · L1 (minimal) → L5 (crisis)</div>
                   </div>
-                  <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
-                    <button v-for="d in [7, 30, 90]" :key="d"
-                      class="rounded-lg px-3 py-1 text-xs font-semibold transition"
-                      :class="trendDays === d
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'"
-                      @click="setTrendDays(d)">
-                      {{ d }}d
-                    </button>
+                  <div class="flex items-center gap-2">
+                    <span v-if="trendLoading"
+                      class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"></span>
+                    <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
+                      <button v-for="d in [7, 30, 90]" :key="d"
+                        class="rounded-lg px-3 py-1 text-xs font-semibold transition"
+                        :class="trendDays === d
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'"
+                        :disabled="trendLoading"
+                        @click="setTrendDays(d)">
+                        {{ d }}d
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div class="mt-4 h-[200px]">
@@ -357,26 +384,67 @@
                 </div>
               </div>
 
-              <!-- ⑤ FHIR Report panel (visible after generation) -->
-              <div v-if="fhirReport"
+              <!-- ⑤ FHIR Report panel (structured cards) -->
+              <div v-if="parsedFhir"
                 class="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 shadow-sm">
-                <div class="mb-3 flex items-center justify-between">
+                <!-- Panel header -->
+                <div class="mb-4 flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <div class="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-[10px] font-bold text-white">
-                      R4
-                    </div>
-                    <div class="text-sm font-semibold text-blue-900">FHIR Observation Report</div>
-                    <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                      HL7 FHIR R4
-                    </span>
+                    <div class="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-[10px] font-bold text-white">R4</div>
+                    <span class="text-sm font-semibold text-blue-900">FHIR Observation Report</span>
+                    <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">HL7 FHIR R4</span>
+                    <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 uppercase">{{ parsedFhir.status }}</span>
                   </div>
                   <div class="flex items-center gap-3">
                     <span class="text-xs text-blue-600">Generated {{ fhirReportTime }}</span>
-                    <button class="text-xs text-blue-500 underline hover:text-blue-700"
-                      @click="fhirReport = null">Dismiss</button>
+                    <button class="text-xs text-blue-500 underline hover:text-blue-700" @click="fhirReport = null">Dismiss</button>
                   </div>
                 </div>
-                <pre class="max-h-72 overflow-auto rounded-xl border border-blue-100 bg-white p-4 font-mono text-xs leading-relaxed text-slate-700">{{ fhirReport }}</pre>
+
+                <!-- Info row: Patient · Assessment · Time -->
+                <div class="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div class="rounded-xl border border-blue-100 bg-white px-4 py-3">
+                    <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-blue-500">Patient</div>
+                    <div class="text-sm font-semibold text-slate-800">{{ parsedFhir.subject?.display ?? '—' }}</div>
+                    <div class="mt-0.5 text-[11px] text-slate-400">{{ parsedFhir.subject?.reference }}</div>
+                  </div>
+                  <div class="rounded-xl border border-blue-100 bg-white px-4 py-3">
+                    <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-blue-500">Assessment</div>
+                    <div class="text-sm font-semibold text-slate-800">{{ parsedFhir.code?.text ?? '—' }}</div>
+                    <div class="mt-0.5 text-[11px] text-slate-400">LOINC {{ parsedFhir.code?.coding?.[0]?.code }}</div>
+                  </div>
+                  <div class="rounded-xl border border-blue-100 bg-white px-4 py-3">
+                    <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-blue-500">Effective Date</div>
+                    <div class="text-sm font-semibold text-slate-800">{{ formatDateTime(parsedFhir.effectiveDateTime) }}</div>
+                    <div class="mt-0.5 text-[11px] text-slate-400">Observation ID: {{ parsedFhir.id }}</div>
+                  </div>
+                </div>
+
+                <!-- Clinical Note -->
+                <div v-if="parsedFhir.note?.[0]?.text"
+                  class="mb-3 rounded-xl border border-blue-100 bg-white px-4 py-3">
+                  <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-blue-500">Clinical Note</div>
+                  <div class="text-xs text-slate-600 leading-relaxed">{{ parsedFhir.note[0].text }}</div>
+                </div>
+
+                <!-- Emotion Trend Report (main component) -->
+                <div v-if="fhirTrendLines.length" class="rounded-xl border border-blue-100 bg-white px-4 py-3">
+                  <div class="mb-2 text-[10px] font-semibold uppercase tracking-wide text-blue-500">
+                    {{ parsedFhir.component?.[0]?.code?.text ?? 'Emotion Trend Analysis' }}
+                  </div>
+                  <div class="space-y-0.5">
+                    <div v-for="(line, i) in fhirTrendLines" :key="i"
+                      :class="[
+                        'text-xs leading-relaxed',
+                        line.type === 'heading' ? 'mt-2 font-semibold text-slate-700' :
+                        line.type === 'bullet'  ? 'ml-2 text-slate-600' :
+                        line.type === 'divider' ? 'hidden' :
+                        'text-slate-500'
+                      ]">
+                      {{ line.text }}
+                    </div>
+                  </div>
+                </div>
               </div>
 
             </template>
@@ -466,10 +534,19 @@ const patients = ref<PatientItem[]>([])
 const patientsLoading = ref(false)
 const patientsError = ref<string | null>(null)
 const selectedUserId = ref<string | null>(null)
+const patientSearch = ref('')
 
 const selectedPatient = computed(() =>
   patients.value.find(p => String(p.userId) === String(selectedUserId.value)) ?? null
 )
+
+const filteredPatients = computed(() => {
+  const q = patientSearch.value.trim().toLowerCase()
+  if (!q) return sortedPatients.value
+  return sortedPatients.value.filter(p =>
+    String(p.userId).toLowerCase().includes(q)
+  )
+})
 
 function toEpochMs(v?: string | number): number {
   if (v == null) return 0
@@ -572,11 +649,34 @@ watch(selectedUserId, (id, prev) => {
 // ── Trend days selector ────────────────────────────────────────────
 
 const trendDays = ref(7)
+const trendLoading = ref(false)
+
+async function loadTrendOnly() {
+  const userId = selectedUserId.value
+  if (!userId) return
+  trendLoading.value = true
+  try {
+    const res = await request.get(
+      `/api/doctor/patients/${encodeURIComponent(userId)}/emotion-trend?days=${trendDays.value}`
+    )
+    const list = Array.isArray(res) ? (res as any[]) : ((res as any)?.trend ?? [])
+    trend.value = list.map((t: any) => ({
+      date: t.date ?? t.day ?? '',
+      level: t.level ?? t.emotionLevel ?? ''
+    }))
+    await nextTick()
+    renderChart()
+  } catch (e) {
+    console.error('Trend reload failed', e)
+  } finally {
+    trendLoading.value = false
+  }
+}
 
 async function setTrendDays(d: number) {
   if (trendDays.value === d) return
   trendDays.value = d
-  if (selectedUserId.value) await loadPatientDetails(selectedUserId.value)
+  await loadTrendOnly()
 }
 
 // ── Chart ──────────────────────────────────────────────────────────
@@ -698,6 +798,33 @@ async function generateFhirReport() {
     fhirLoading.value = false
   }
 }
+
+// ── FHIR parsed view ───────────────────────────────────────────────
+
+const parsedFhir = computed<Record<string, any> | null>(() => {
+  if (!fhirReport.value) return null
+  try {
+    const jsonStart = fhirReport.value.indexOf('{')
+    if (jsonStart === -1) return null
+    return JSON.parse(fhirReport.value.slice(jsonStart))
+  } catch {
+    return null
+  }
+})
+
+type FhirLine = { type: 'heading' | 'bullet' | 'divider' | 'text'; text: string }
+
+const fhirTrendLines = computed<FhirLine[]>(() => {
+  const raw: string = parsedFhir.value?.component?.[0]?.valueString ?? ''
+  if (!raw) return []
+  return raw.split('\n').map((line): FhirLine => {
+    const t = line.trim()
+    if (!t || t.startsWith('===')) return { type: 'divider', text: t }
+    if (/^[A-Z][A-Z ]+$/.test(t)) return { type: 'heading', text: t }
+    if (t.startsWith('•') || t.startsWith('-')) return { type: 'bullet', text: t }
+    return { type: 'text', text: t }
+  }).filter(l => l.type !== 'divider' || false)
+})
 
 // ── PHQ-9 helpers ──────────────────────────────────────────────────
 
