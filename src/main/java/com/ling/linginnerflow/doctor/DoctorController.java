@@ -50,6 +50,13 @@ public class DoctorController {
         return ResponseEntity.ok(doctorService.getCrisisAlerts(userId));
     }
 
+    @GetMapping("/patients/{userId}/crisis-heatmap")
+    public ResponseEntity<List<Map<String, Object>>> getCrisisHeatmap(
+            @PathVariable String userId) {
+        log.info("[Doctor] GET /api/doctor/patients/{}/crisis-heatmap", userId);
+        return ResponseEntity.ok(doctorService.getCrisisHeatmap(userId));
+    }
+
     /** Triggers L4 Reflection regeneration from stored memory data. */
     @PostMapping("/patients/{userId}/regenerate-reflection")
     public ResponseEntity<Map<String, Object>> regenerateReflection(

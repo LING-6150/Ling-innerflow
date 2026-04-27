@@ -359,11 +359,11 @@
                       </span>
                     </div>
                     <button
-                      v-if="summary?.cbtEvidence?.length"
+                      v-if="summary?.emotionPattern || summary?.coreStruggles || summary?.effectiveCoping"
                       class="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
                       @click="evidenceOpen = true">
                       <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/>
                       </svg>
                       View Evidence
                     </button>
@@ -439,7 +439,66 @@
                 </div>
               </div>
 
-              <!-- ⑤ FHIR Report panel (structured cards) -->
+              <!-- ⑤ Crisis Time Heatmap -->
+              <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div class="text-sm font-semibold text-slate-900">Crisis Time Heatmap</div>
+                    <div class="mt-0.5 text-xs text-slate-500">L3+ distress · last 90 days · hover for details</div>
+                  </div>
+                  <div class="flex items-center gap-3 text-[11px] text-slate-500">
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded bg-amber-300"></span>L3</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded bg-orange-400"></span>L4</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded bg-rose-500"></span>L5</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block h-3 w-5 rounded bg-slate-100 border border-slate-200"></span>No data</span>
+                  </div>
+                </div>
+                <!-- Loading -->
+                <div v-if="heatmapLoading" class="flex h-32 items-center justify-center">
+                  <div class="h-5 w-5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"></div>
+                </div>
+                <template v-else>
+                  <!-- Day header row -->
+                  <div class="grid gap-1 mb-1" style="grid-template-columns: 88px repeat(7, 1fr)">
+                    <div></div>
+                    <div v-for="abbr in DAY_ABBR" :key="abbr"
+                      class="text-center text-[11px] font-semibold text-slate-500">{{ abbr }}</div>
+                  </div>
+                  <!-- Slot rows -->
+                  <div v-for="row in heatmapMatrix" :key="row.slot"
+                    class="grid gap-1 mb-1" style="grid-template-columns: 88px repeat(7, 1fr)">
+                    <!-- Time label -->
+                    <div class="flex items-center pr-2 text-[11px] font-medium text-slate-500 leading-tight">
+                      {{ row.label }}
+                    </div>
+                    <!-- Cells -->
+                    <div v-for="(cell, di) in row.cells" :key="di"
+                      class="group relative h-10 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
+                      :class="heatCellClass(cell)">
+                      <!-- Avg level text -->
+                      <span v-if="cell" class="text-[11px] font-bold leading-none select-none">
+                        {{ cell.avgLevel.toFixed(1) }}
+                      </span>
+                      <!-- Tooltip -->
+                      <div v-if="cell"
+                        class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap rounded-xl bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
+                        <div class="font-semibold">Avg: L{{ cell.avgLevel }}</div>
+                        <div class="text-slate-300">{{ cell.count }} session{{ cell.count !== 1 ? 's' : '' }}</div>
+                        <div class="text-slate-400">{{ DAYS[di] }} · {{ row.slot }}</div>
+                        <!-- Arrow -->
+                        <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Empty state -->
+                  <div v-if="heatmapMatrix.every(r => r.cells.every(c => !c))"
+                    class="mt-2 rounded-xl border border-slate-100 bg-slate-50 py-6 text-center text-sm text-slate-400">
+                    No L3+ distress records in the past 90 days
+                  </div>
+                </template>
+              </div>
+
+              <!-- ⑥ FHIR Report panel (structured cards) -->
               <div v-if="parsedFhir"
                 class="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 shadow-sm">
                 <!-- Panel header -->
@@ -519,18 +578,18 @@
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
         <!-- Panel -->
-        <div class="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div class="relative z-10 w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
           <!-- Modal header -->
           <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
             <div class="flex items-center gap-2.5">
               <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600">
                 <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"/>
                 </svg>
               </div>
               <div>
-                <div class="text-sm font-bold text-slate-900">CBT Knowledge Evidence</div>
-                <div class="text-[11px] text-slate-500">Retrieved by Hybrid Search · Pinecone + Elasticsearch RRF</div>
+                <div class="text-sm font-bold text-slate-900">Clinical Evidence</div>
+                <div class="text-[11px] text-slate-500">Patient #{{ selectedUserId }} · Extracted from session memory</div>
               </div>
             </div>
             <button class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
@@ -540,34 +599,42 @@
               </svg>
             </button>
           </div>
-          <!-- Context banner -->
-          <div class="border-b border-slate-100 bg-indigo-50 px-6 py-2.5 text-xs text-indigo-700">
-            <span class="font-semibold">Query:</span>
-            {{ [summary?.coreStruggles, summary?.emotionPattern].filter(Boolean).join(' · ') || 'Patient profile' }}
-          </div>
-          <!-- Snippets -->
-          <div class="max-h-[60vh] overflow-y-auto p-6 space-y-4">
-            <div v-if="!summary?.cbtEvidence?.length"
-              class="py-8 text-center text-sm text-slate-400">
-              No relevant CBT evidence found for this patient's profile.
-            </div>
-            <div v-for="(snippet, idx) in summary?.cbtEvidence" :key="idx"
-              class="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+          <!-- Content -->
+          <div class="p-6 space-y-4">
+            <!-- Emotion Pattern -->
+            <div class="rounded-xl border border-amber-100 bg-amber-50 p-4">
               <div class="mb-2 flex items-center gap-2">
-                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
-                  {{ idx + 1 }}
-                </span>
-                <span class="text-[11px] font-semibold uppercase tracking-wide text-indigo-600">
-                  Evidence snippet {{ idx + 1 }}
-                </span>
+                <div class="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-200 text-amber-800 text-[11px] font-bold">≈</div>
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-amber-800">Emotion Pattern</div>
               </div>
-              <p class="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{{ snippet }}</p>
+              <p class="text-sm leading-relaxed text-slate-800">
+                {{ summary?.emotionPattern || 'No data recorded yet.' }}
+              </p>
+            </div>
+            <!-- Core Struggles -->
+            <div class="rounded-xl border border-rose-100 bg-rose-50 p-4">
+              <div class="mb-2 flex items-center gap-2">
+                <div class="flex h-6 w-6 items-center justify-center rounded-lg bg-rose-200 text-rose-800 text-[11px] font-bold">!</div>
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-rose-800">Core Struggles</div>
+              </div>
+              <p class="text-sm leading-relaxed text-slate-800">
+                {{ summary?.coreStruggles || 'No data recorded yet.' }}
+              </p>
+            </div>
+            <!-- Effective Coping -->
+            <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <div class="mb-2 flex items-center gap-2">
+                <div class="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-200 text-emerald-800 text-[11px] font-bold">✓</div>
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Effective Coping</div>
+              </div>
+              <p class="text-sm leading-relaxed text-slate-800">
+                {{ summary?.effectiveCoping || 'No data recorded yet.' }}
+              </p>
             </div>
           </div>
           <!-- Footer -->
           <div class="border-t border-slate-100 bg-slate-50 px-6 py-3 text-[11px] text-slate-400">
-            Evidence retrieved from CBT knowledge base via Hybrid Search (Pinecone vector + Elasticsearch RRF).
-            For clinical reference only.
+            Derived from conversation memory via LLM extraction · Updates after each session
           </div>
         </div>
       </div>
@@ -615,6 +682,23 @@ type CrisisAlert = {
   time: string
   content: string
   level: EmotionLevel
+}
+
+type HeatmapCell = {
+  dayOfWeek: string
+  timeSlot: string
+  avgLevel: number
+  count: number
+}
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const DAY_ABBR = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const SLOTS = ['morning', 'afternoon', 'evening', 'night'] as const
+const SLOT_LABELS: Record<string, string> = {
+  morning:   'Morning (6–12)',
+  afternoon: 'Afternoon (12–18)',
+  evening:   'Evening (18–22)',
+  night:     'Night (22–6)'
 }
 
 // ── Mobile ─────────────────────────────────────────────────────────
@@ -665,6 +749,40 @@ const avgEmotionDisplay = computed(() => {
 
 // ── CBT Evidence modal ─────────────────────────────────────────────
 const evidenceOpen = ref(false)
+
+// ── Crisis Heatmap ─────────────────────────────────────────────────
+
+const heatmap = ref<HeatmapCell[]>([])
+const heatmapLoading = ref(false)
+
+const heatmapMatrix = computed(() => {
+  const map: Record<string, HeatmapCell> = {}
+  heatmap.value.forEach(c => { map[`${c.dayOfWeek}:${c.timeSlot}`] = c })
+  return SLOTS.map(slot => ({
+    slot,
+    label: SLOT_LABELS[slot],
+    cells: DAYS.map(day => map[`${day}:${slot}`] ?? null)
+  }))
+})
+
+function heatCellClass(cell: HeatmapCell | null): string {
+  if (!cell) return 'bg-slate-100 text-slate-300 border border-slate-200'
+  if (cell.avgLevel >= 4.5) return 'bg-rose-500 text-white'
+  if (cell.avgLevel >= 3.5) return 'bg-orange-400 text-white'
+  return 'bg-amber-300 text-slate-800'
+}
+
+async function loadHeatmap(userId: string) {
+  heatmapLoading.value = true
+  try {
+    const res = await request.get(`/api/doctor/patients/${encodeURIComponent(userId)}/crisis-heatmap`)
+    heatmap.value = (Array.isArray(res) ? res : []) as HeatmapCell[]
+  } catch {
+    heatmap.value = []
+  } finally {
+    heatmapLoading.value = false
+  }
+}
 
 // ── Patients list ──────────────────────────────────────────────────
 
@@ -753,6 +871,7 @@ async function loadPatientDetails(userId: string | null) {
       request.get(`/api/doctor/patients/${encodeURIComponent(userId)}/summary`),
       request.get(`/api/doctor/patients/${encodeURIComponent(userId)}/crisis-alerts`)
     ])
+    loadHeatmap(userId)
     if (seq !== detailSeq) return
 
     const trendList = Array.isArray(trendRes) ? (trendRes as any[]) : ((trendRes as any)?.trend ?? [])

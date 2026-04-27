@@ -34,4 +34,12 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     List<ChatMessage> findCrisisAlerts(
             @Param("userId") String userId,
             @Param("since") LocalDateTime since);
+
+    // 查询用于危机热力图的消息（L3+，用于按星期/时间段分组）
+    @Query("SELECT m FROM ChatMessage m WHERE m.userId = :userId " +
+           "AND m.role = 'user' AND m.emotionLevel >= 3 " +
+           "AND m.createdAt >= :since ORDER BY m.createdAt ASC")
+    List<ChatMessage> findHeatmapMessages(
+            @Param("userId") String userId,
+            @Param("since") LocalDateTime since);
 }

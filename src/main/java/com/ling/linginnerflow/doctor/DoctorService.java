@@ -157,7 +157,48 @@ public class DoctorService {
         }
     }
 
-    // ── 4. Crisis Alerts (L5, configurable window) ───────────────────
+    // ── 4. Crisis Heatmap (L3+, last 90 days) ───────────────────────
+
+    public List<Map<String, Object>> getCrisisHeatmap(String userId) {
+        LocalDateTime since = LocalDateTime.now().minusDays(90);
+        List<ChatMessage> messages = chatMessageRepository.findHeatmapMessages(userId, since);
+
+        // Group levels by "dayIndex:timeSlot" key
+        Map<String, List<Integer>> grouped = new LinkedHashMap<>();
+        for (ChatMessage m : messages) {
+            if (m.getCreatedAt() == null || m.getEmotionLevel() == null) continue;
+            // DayOfWeek.getValue(): 1=Monday … 7=Sunday → convert to 0-based index
+            int dow = m.getCreatedAt().getDayOfWeek().getValue() - 1;
+            String slot = toTimeSlot(m.getCreatedAt().getHour());
+            grouped.computeIfAbsent(dow + ":" + slot, k -> new ArrayList<>())
+                   .add(m.getEmotionLevel());
+        }
+
+        String[] days = {"Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"};
+        List<Map<String, Object>> result = new ArrayList<>();
+        grouped.forEach((key, levels) -> {
+            String[] parts = key.split(":");
+            int dayIdx = Integer.parseInt(parts[0]);
+            double avg = levels.stream().mapToInt(i -> i).average().orElse(0);
+            Map<String, Object> point = new LinkedHashMap<>();
+            point.put("dayOfWeek", days[dayIdx]);
+            point.put("timeSlot", parts[1]);
+            point.put("avgLevel", Math.round(avg * 10.0) / 10.0);
+            point.put("count", levels.size());
+            result.add(point);
+        });
+        log.info("[Doctor] Crisis heatmap: userId={}, cells={}", userId, result.size());
+        return result;
+    }
+
+    private String toTimeSlot(int hour) {
+        if (hour >= 6 && hour < 12) return "morning";
+        if (hour >= 12 && hour < 18) return "afternoon";
+        if (hour >= 18 && hour < 22) return "evening";
+        return "night";
+    }
+
+    // ── 5. Crisis Alerts (L5, configurable window) ───────────────────
 
     public List<Map<String, Object>> getCrisisAlerts(String userId) {
         LocalDateTime since = LocalDateTime.now().minusDays(30);
