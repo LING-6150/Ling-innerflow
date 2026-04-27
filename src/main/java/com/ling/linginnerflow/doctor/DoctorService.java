@@ -4,6 +4,7 @@ import com.ling.linginnerflow.agent.tool.EmotionTrendAnalyzer;
 import com.ling.linginnerflow.agent.tool.PHQ9ScreeningTool;
 import com.ling.linginnerflow.memory.UserMemory;
 import com.ling.linginnerflow.memory.UserMemoryRepository;
+import com.ling.linginnerflow.rag.HybridSearchService;
 import com.ling.linginnerflow.websocket.ChatMessage;
 import com.ling.linginnerflow.websocket.ChatMessageRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class DoctorService {
     private final UserMemoryRepository userMemoryRepository;
     private final PHQ9ScreeningTool phq9ScreeningTool;
     private final EmotionTrendAnalyzer emotionTrendAnalyzer;
+    private final HybridSearchService hybridSearchService;
 
     // ── 1. Patient List ──────────────────────────────────────────────
 
@@ -125,8 +127,34 @@ public class DoctorService {
         String trendReport = emotionTrendAnalyzer.execute(userId);
         summary.put("emotionTrendReport", trendReport);
 
+        // CBT Evidence: retrieve relevant knowledge snippets based on patient profile
+        summary.put("cbtEvidence", retrieveCbtEvidence(summary));
+
         log.info("[Doctor] Patient summary built: userId={}", userId);
         return summary;
+    }
+
+    private List<String> retrieveCbtEvidence(Map<String, Object> summary) {
+        String struggles = (String) summary.get("coreStruggles");
+        String pattern   = (String) summary.get("emotionPattern");
+        if ((struggles == null || struggles.isBlank()) &&
+            (pattern   == null || pattern.isBlank())) {
+            return List.of();
+        }
+        String query = String.join(" ",
+                struggles != null ? struggles : "",
+                pattern   != null ? pattern   : "").trim();
+        try {
+            String raw = hybridSearchService.hybridSearch(query);
+            if (raw == null || raw.isBlank()) return List.of();
+            return Arrays.stream(raw.split("---"))
+                    .map(String::trim)
+                    .filter(s -> !s.isBlank())
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.warn("[Doctor] CBT evidence retrieval failed: {}", e.getMessage());
+            return List.of();
+        }
     }
 
     // ── 4. Crisis Alerts (L5, configurable window) ───────────────────

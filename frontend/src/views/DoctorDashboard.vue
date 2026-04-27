@@ -46,6 +46,50 @@
     </div>
 
     <div class="mx-auto max-w-7xl px-4 py-5">
+
+      <!-- ── Stat Cards ── -->
+      <div class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <!-- Total Patients -->
+        <div class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+            <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Total Patients</div>
+            <div class="mt-0.5 text-2xl font-bold text-slate-900">{{ patients.length }}</div>
+            <div class="text-[11px] text-slate-400">Enrolled in InnerFlow</div>
+          </div>
+        </div>
+        <!-- High Risk -->
+        <div class="flex items-center gap-4 rounded-2xl border border-rose-100 bg-rose-50 px-5 py-4 shadow-sm">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100">
+            <svg class="h-5 w-5 text-rose-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-rose-600">High Risk</div>
+            <div class="mt-0.5 text-2xl font-bold text-rose-700">{{ highRiskCount }}</div>
+            <div class="text-[11px] text-rose-400">L4 or above · needs attention</div>
+          </div>
+        </div>
+        <!-- Avg Emotion Level -->
+        <div class="flex items-center gap-4 rounded-2xl border border-amber-100 bg-amber-50 px-5 py-4 shadow-sm">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+            <svg class="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-amber-600">Avg Emotion Level</div>
+            <div class="mt-0.5 text-2xl font-bold text-amber-700">{{ avgEmotionDisplay }}</div>
+            <div class="text-[11px] text-amber-500">Across all active patients</div>
+          </div>
+        </div>
+      </div>
+
       <div class="flex gap-5">
 
         <!-- ── Sidebar ── -->
@@ -307,11 +351,22 @@
 
                 <!-- L4 Reflection -->
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-3">
-                  <div class="mb-3 flex items-center gap-2">
-                    <div class="text-sm font-semibold text-slate-900">L4 Clinical Reflection</div>
-                    <span class="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
-                      AI-generated
-                    </span>
+                  <div class="mb-3 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                      <div class="text-sm font-semibold text-slate-900">L4 Clinical Reflection</div>
+                      <span class="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+                        AI-generated
+                      </span>
+                    </div>
+                    <button
+                      v-if="summary?.cbtEvidence?.length"
+                      class="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                      @click="evidenceOpen = true">
+                      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                      </svg>
+                      View Evidence
+                    </button>
                   </div>
                   <div v-if="summary?.l4Reflection"
                     class="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
@@ -454,6 +509,70 @@
       </div>
     </div>
   </div>
+
+  <!-- ── CBT Evidence Modal ── -->
+  <teleport to="body">
+    <transition name="modal">
+      <div v-if="evidenceOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="evidenceOpen = false">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
+        <!-- Panel -->
+        <div class="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+          <!-- Modal header -->
+          <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <div class="flex items-center gap-2.5">
+              <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600">
+                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+                </svg>
+              </div>
+              <div>
+                <div class="text-sm font-bold text-slate-900">CBT Knowledge Evidence</div>
+                <div class="text-[11px] text-slate-500">Retrieved by Hybrid Search · Pinecone + Elasticsearch RRF</div>
+              </div>
+            </div>
+            <button class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              @click="evidenceOpen = false">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <!-- Context banner -->
+          <div class="border-b border-slate-100 bg-indigo-50 px-6 py-2.5 text-xs text-indigo-700">
+            <span class="font-semibold">Query:</span>
+            {{ [summary?.coreStruggles, summary?.emotionPattern].filter(Boolean).join(' · ') || 'Patient profile' }}
+          </div>
+          <!-- Snippets -->
+          <div class="max-h-[60vh] overflow-y-auto p-6 space-y-4">
+            <div v-if="!summary?.cbtEvidence?.length"
+              class="py-8 text-center text-sm text-slate-400">
+              No relevant CBT evidence found for this patient's profile.
+            </div>
+            <div v-for="(snippet, idx) in summary?.cbtEvidence" :key="idx"
+              class="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+              <div class="mb-2 flex items-center gap-2">
+                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+                  {{ idx + 1 }}
+                </span>
+                <span class="text-[11px] font-semibold uppercase tracking-wide text-indigo-600">
+                  Evidence snippet {{ idx + 1 }}
+                </span>
+              </div>
+              <p class="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{{ snippet }}</p>
+            </div>
+          </div>
+          <!-- Footer -->
+          <div class="border-t border-slate-100 bg-slate-50 px-6 py-3 text-[11px] text-slate-400">
+            Evidence retrieved from CBT knowledge base via Hybrid Search (Pinecone vector + Elasticsearch RRF).
+            For clinical reference only.
+          </div>
+        </div>
+      </div>
+    </transition>
+  </teleport>
 </template>
 
 <script setup lang="ts">
@@ -488,6 +607,8 @@ type PatientSummary = {
   emotionPattern?: string
   coreStruggles?: string
   effectiveCoping?: string
+  // CBT Evidence
+  cbtEvidence?: string[]
 }
 
 type CrisisAlert = {
@@ -527,6 +648,23 @@ const todayDate = new Date().toLocaleDateString('en-US', {
 const highRiskCount = computed(() =>
   patients.value.filter(p => p.latestEmotionLevel === 'L5' || p.latestEmotionLevel === 'L4').length
 )
+
+function levelNum(level?: string): number | null {
+  if (!level) return null
+  const m = String(level).match(/\d+/)
+  const n = m ? Number(m[0]) : NaN
+  return n >= 1 && n <= 5 ? n : null
+}
+
+const avgEmotionDisplay = computed(() => {
+  const nums = patients.value.map(p => levelNum(p.latestEmotionLevel)).filter((n): n is number => n !== null)
+  if (!nums.length) return '—'
+  const avg = nums.reduce((a, b) => a + b, 0) / nums.length
+  return 'L' + avg.toFixed(1)
+})
+
+// ── CBT Evidence modal ─────────────────────────────────────────────
+const evidenceOpen = ref(false)
 
 // ── Patients list ──────────────────────────────────────────────────
 
@@ -888,9 +1026,14 @@ function formatDateTime(v?: string): string {
 
 // ── Lifecycle ──────────────────────────────────────────────────────
 
+function onKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape') evidenceOpen.value = false
+}
+
 onMounted(async () => {
   updateIsMobile()
   window.addEventListener('resize', updateIsMobile)
+  window.addEventListener('keydown', onKeyDown)
   await loadPatients()
 })
 
@@ -898,6 +1041,7 @@ onBeforeUnmount(() => {
   chart?.destroy()
   if (toastTimer) window.clearTimeout(toastTimer)
   window.removeEventListener('resize', updateIsMobile)
+  window.removeEventListener('keydown', onKeyDown)
 })
 </script>
 
@@ -910,5 +1054,22 @@ onBeforeUnmount(() => {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(-6px);
+}
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 200ms ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-active .relative,
+.modal-leave-active .relative {
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+.modal-enter-from .relative,
+.modal-leave-to .relative {
+  transform: scale(0.96) translateY(8px);
+  opacity: 0;
 }
 </style>
