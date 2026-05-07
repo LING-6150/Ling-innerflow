@@ -21,6 +21,10 @@ public class ChatMessage {
 
     private Integer emotionLevel; // 只有user消息有
 
+    // Planner routing decision — only set on assistant messages
+    private Integer targetLevel;
+    private String routeStrategy;
+
     private LocalDateTime createdAt;
 
     @PrePersist

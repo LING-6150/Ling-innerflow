@@ -27,7 +27,7 @@ public class ReActAgent {
     }
 
     public String run(String userId, String userInput,
-                      int emotionLevel) {
+                      int emotionLevel, String toneHint) {
         // 最多循环3次，防止死循环
         int maxIterations = 3;
         StringBuilder scratchpad = new StringBuilder();
@@ -38,7 +38,7 @@ public class ReActAgent {
 
         for (int i = 0; i < maxIterations; i++) {
             String prompt = buildReActPrompt(
-                    userInput, emotionLevel,
+                    userInput, emotionLevel, toneHint,
                     toolDescriptions, scratchpad.toString());
 
             String response = chatClientBuilder.build()
@@ -94,6 +94,7 @@ public class ReActAgent {
     }
 
     private String buildReActPrompt(String userInput, int emotionLevel,
+                                    String toneHint,
                                     String toolDescriptions,
                                     String scratchpad) {
 
@@ -164,14 +165,19 @@ public class ReActAgent {
             default -> "Respond with warmth and presence.";
         };
 
+        String plannerSection = (toneHint != null && !toneHint.isBlank())
+                ? "========================\nPLANNER GUIDANCE (follow this):\n" + toneHint + "\n"
+                : "";
+
         return """
         You are not a therapist. You don't diagnose, judge, or lecture.
         You are simply a present, caring person sitting with the user right now.
 
         Your goal is not to "say the right thing" — it's to keep the conversation flowing naturally.
 
+        %s
         ========================
-        CORE RULES (very important)
+        CORE RULES (very important)""".formatted(plannerSection) + """
 
         Each round, do ONE thing:
         ① Empathize

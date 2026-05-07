@@ -119,6 +119,14 @@ public class DoctorService {
             summary.put("lastActiveAt", null);
         });
 
+        // Last Planner routing decision (from most recent assistant message)
+        chatMessageRepository.findFirstByUserIdAndRoleOrderByCreatedAtDesc(userId, "assistant")
+                .ifPresent(m -> {
+                    summary.put("lastPlannerTarget",
+                            m.getTargetLevel() != null ? "L" + m.getTargetLevel() : null);
+                    summary.put("lastPlannerStrategy", m.getRouteStrategy());
+                });
+
         // PHQ-9: full text + parsed structured fields
         String phq9Raw = phq9ScreeningTool.execute(userId);
         summary.put("phq9Screening", phq9Raw);
@@ -155,6 +163,28 @@ public class DoctorService {
             log.warn("[Doctor] CBT evidence retrieval failed: {}", e.getMessage());
             return List.of();
         }
+    }
+
+    // ── 3b. Memory-only summary (no LLM calls) ──────────────────────
+
+    public Map<String, Object> getMemorySummary(String userId) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("userId", userId);
+        userMemoryRepository.findByUserId(userId).ifPresentOrElse(mem -> {
+            summary.put("emotionPattern", mem.getEmotionPattern());
+            summary.put("coreStruggles", mem.getCoreStruggles());
+            summary.put("effectiveCoping", mem.getEffectiveCoping());
+            summary.put("l4Reflection", mem.getReflection());
+            summary.put("lastActiveAt", mem.getLastActiveAt());
+        }, () -> {
+            summary.put("emotionPattern", null);
+            summary.put("coreStruggles", null);
+            summary.put("effectiveCoping", null);
+            summary.put("l4Reflection", null);
+            summary.put("lastActiveAt", null);
+        });
+        log.info("[Doctor] Memory summary built: userId={}", userId);
+        return summary;
     }
 
     // ── 4. Crisis Heatmap (L3+, last 90 days) ───────────────────────

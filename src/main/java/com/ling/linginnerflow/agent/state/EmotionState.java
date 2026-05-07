@@ -1,25 +1,32 @@
 package com.ling.linginnerflow.agent.state;
 
 import lombok.Data;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class EmotionState {
 
-    // 用户输入的原始文字
     private String userInput;
-
-    // 情绪等级 L1-L5
     private int emotionLevel;
-
-    // LLM分析的情绪描述
     private String emotionDescription;
-
-    // 最终给用户的回复
     private String response;
-
-    // 是否触发危机模式
     private boolean crisisMode = false;
-
-    // 加在其他字段旁边
     private String userId;
+
+    // ── Planner fields ──────────────────────────────────────────────
+    // 上一轮情绪等级（0 = 第一条消息，无历史）
+    private int previousLevel = 0;
+    // 最近5轮情绪等级，用于趋势判断
+    private List<Integer> levelHistory = new ArrayList<>();
+    // Planner 决定的目标路由等级（可能与 emotionLevel 不同）
+    private int targetLevel = 0;
+    // 路由策略：pure / escalate / de-escalate / blend
+    private String strategy = "pure";
+    // 传给响应节点的简短语气提示
+    private String toneHint = "";
+
+    // ── UserMemory context injected before Planner ──────────────────
+    private String coreStruggles = "";
+    private String emotionPattern = "";
 }

@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ling.linginnerflow.agent.ReActAgent;
 import com.ling.linginnerflow.agent.node.*;
 import com.ling.linginnerflow.agent.state.EmotionState;
+import java.util.ArrayList;
+import java.util.List;
 import com.ling.linginnerflow.image.EmotionImageService;
 import com.ling.linginnerflow.memory.MemoryService;
 import com.ling.linginnerflow.memory.Persona;
+import com.ling.linginnerflow.memory.UserMemory;
 import com.ling.linginnerflow.multimodal.EmotionFusionService;
 import com.ling.linginnerflow.pet.PetService;
 import com.ling.linginnerflow.user.JwtService;
@@ -39,8 +42,8 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
     private final PetService petService;
 
     private final EmotionFusionService emotionFusionService;
-
     private final ReActAgent reActAgent;
+    private final PlannerNode plannerNode;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session)
@@ -113,9 +116,40 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
 
 
 
-        // 分析完情绪后加
         session.getAttributes().put("lastEmotionLevel", level);
         session.getAttributes().put("lastUserInput", userInput);
+
+        // ── Planning Agent：读取会话历史，决定路由策略 ──────────────
+        int previousLevel = (int) session.getAttributes()
+                .getOrDefault("previousLevel", 0);
+        @SuppressWarnings("unchecked")
+        List<Integer> levelHistory = (List<Integer>) session.getAttributes()
+                .getOrDefault("levelHistory", new ArrayList<Integer>());
+
+        state.setPreviousLevel(previousLevel);
+        state.setLevelHistory(new ArrayList<>(levelHistory));
+
+        // Task C: inject long-term user context so Planner can factor in known struggles
+        UserMemory mem = memoryService.getLongMemory(userId);
+        if (mem != null) {
+            state.setCoreStruggles(mem.getCoreStruggles() != null ? mem.getCoreStruggles() : "");
+            state.setEmotionPattern(mem.getEmotionPattern() != null ? mem.getEmotionPattern() : "");
+        }
+
+        // L5 绕过 Planner，直接走危机响应（保安全）
+        if (level < 5) {
+            state = plannerNode.plan(state);
+        } else {
+            state.setTargetLevel(5);
+            state.setStrategy("pure");
+            state.setToneHint("Crisis state. Prioritize safety.");
+        }
+
+        // 更新会话级别历史（记录原始融合等级，保留最近5轮）
+        levelHistory.add(level);
+        if (levelHistory.size() > 5) levelHistory.remove(0);
+        session.getAttributes().put("levelHistory", levelHistory);
+        session.getAttributes().put("previousLevel", level);
 
         // 持久化用户消息
         ChatMessage userMsg = new ChatMessage();
@@ -161,15 +195,28 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        //buildPrompt之前加判断
         if (level >= 1 && level <= 4) {
-            String reActResponse = reActAgent.run(userId, userInput, level);
+            int routeLevel = state.getTargetLevel() > 0 ? state.getTargetLevel() : level;
+
+            String personaHint = switch (persona) {
+                case QUIET -> "Respond with few words, restrained, non-intrusive. Under 40 words.";
+                case RATIONAL -> "Be slightly structured; gently help user clarify. Warm but clear.";
+                default -> "";
+            };
+            String plannerHint = state.getToneHint();
+            String combinedHint = plannerHint.isBlank() ? personaHint
+                    : personaHint.isBlank() ? plannerHint
+                    : plannerHint + ". " + personaHint;
+
+            String reActResponse = reActAgent.run(userId, userInput, routeLevel, combinedHint);
 
             // 直接发送，不走流式
             ChatMessage aiMsg = new ChatMessage();
             aiMsg.setUserId(userId);
             aiMsg.setRole("assistant");
             aiMsg.setContent(reActResponse);
+            aiMsg.setTargetLevel(routeLevel);
+            aiMsg.setRouteStrategy(state.getStrategy());
             chatMessageRepository.save(aiMsg);
 
             memoryService.addMessage(userId, "assistant", reActResponse);

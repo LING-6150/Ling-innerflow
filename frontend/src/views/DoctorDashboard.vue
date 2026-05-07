@@ -90,6 +90,205 @@
         </div>
       </div>
 
+      <!-- ── A2A Workflow ── -->
+      <div class="mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <button
+          class="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-slate-50"
+          @click="workflowOpen = !workflowOpen">
+          <div class="flex items-center gap-3">
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+              <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm font-semibold text-slate-900">AI Agent Workflow</div>
+              <div class="text-xs text-slate-500">A2A architecture · End-to-end clinical pipeline</div>
+            </div>
+            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600">
+              A2A
+            </span>
+          </div>
+          <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200"
+            :class="workflowOpen ? 'rotate-180' : ''"
+            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/>
+          </svg>
+        </button>
+
+        <Transition name="workflow">
+        <div v-if="workflowOpen" class="border-t border-slate-100 px-5 pb-6 pt-5">
+          <div class="overflow-x-auto pb-1">
+            <div class="flex min-w-max items-stretch gap-0">
+
+              <!-- Node: Patient Input -->
+              <div class="flex flex-col items-center">
+                <div class="flex w-40 flex-col items-center rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-center shadow-sm">
+                  <div class="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-slate-200">
+                    <svg class="h-3.5 w-3.5 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                    </svg>
+                  </div>
+                  <div class="text-xs font-bold text-slate-700">Patient Input</div>
+                  <div class="mt-0.5 text-[10px] leading-tight text-slate-500">Text · Voice · Image</div>
+                </div>
+              </div>
+
+              <!-- Arrow -->
+              <div class="flex items-center px-1.5">
+                <div class="h-px w-4 bg-slate-300"></div>
+                <svg class="h-3 w-3 shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/>
+                </svg>
+              </div>
+
+              <!-- Node: Multimodal Fusion -->
+              <div class="flex flex-col items-center">
+                <div class="flex w-44 flex-col items-center rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-center shadow-sm">
+                  <div class="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-violet-200">
+                    <svg class="h-3.5 w-3.5 text-violet-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"/>
+                    </svg>
+                  </div>
+                  <div class="text-xs font-bold text-violet-700">Multimodal Fusion</div>
+                  <div class="mt-0.5 text-[10px] leading-tight text-violet-500">Text + Voice + Image</div>
+                </div>
+              </div>
+
+              <!-- Arrow -->
+              <div class="flex items-center px-1.5">
+                <div class="h-px w-4 bg-slate-300"></div>
+                <svg class="h-3 w-3 shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/>
+                </svg>
+              </div>
+
+              <!-- Node: LangGraph4j -->
+              <div class="flex flex-col items-center">
+                <div class="flex w-44 flex-col items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-center shadow-sm">
+                  <div class="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-200">
+                    <svg class="h-3.5 w-3.5 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                    </svg>
+                  </div>
+                  <div class="text-xs font-bold text-blue-700">LangGraph4j</div>
+                  <div class="mt-0.5 text-[10px] leading-tight text-blue-500">Emotion Grading L1–L5</div>
+                </div>
+              </div>
+
+              <!-- Arrow -->
+              <div class="flex items-center px-1.5">
+                <div class="h-px w-4 bg-slate-300"></div>
+                <svg class="h-3 w-3 shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/>
+                </svg>
+              </div>
+
+              <!-- Node: ReAct Agent -->
+              <div class="flex flex-col items-center">
+                <div class="flex w-40 flex-col items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-center shadow-sm">
+                  <div class="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-200">
+                    <svg class="h-3.5 w-3.5 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z"/>
+                    </svg>
+                  </div>
+                  <div class="text-xs font-bold text-blue-700">ReAct Agent</div>
+                  <div class="mt-0.5 text-[10px] leading-tight text-blue-500">Tool Selection</div>
+                </div>
+              </div>
+
+              <!-- Arrow -->
+              <div class="flex items-center px-1.5">
+                <div class="h-px w-4 bg-slate-300"></div>
+                <svg class="h-3 w-3 shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/>
+                </svg>
+              </div>
+
+              <!-- Node: MCP Server -->
+              <div class="flex flex-col items-center">
+                <div class="flex w-40 flex-col items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-center shadow-sm">
+                  <div class="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-200">
+                    <svg class="h-3.5 w-3.5 text-indigo-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75a4.5 4.5 0 01-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 11-3.586-3.586l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 016.336-4.486l-3.276 3.276a3.004 3.004 0 002.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852z"/>
+                    </svg>
+                  </div>
+                  <div class="text-xs font-bold text-indigo-700">MCP Server</div>
+                  <div class="mt-0.5 text-[10px] leading-tight text-indigo-500">6 Clinical Tools</div>
+                </div>
+              </div>
+
+              <!-- Arrow -->
+              <div class="flex items-center px-1.5">
+                <div class="h-px w-4 bg-slate-300"></div>
+                <svg class="h-3 w-3 shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/>
+                </svg>
+              </div>
+
+              <!-- Node: FHIR Output -->
+              <div class="flex flex-col items-center">
+                <div class="flex w-44 flex-col items-center rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-center shadow-sm">
+                  <div class="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-cyan-200">
+                    <svg class="h-3.5 w-3.5 text-cyan-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                    </svg>
+                  </div>
+                  <div class="text-xs font-bold text-cyan-700">FHIR Observation</div>
+                  <div class="mt-0.5 text-[10px] leading-tight text-cyan-500">HL7 R4 · EHR Output</div>
+                </div>
+              </div>
+
+              <!-- Arrow -->
+              <div class="flex items-center px-1.5">
+                <div class="h-px w-4 bg-slate-300"></div>
+                <svg class="h-3 w-3 shrink-0 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/>
+                </svg>
+              </div>
+
+              <!-- Node: Clinical Dashboard -->
+              <div class="flex flex-col items-center">
+                <div class="flex w-44 flex-col items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center shadow-sm">
+                  <div class="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-200">
+                    <svg class="h-3.5 w-3.5 text-emerald-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/>
+                    </svg>
+                  </div>
+                  <div class="text-xs font-bold text-emerald-700">Clinical Dashboard</div>
+                  <div class="mt-0.5 text-[10px] leading-tight text-emerald-500">Doctor Review · AI Insights</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div class="mt-4 flex flex-wrap gap-3">
+            <span class="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-slate-300"></span>Input
+            </span>
+            <span class="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-violet-300"></span>Fusion
+            </span>
+            <span class="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-blue-400"></span>AI Agent
+            </span>
+            <span class="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-indigo-400"></span>MCP Tools
+            </span>
+            <span class="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-cyan-400"></span>FHIR / EHR
+            </span>
+            <span class="flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>Output
+            </span>
+          </div>
+        </div>
+        </Transition>
+      </div>
+
       <div class="flex gap-5">
 
         <!-- ── Sidebar ── -->
@@ -244,14 +443,30 @@
                   </div>
                 </div>
               </div>
-              <button
-                class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="!selectedUserId || fhirLoading"
-                @click="generateFhirReport">
-                <span v-if="fhirLoading"
-                  class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                <span>{{ fhirLoading ? 'Generating…' : 'Generate FHIR Report' }}</span>
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="!selectedUserId || fhirLoading || ehrSyncing"
+                  @click="generateFhirReport">
+                  <span v-if="fhirLoading"
+                    class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-400 border-t-transparent"></span>
+                  <svg v-else class="h-3.5 w-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                  </svg>
+                  <span>{{ fhirLoading ? 'Generating…' : 'Generate FHIR' }}</span>
+                </button>
+                <button
+                  class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="!selectedUserId || ehrSyncing || fhirLoading"
+                  @click="syncToEhr">
+                  <span v-if="ehrSyncing"
+                    class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  <svg v-else class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                  </svg>
+                  <span>{{ ehrSyncing ? 'Syncing…' : 'Sync to EHR' }}</span>
+                </button>
+              </div>
             </div>
 
             <!-- Detail loading skeleton -->
@@ -311,7 +526,46 @@
                 </div>
               </div>
 
-              <!-- ② PHQ-9 + L4 Reflection -->
+              <!-- ② Planner Routing Decision -->
+              <div v-if="summary?.lastPlannerTarget || summary?.lastPlannerStrategy"
+                class="rounded-2xl border border-blue-100 bg-blue-50 p-4 shadow-sm">
+                <div class="mb-3 flex items-center gap-2">
+                  <div class="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-200">
+                    <svg class="h-3.5 w-3.5 text-blue-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+                    </svg>
+                  </div>
+                  <div class="text-sm font-semibold text-blue-900">AI Planning Agent · Last Routing Decision</div>
+                  <span class="rounded-full bg-blue-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-800">Live</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                  <div class="flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2 shadow-sm">
+                    <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Detected</span>
+                    <span class="rounded-full px-2.5 py-0.5 text-xs font-bold"
+                      :class="levelPillClass(selectedPatient?.latestEmotionLevel)">
+                      {{ selectedPatient?.latestEmotionLevel || '—' }}
+                    </span>
+                  </div>
+                  <svg class="h-4 w-4 shrink-0 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"/>
+                  </svg>
+                  <div class="flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2 shadow-sm">
+                    <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Routed to</span>
+                    <span class="rounded-full px-2.5 py-0.5 text-xs font-bold"
+                      :class="levelPillClass(summary.lastPlannerTarget)">
+                      {{ summary.lastPlannerTarget || '—' }}
+                    </span>
+                  </div>
+                  <div v-if="summary?.lastPlannerStrategy"
+                    class="rounded-xl border px-4 py-2 shadow-sm"
+                    :class="strategyClass(summary.lastPlannerStrategy)">
+                    <span class="text-[11px] font-semibold uppercase tracking-wide opacity-70">Strategy</span>
+                    <span class="ml-2 text-xs font-bold">{{ summary.lastPlannerStrategy }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ③ PHQ-9 + L4 Reflection -->
               <div class="grid grid-cols-1 gap-4 lg:grid-cols-5">
 
                 <!-- PHQ-9 -->
@@ -676,6 +930,9 @@ type PatientSummary = {
   effectiveCoping?: string
   // CBT Evidence
   cbtEvidence?: string[]
+  // Planner routing decision
+  lastPlannerTarget?: string
+  lastPlannerStrategy?: string
 }
 
 type CrisisAlert = {
@@ -750,6 +1007,9 @@ const avgEmotionDisplay = computed(() => {
 // ── CBT Evidence modal ─────────────────────────────────────────────
 const evidenceOpen = ref(false)
 
+// ── A2A Workflow panel ─────────────────────────────────────────────
+const workflowOpen = ref(false)
+
 // ── Crisis Heatmap ─────────────────────────────────────────────────
 
 const heatmap = ref<HeatmapCell[]>([])
@@ -773,9 +1033,11 @@ function heatCellClass(cell: HeatmapCell | null): string {
 }
 
 async function loadHeatmap(userId: string) {
+  heatmap.value = []
   heatmapLoading.value = true
   try {
     const res = await request.get(`/api/doctor/patients/${encodeURIComponent(userId)}/crisis-heatmap`)
+    if (selectedUserId.value !== userId) return
     heatmap.value = (Array.isArray(res) ? res : []) as HeatmapCell[]
   } catch {
     heatmap.value = []
@@ -847,6 +1109,8 @@ async function loadPatients() {
 
 function selectPatient(userId: string | number, mobile = false) {
   selectedUserId.value = String(userId)
+  evidenceOpen.value = false
+  heatmap.value = []
   if (mobile) mobilePane.value = 'detail'
   if (!isMobile.value || mobile) loadPatientDetails(String(userId))
 }
@@ -884,7 +1148,7 @@ async function loadPatientDetails(userId: string | null) {
 
     const crisisList = Array.isArray(crisisRes) ? (crisisRes as any[]) : ((crisisRes as any)?.alerts ?? [])
     crisisAlerts.value = crisisList.map((a: any) => ({
-      time: a.time ?? a.createdAt ?? a.created_at ?? a.timestamp ?? '',
+      time: a.timestamp ?? a.time ?? a.createdAt ?? a.created_at ?? '',
       content: a.content ?? a.message ?? a.text ?? '',
       level: (a.level ?? a.emotionLevel ?? a.emotion_level ?? 'L5') as EmotionLevel
     }))
@@ -1023,6 +1287,7 @@ function renderChart() {
 const fhirLoading = ref(false)
 const fhirReport = ref<string | null>(null)
 const fhirReportTime = ref('')
+const ehrSyncing = ref(false)
 
 async function generateFhirReport() {
   if (!selectedUserId.value) return
@@ -1053,6 +1318,40 @@ async function generateFhirReport() {
     showToast('error', 'Failed to generate report', e?.message ?? 'Unknown error')
   } finally {
     fhirLoading.value = false
+  }
+}
+
+async function syncToEhr() {
+  if (!selectedUserId.value) return
+  ehrSyncing.value = true
+  try {
+    const res = await request.post('/mcp/tools/call', {
+      jsonrpc: '2.0', id: '1', method: 'tools/call',
+      params: {
+        name: 'fhir_patient_summary',
+        arguments: { fhirPatientId: '90254981', innerflowUserId: selectedUserId.value }
+      }
+    }, { timeout: 60000 }) as any
+
+    const text: string | null =
+      res?.result?.content?.[0]?.text ??
+      res?.result?.content ??
+      null
+
+    if (text) {
+      fhirReport.value = text
+      fhirReportTime.value = new Date().toLocaleTimeString()
+    }
+    showToast('success', 'Successfully synced to EHR · FHIR R4', 'Patient record updated in EHR system')
+    const uid = selectedUserId.value
+    await Promise.all([
+      loadPatients(),
+      uid ? loadPatientDetails(uid) : Promise.resolve()
+    ])
+  } catch (e: any) {
+    showToast('error', 'EHR sync failed', e?.message ?? 'Unknown error')
+  } finally {
+    ehrSyncing.value = false
   }
 }
 
@@ -1100,6 +1399,15 @@ function phq9SeverityClass(s?: string): string {
   if (lower.includes('moderate')) return 'bg-amber-100 text-amber-800'
   if (lower.includes('mild')) return 'bg-yellow-100 text-yellow-800'
   return 'bg-emerald-100 text-emerald-800'
+}
+
+function strategyClass(strategy?: string): string {
+  switch (strategy) {
+    case 'escalate':    return 'border-amber-200 bg-amber-50 text-amber-800'
+    case 'de-escalate': return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+    case 'blend':       return 'border-purple-200 bg-purple-50 text-purple-800'
+    default:            return 'border-blue-200 bg-blue-50 text-blue-800'
+  }
 }
 
 // ── UI helpers ─────────────────────────────────────────────────────
@@ -1189,6 +1497,17 @@ onBeforeUnmount(() => {
 .modal-enter-from .relative,
 .modal-leave-to .relative {
   transform: scale(0.96) translateY(8px);
+  opacity: 0;
+}
+.workflow-enter-active,
+.workflow-leave-active {
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+  overflow: hidden;
+  max-height: 600px;
+}
+.workflow-enter-from,
+.workflow-leave-to {
+  max-height: 0;
   opacity: 0;
 }
 </style>
