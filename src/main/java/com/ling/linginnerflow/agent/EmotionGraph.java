@@ -23,6 +23,7 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 public class EmotionGraph {
 
     private final EmotionAnalyzerNode analyzerNode;
+    private final PlannerNode plannerNode;
     private final L1CompanionNode l1Node;
     private final L2GuidanceNode l2Node;
     private final L3CBTNode l3Node;
@@ -35,16 +36,27 @@ public class EmotionGraph {
 
         graph.addNode("analyzer", node_async(state -> {
             String input = state.value("userInput", "");
-            String userId = state.value("userId", "anonymous"); // 加这行
+            String userId = state.value("userId", "anonymous");
             EmotionState es = new EmotionState();
             es.setUserInput(input);
-            es.setUserId(userId); // 加这行
+            es.setUserId(userId);
             es = analyzerNode.analyze(es);
             return Map.of(
                     "emotionLevel", es.getEmotionLevel(),
                     "emotionDescription", es.getEmotionDescription(),
                     "crisisMode", es.isCrisisMode(),
-                    "userId", userId // 加这行
+                    "userId", userId
+            );
+        }));
+
+        // Planner 节点：读取 analyzer 输出 + 历史，决定 targetLevel
+        graph.addNode("planner", node_async(state -> {
+            EmotionState es = extractState(state);
+            es = plannerNode.plan(es);
+            return Map.of(
+                    "targetLevel", es.getTargetLevel(),
+                    "strategy",    es.getStrategy(),
+                    "toneHint",    es.getToneHint()
             );
         }));
 
@@ -83,23 +95,28 @@ public class EmotionGraph {
             return Map.of("response", es.getResponse());
         }));
 
-        // START → analyzer
+        // START → analyzer → planner → conditional route
         graph.addEdge(START, "analyzer");
+        graph.addEdge("analyzer", "planner");
 
-        // 条件路由 - 必须传入mapping map
+        // 路由依据 Planner 决定的 targetLevel，而非原始 emotionLevel
         AsyncEdgeAction<AgentState> router = state -> {
-            int level = state.value("emotionLevel", 1);
-            String target = switch (level) {
+            int target = state.value("targetLevel", 1);
+            // L5 安全保底：若 emotionLevel=5 但 targetLevel 未正确传入
+            int raw = state.value("emotionLevel", 1);
+            if (raw == 5) target = 5;
+            String node = switch (target) {
                 case 2 -> "l2";
                 case 3 -> "l3";
                 case 4 -> "l4";
                 case 5 -> "l5";
                 default -> "l1";
             };
-            return java.util.concurrent.CompletableFuture.completedFuture(target);
+            log.info("[Graph] routing → {} (targetLevel={}, rawLevel={})", node, target, raw);
+            return java.util.concurrent.CompletableFuture.completedFuture(node);
         };
 
-        graph.addConditionalEdges("analyzer", router,
+        graph.addConditionalEdges("planner", router,
                 Map.of(
                         "l1", "l1",
                         "l2", "l2",
@@ -122,9 +139,15 @@ public class EmotionGraph {
     private EmotionState extractState(AgentState state) {
         EmotionState es = new EmotionState();
         es.setUserInput(state.value("userInput", ""));
+        es.setUserId(state.value("userId", "anonymous"));
         es.setEmotionLevel(state.value("emotionLevel", 1));
         es.setEmotionDescription(state.value("emotionDescription", ""));
         es.setCrisisMode(state.value("crisisMode", false));
+        // Planner context (default 0 / empty for CheckIn flow which has no session history)
+        es.setPreviousLevel(state.value("previousLevel", 0));
+        es.setTargetLevel(state.value("targetLevel", es.getEmotionLevel()));
+        es.setStrategy(state.value("strategy", "pure"));
+        es.setToneHint(state.value("toneHint", ""));
         return es;
     }
 }

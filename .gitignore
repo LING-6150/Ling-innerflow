@@ -38,3 +38,5 @@ application-local.properties
 # 前端
 frontend/node_modules/
 frontend/dist/
+
+.env

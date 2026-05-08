@@ -63,6 +63,6 @@ public class DoctorController {
             @PathVariable String userId) {
         log.info("[Doctor] POST /api/doctor/patients/{}/regenerate-reflection", userId);
         memoryService.generateReflection(userId);
-        return ResponseEntity.ok(doctorService.getPatientSummary(userId));
+        return ResponseEntity.ok(doctorService.getMemorySummary(userId));
     }
 }
