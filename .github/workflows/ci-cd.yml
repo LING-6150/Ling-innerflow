@@ -1,0 +1,180 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  JAVA_VERSION: "21"
+  NODE_VERSION: "20"
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────
+  # Job 1: Build & Test (runs on every push and PR)
+  # ──────────────────────────────────────────────────────────────────
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Maven build ──────────────────────────────────────────────
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Maven package
+        run: mvn package -DskipTests -B -q
+
+      # ── Frontend build ───────────────────────────────────────────
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend install & build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      # ── Upload frontend dist for next job ───────────────────────
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  # ──────────────────────────────────────────────────────────────────
+  # Job 2: Docker Build & Push to ECR (main branch only)
+  # ──────────────────────────────────────────────────────────────────
+  build-push:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    outputs:
+      image-app: ${{ steps.meta.outputs.image-app }}
+      image-nginx: ${{ steps.meta.outputs.image-nginx }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image metadata
+        id: meta
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+        run: |
+          echo "image-app=$REGISTRY/${{ vars.ECR_REPO_APP }}:$TAG" >> $GITHUB_OUTPUT
+          echo "image-nginx=$REGISTRY/${{ vars.ECR_REPO_NGINX }}:$TAG" >> $GITHUB_OUTPUT
+
+      # ── Spring Boot app image ────────────────────────────────────
+      - name: Build & push app image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t $REGISTRY/${{ vars.ECR_REPO_APP }}:$TAG \
+            -t $REGISTRY/${{ vars.ECR_REPO_APP }}:latest \
+            -f Dockerfile .
+          docker push $REGISTRY/${{ vars.ECR_REPO_APP }}:$TAG
+          docker push $REGISTRY/${{ vars.ECR_REPO_APP }}:latest
+
+      # ── Nginx + Vue 3 frontend image ─────────────────────────────
+      - name: Build & push nginx image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t $REGISTRY/${{ vars.ECR_REPO_NGINX }}:$TAG \
+            -t $REGISTRY/${{ vars.ECR_REPO_NGINX }}:latest \
+            -f Dockerfile.nginx .
+          docker push $REGISTRY/${{ vars.ECR_REPO_NGINX }}:$TAG
+          docker push $REGISTRY/${{ vars.ECR_REPO_NGINX }}:latest
+
+  # ──────────────────────────────────────────────────────────────────
+  # Job 3: Deploy to ECS (main branch only)
+  # ──────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: build-push
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Download current ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ vars.ECS_TASK_DEFINITION }} \
+            --query taskDefinition \
+            > task-definition.json
+
+      # Render app container with new image
+      - name: Render task definition (app container)
+        id: render-app
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ vars.CONTAINER_NAME_APP }}
+          image: ${{ needs.build-push.outputs.image-app }}
+
+      # Chain: render nginx container onto the already-updated task def
+      - name: Render task definition (nginx container)
+        id: render-nginx
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-app.outputs.task-definition }}
+          container-name: ${{ vars.CONTAINER_NAME_NGINX }}
+          image: ${{ needs.build-push.outputs.image-nginx }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-nginx.outputs.task-definition }}
+          service: ${{ vars.ECS_SERVICE }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          wait-for-service-stability: true
