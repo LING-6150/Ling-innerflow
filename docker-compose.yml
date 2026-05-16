@@ -12,7 +12,6 @@ services:
       MYSQL_DATABASE: innerflow
     volumes:
       - mysql_data:/var/lib/mysql
-      # 仅首次启动空数据目录时执行；已有数据的环境请手动执行 scripts/nacos-mysql-init.sql
       - ./scripts/nacos-mysql-init.sql:/docker-entrypoint-initdb.d/02-nacos-init.sql:ro
     mem_limit: 512m
     healthcheck:
@@ -158,6 +157,40 @@ services:
     ports:
       - "8090:8080"
 
+  # ── Prometheus ─────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: innerflow-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    mem_limit: 256m
+    ports:
+      - "9090:9090"
+
+  # ── Grafana ────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: innerflow-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    mem_limit: 256m
+    ports:
+      - "3000:3000"
+
   # ── Spring Boot App ────────────────────────────────────────────
   app:
     build: .
@@ -210,3 +243,5 @@ volumes:
   redis_data:
   kafka_data:
   es_data:
+  prometheus_data:
+  grafana_data:
