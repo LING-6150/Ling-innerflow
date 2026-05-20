@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,10 @@ public class MemoryService {
     private final ChatClient.Builder chatClientBuilder;
     private final ObjectMapper objectMapper;
     private final MemoryCompressionService compressionService;
+    private final EmbeddingModel embeddingModel;
+
+    // P3-11: cosine similarity threshold for semantic trigger deduplication
+    private static final double DEDUP_THRESHOLD = 0.88;
 
     // 获取用户人格，默认WARM
     public Persona getPersona(String userId) {
@@ -212,9 +217,19 @@ public class MemoryService {
             switch (u.getAction()) {
                 case "new" -> {
                     String conf = u.getConfidence() != null ? u.getConfidence() : "medium";
-                    WikiObservation o = new WikiObservation(u.getObservation(), 1, today, today, conf, 0.0);
-                    o.setScore(computeScore(1, today, conf));
-                    existing.add(o);
+                    // P3-11: semantic dedup — merge into existing if similarity >= threshold
+                    WikiObservation similar = findSimilarTrigger(existing, u.getObservation());
+                    if (similar != null) {
+                        similar.setCount(similar.getCount() + 1);
+                        similar.setLastSeen(today);
+                        similar.setScore(computeScore(similar.getCount(), today, similar.getConfidence()));
+                        log.info("[Wiki] Semantic dedup: '{}' merged into '{}'",
+                                u.getObservation(), similar.getObservation());
+                    } else {
+                        WikiObservation o = new WikiObservation(u.getObservation(), 1, today, today, conf, 0.0);
+                        o.setScore(computeScore(1, today, conf));
+                        existing.add(o);
+                    }
                 }
                 case "increment" -> existing.stream()
                         .filter(o -> o.getObservation().equalsIgnoreCase(u.getObservation()))
@@ -469,6 +484,48 @@ public class MemoryService {
             } catch (Exception ignored) {}
         }
         return Math.round(countScore * recencyScore * 100.0) / 100.0;
+    }
+
+    /**
+     * P3-11: Batch-embed the new observation + all existing trigger texts in one
+     * API call, then find the most similar existing trigger by cosine similarity.
+     * Returns null if nothing exceeds DEDUP_THRESHOLD, or if embedding fails
+     * (fallback: treat as new, no deduplication loss of data).
+     */
+    private WikiObservation findSimilarTrigger(List<WikiObservation> existing, String newObs) {
+        if (existing.isEmpty()) return null;
+        try {
+            List<String> texts = new ArrayList<>();
+            texts.add(newObs);
+            existing.forEach(o -> texts.add(o.getObservation()));
+
+            List<float[]> vectors = embeddingModel.embed(texts);
+            float[] newVec = vectors.get(0);
+
+            WikiObservation best = null;
+            double bestSim = DEDUP_THRESHOLD;
+            for (int i = 0; i < existing.size(); i++) {
+                double sim = cosineSimilarity(newVec, vectors.get(i + 1));
+                if (sim > bestSim) {
+                    bestSim = sim;
+                    best = existing.get(i);
+                }
+            }
+            return best;
+        } catch (Exception e) {
+            log.warn("[Wiki] Embedding dedup unavailable, skipping: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private double cosineSimilarity(float[] a, float[] b) {
+        double dot = 0, normA = 0, normB = 0;
+        for (int i = 0; i < a.length; i++) {
+            dot   += (double) a[i] * b[i];
+            normA += (double) a[i] * a[i];
+            normB += (double) b[i] * b[i];
+        }
+        return dot / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-10);
     }
 
     private List<WikiObservation> parseTriggers(String json) {
