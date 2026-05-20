@@ -72,6 +72,10 @@ public class UserMemory {
     @Column(columnDefinition = "TEXT")
     private String reflection;
 
+    // AI-detected contradictions between new observations and existing wiki, JSON array
+    @Column(columnDefinition = "TEXT")
+    private String conflicts;
+
     private LocalDateTime lastActiveAt;
 
     @PrePersist

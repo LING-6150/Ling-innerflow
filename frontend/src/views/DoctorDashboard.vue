@@ -752,7 +752,53 @@
                 </template>
               </div>
 
-              <!-- ⑥ FHIR Report panel (structured cards) -->
+              <!-- ⑥ Wiki Conflicts panel (P2-8) -->
+              <div v-if="parsedConflicts.length > 0"
+                class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+                <div class="mb-4 flex items-center gap-3">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                    <svg class="h-4 w-4 text-amber-700" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-semibold text-amber-900">Wiki Conflicts</div>
+                    <div class="text-xs text-amber-700">Contradictions detected between session and existing profile</div>
+                  </div>
+                  <span class="ml-auto rounded-full bg-amber-200 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                    {{ parsedConflicts.length }} conflict{{ parsedConflicts.length !== 1 ? 's' : '' }}
+                  </span>
+                </div>
+                <div class="space-y-3">
+                  <div v-for="(c, i) in parsedConflicts" :key="i"
+                    class="rounded-xl border border-amber-200 bg-white p-4">
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                      <span class="rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+                        {{ c.field }}
+                      </span>
+                      <span class="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                        :class="conflictResolutionClass(c.resolution)">
+                        {{ c.resolution }}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div class="rounded-lg border border-slate-100 bg-slate-50 p-2.5">
+                        <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Previously known</div>
+                        <div class="text-xs text-slate-700 leading-relaxed">{{ c.existing }}</div>
+                      </div>
+                      <div class="rounded-lg border border-blue-100 bg-blue-50 p-2.5">
+                        <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-blue-600">This session</div>
+                        <div class="text-xs text-slate-700 leading-relaxed">{{ c.observed }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-3 text-[10px] text-amber-600">
+                  AI-detected · Updated each session end · May indicate patient progress or inconsistency
+                </div>
+              </div>
+
+              <!-- ⑦ FHIR Report panel (structured cards) -->
               <div v-if="parsedFhir"
                 class="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 shadow-sm">
                 <!-- Panel header -->
@@ -916,6 +962,13 @@ type TrendPoint = {
   level: EmotionLevel | number | string
 }
 
+type ConflictItem = {
+  field: string
+  existing: string
+  observed: string
+  resolution: 'updated' | 'kept' | 'both noted'
+}
+
 type PatientSummary = {
   // PHQ-9
   phq9ScoreRange?: string
@@ -933,6 +986,8 @@ type PatientSummary = {
   // Planner routing decision
   lastPlannerTarget?: string
   lastPlannerStrategy?: string
+  // P2-8: Wiki conflicts (raw JSON string from backend)
+  wikiConflicts?: string
 }
 
 type CrisisAlert = {
@@ -1381,6 +1436,25 @@ const fhirTrendLines = computed<FhirLine[]>(() => {
     return { type: 'text', text: t }
   }).filter(l => l.type !== 'divider' || false)
 })
+
+// ── Wiki Conflicts ─────────────────────────────────────────────────
+
+const parsedConflicts = computed<ConflictItem[]>(() => {
+  const raw = summary.value?.wikiConflicts
+  if (!raw) return []
+  try {
+    return JSON.parse(raw) as ConflictItem[]
+  } catch {
+    return []
+  }
+})
+
+function conflictResolutionClass(r?: string): string {
+  if (r === 'updated')    return 'bg-amber-100 text-amber-800'
+  if (r === 'kept')       return 'bg-slate-100 text-slate-600'
+  if (r === 'both noted') return 'bg-purple-100 text-purple-800'
+  return 'bg-slate-100 text-slate-600'
+}
 
 // ── PHQ-9 helpers ──────────────────────────────────────────────────
 

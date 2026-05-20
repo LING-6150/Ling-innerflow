@@ -198,6 +198,9 @@ public class MemoryService {
             mergeTriggers(memory, result.getTriggerUpdates());
         if (result.getNewProgressNote() != null)
             appendProgressNote(memory, result.getNewProgressNote());
+        // P2-8: persist any AI-detected contradictions
+        if (result.getConflicts() != null && !result.getConflicts().isEmpty())
+            memory.setConflicts(toJson(result.getConflicts()));
     }
 
     private void mergeTriggers(UserMemory memory,
@@ -333,6 +336,7 @@ public class MemoryService {
               "triggerUpdates": [
                 {"observation": "specific trigger", "action": "new", "confidence": "high|medium|low"}
               ],
+              "conflicts": [],
               "newProgressNote": "any notable first-session insight, or null",
               "changeLogEntry": "Initial profile created from first session"
             }
@@ -392,6 +396,9 @@ public class MemoryService {
             - For triggers: "increment" if same trigger recurred, "new" if novel, "remove" only if explicitly resolved
             - For text fields: return updated value if meaningfully changed; null if no change needed
             - Be specific, not generic. Avoid boilerplate phrases.
+            - conflicts: list only genuine contradictions between the existing wiki and THIS session
+              (e.g. wiki says "avoids exercise" but this session shows active jogging habit).
+              resolution must be one of: "updated" (wiki changed), "kept" (wiki unchanged, one-off), "both noted"
             - changeLogEntry: 1-2 sentences describing what changed this session
 
             Return ONLY valid JSON, no markdown:
@@ -402,6 +409,9 @@ public class MemoryService {
               "languageStyle": "updated or null",
               "triggerUpdates": [
                 {"observation": "specific trigger", "action": "new|increment|remove", "confidence": "high|medium|low"}
+              ],
+              "conflicts": [
+                {"field": "emotionPattern|coreStruggles|effectiveCoping|triggers", "existing": "...", "observed": "...", "resolution": "updated|kept|both noted"}
               ],
               "newProgressNote": "specific growth observation, or null",
               "changeLogEntry": "brief summary"
@@ -487,6 +497,18 @@ public class MemoryService {
         int start = Math.max(0, notes.size() - 5);
         dto.setProgressNotes(notes.subList(start, notes.size()));
 
+        // P2-8: parse conflicts JSON
+        if (mem.getConflicts() != null && !mem.getConflicts().isBlank()) {
+            try {
+                List<Map<String, String>> conflicts = objectMapper.readValue(
+                        mem.getConflicts(), new TypeReference<>() {});
+                dto.setConflicts(conflicts);
+            } catch (Exception ignored) {}
+        }
+
+        dto.setHasData(mem.getEmotionPattern() != null
+                || mem.getCoreStruggles() != null
+                || !triggers.isEmpty());
         return dto;
     }
 
@@ -540,6 +562,7 @@ public class MemoryService {
             mem.setProgressNotes(null);
             mem.setLanguageStyle(null);
             mem.setReflection(null);
+            mem.setConflicts(null);
             mem.setWikiChangeLog(null);
             mem.setUserCorrections(null);
             mem.setConversationSummary(null);
@@ -578,6 +601,8 @@ public class MemoryService {
         private String reflection;
         private List<WikiObservation> triggers = new ArrayList<>();
         private List<Map<String, String>> progressNotes = new ArrayList<>();
+        private List<Map<String, String>> conflicts = new ArrayList<>();
+        private boolean hasData;
     }
 
     // ==================== 活跃时间更新 ====================
@@ -653,6 +678,7 @@ public class MemoryService {
         private String effectiveCoping;
         private String languageStyle;
         private List<TriggerAction> triggerUpdates;
+        private List<ConflictEntry> conflicts;
         private String newProgressNote;
         private String changeLogEntry;
 
@@ -661,6 +687,14 @@ public class MemoryService {
             private String observation;
             private String action;      // "new" | "increment" | "remove"
             private String confidence;  // "high" | "medium" | "low"
+        }
+
+        @lombok.Data
+        static class ConflictEntry {
+            private String field;       // "triggers" | "emotionPattern" | "coreStruggles" | "effectiveCoping"
+            private String existing;    // what was already in the wiki
+            private String observed;    // what was seen in this session
+            private String resolution;  // "updated" | "kept" | "both noted"
         }
     }
 
