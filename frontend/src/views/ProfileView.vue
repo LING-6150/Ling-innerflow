@@ -170,6 +170,19 @@
         </div>
       </div>
 
+      <div v-if="wiki.changeLog?.length" class="wiki-section">
+        <p class="wiki-label">Session History</p>
+        <div class="changelog-timeline">
+          <div v-for="(c, i) in wiki.changeLog" :key="i" class="changelog-item">
+            <div class="changelog-dot" :class="i === 0 ? 'changelog-dot--latest' : ''"></div>
+            <div class="changelog-body">
+              <span class="changelog-date">{{ c.date }}</span>
+              <span class="changelog-entry">{{ c.entry }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Clear All -->
       <button class="clear-wiki-btn" @click="confirmClearWiki">
         Clear all memory
@@ -283,6 +296,7 @@ interface Wiki {
   reflection?: string
   triggers?: WikiTrigger[]
   progressNotes?: { date: string; note: string }[]
+  changeLog?: { date: string; entry: string }[]
 }
 const wiki = ref<Wiki>({ hasData: false })
 const editingField = ref('')
@@ -771,6 +785,51 @@ onMounted(() => {
 .progress-note:last-child { border-bottom: none; }
 .note-date { color: var(--text-muted); flex-shrink: 0; }
 .note-text { color: var(--text-secondary); line-height: 1.4; }
+
+.changelog-timeline {
+  position: relative;
+  padding-left: 18px;
+}
+.changelog-timeline::before {
+  content: '';
+  position: absolute;
+  left: 5px; top: 8px; bottom: 8px;
+  width: 1px;
+  background: rgba(100,80,150,0.15);
+}
+.changelog-item {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+}
+.changelog-dot {
+  position: absolute;
+  left: -16px;
+  top: 7px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(100,80,150,0.25);
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px rgba(100,80,150,0.2);
+  flex-shrink: 0;
+}
+.changelog-dot--latest {
+  background: rgba(99,102,241,0.7);
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.4);
+}
+.changelog-body {
+  display: flex; flex-direction: column; gap: 1px;
+  font-size: 12px;
+}
+.changelog-date {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.changelog-entry {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
 
 .clear-wiki-btn {
   margin-top: 12px; width: 100%; padding: 8px;

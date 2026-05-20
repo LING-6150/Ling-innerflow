@@ -242,11 +242,41 @@ public class MemoryService {
     }
 
     private void appendChangeLog(UserMemory memory, String entry) {
-        String existing = memory.getWikiChangeLog() != null ? memory.getWikiChangeLog() : "";
-        String newEntry = LocalDate.now() + ": " + entry + "\n";
-        String updated = newEntry + existing;
-        if (updated.length() > 3000) updated = updated.substring(0, 3000);
-        memory.setWikiChangeLog(updated);
+        List<Map<String, String>> log = parseChangeLog(memory.getWikiChangeLog());
+        Map<String, String> item = new LinkedHashMap<>();
+        item.put("date", LocalDate.now().toString());
+        item.put("entry", entry);
+        log.add(0, item); // newest first
+        if (log.size() > 50) log = log.subList(0, 50);
+        memory.setWikiChangeLog(toJson(log));
+    }
+
+    private List<Map<String, String>> parseChangeLog(String json) {
+        if (json == null || json.isBlank()) return new ArrayList<>();
+        // Migrate from old plain-text "YYYY-MM-DD: entry\n" format
+        if (!json.trim().startsWith("[")) {
+            List<Map<String, String>> migrated = new ArrayList<>();
+            for (String line : json.split("\n")) {
+                line = line.trim();
+                if (line.isBlank()) continue;
+                Map<String, String> m = new LinkedHashMap<>();
+                int idx = line.indexOf(": ");
+                if (idx > 0) {
+                    m.put("date", line.substring(0, idx));
+                    m.put("entry", line.substring(idx + 2));
+                } else {
+                    m.put("date", "—");
+                    m.put("entry", line);
+                }
+                migrated.add(m);
+            }
+            return migrated;
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<Map<String, String>>>() {});
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 
     // ==================== Prompt构建 ====================
@@ -506,6 +536,10 @@ public class MemoryService {
             } catch (Exception ignored) {}
         }
 
+        // P1-4: structured changeLog (most recent 10 entries)
+        List<Map<String, String>> cl = parseChangeLog(mem.getWikiChangeLog());
+        dto.setChangeLog(cl.subList(0, Math.min(10, cl.size())));
+
         dto.setHasData(mem.getEmotionPattern() != null
                 || mem.getCoreStruggles() != null
                 || !triggers.isEmpty());
@@ -602,6 +636,7 @@ public class MemoryService {
         private List<WikiObservation> triggers = new ArrayList<>();
         private List<Map<String, String>> progressNotes = new ArrayList<>();
         private List<Map<String, String>> conflicts = new ArrayList<>();
+        private List<Map<String, String>> changeLog = new ArrayList<>();
         private boolean hasData;
     }
 

@@ -112,6 +112,7 @@ public class DoctorService {
             summary.put("l4Reflection", mem.getReflection());
             summary.put("lastActiveAt", mem.getLastActiveAt());
             summary.put("wikiConflicts", mem.getConflicts());
+            summary.put("wikiChangeLog", mem.getWikiChangeLog());
         }, () -> {
             summary.put("emotionPattern", null);
             summary.put("coreStruggles", null);
@@ -119,6 +120,7 @@ public class DoctorService {
             summary.put("l4Reflection", null);
             summary.put("lastActiveAt", null);
             summary.put("wikiConflicts", null);
+            summary.put("wikiChangeLog", null);
         });
 
         // Last Planner routing decision (from most recent assistant message)

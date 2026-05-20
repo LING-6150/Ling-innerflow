@@ -798,7 +798,53 @@
                 </div>
               </div>
 
-              <!-- ⑦ FHIR Report panel (structured cards) -->
+              <!-- ⑦ Wiki Change Timeline (P1-4 / P2-10) -->
+              <div v-if="parsedChangeLog.length > 0"
+                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="mb-4 flex items-center gap-3">
+                  <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-50">
+                    <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-semibold text-slate-900">Wiki Change Timeline</div>
+                    <div class="text-xs text-slate-500">Session-by-session profile updates</div>
+                  </div>
+                  <span class="ml-auto rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                    {{ parsedChangeLog.length }} entries
+                  </span>
+                </div>
+                <!-- Timeline list -->
+                <div class="relative">
+                  <!-- Vertical track -->
+                  <div class="absolute left-[11px] top-2 bottom-2 w-px bg-slate-200"></div>
+                  <div class="space-y-4">
+                    <div v-for="(item, i) in parsedChangeLog" :key="i"
+                      class="relative flex gap-4">
+                      <!-- Dot -->
+                      <div class="relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white shadow-sm"
+                        :class="i === 0 ? 'bg-indigo-500' : 'bg-slate-300'">
+                        <div class="h-2 w-2 rounded-full"
+                          :class="i === 0 ? 'bg-white' : 'bg-white'"></div>
+                      </div>
+                      <!-- Content -->
+                      <div class="min-w-0 flex-1 pb-1">
+                        <div class="flex items-baseline gap-2">
+                          <span class="text-[11px] font-semibold text-slate-500">{{ item.date }}</span>
+                          <span v-if="i === 0"
+                            class="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+                            latest
+                          </span>
+                        </div>
+                        <div class="mt-0.5 text-sm text-slate-700 leading-relaxed">{{ item.entry }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ⑧ FHIR Report panel (structured cards) -->
               <div v-if="parsedFhir"
                 class="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 shadow-sm">
                 <!-- Panel header -->
@@ -988,6 +1034,8 @@ type PatientSummary = {
   lastPlannerStrategy?: string
   // P2-8: Wiki conflicts (raw JSON string from backend)
   wikiConflicts?: string
+  // P1-4 / P2-10: structured changeLog (raw JSON string from backend)
+  wikiChangeLog?: string
 }
 
 type CrisisAlert = {
@@ -1455,6 +1503,30 @@ function conflictResolutionClass(r?: string): string {
   if (r === 'both noted') return 'bg-purple-100 text-purple-800'
   return 'bg-slate-100 text-slate-600'
 }
+
+// ── Wiki Change Timeline (P1-4 / P2-10) ───────────────────────────
+
+type ChangeLogItem = { date: string; entry: string }
+
+const parsedChangeLog = computed<ChangeLogItem[]>(() => {
+  const raw = summary.value?.wikiChangeLog
+  if (!raw) return []
+  try {
+    // JSON array format (P1-4 structured)
+    if (raw.trim().startsWith('[')) return JSON.parse(raw) as ChangeLogItem[]
+    // Fallback: migrate old plain-text "YYYY-MM-DD: entry\n" on the fly
+    return raw.split('\n')
+      .map(l => l.trim()).filter(Boolean)
+      .map(l => {
+        const idx = l.indexOf(': ')
+        return idx > 0
+          ? { date: l.slice(0, idx), entry: l.slice(idx + 2) }
+          : { date: '—', entry: l }
+      })
+  } catch {
+    return []
+  }
+})
 
 // ── PHQ-9 helpers ──────────────────────────────────────────────────
 
