@@ -10,6 +10,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -142,7 +143,8 @@ public class MemoryService {
 
     /**
      * Wiki编译 — 读取现有档案 + 新对话 → AI决定合并策略
-     * 不再覆盖，而是积累：新观察增加count，旧条目保留，冲突标记
+     * P0-2: 首次对话（Wiki为空）走简单提取，避免AI对着空Wiki推理
+     * 后续对话走 merge prompt，AI看到旧档案后决定增/改/保留
      */
     public void updateLongMemory(String userId,
                                  List<ConversationMessage> history) {
@@ -154,9 +156,16 @@ public class MemoryService {
                     .orElse(new UserMemory());
             memory.setUserId(userId);
 
-            String mergePrompt = buildMergePrompt(memory, history);
+            boolean isFirstSession = memory.getEmotionPattern() == null
+                    && memory.getCoreStruggles() == null
+                    && memory.getTriggers() == null;
+
+            String prompt = isFirstSession
+                    ? buildFirstExtractPrompt(history)
+                    : buildMergePrompt(memory, history);
+
             String raw = chatClientBuilder.build()
-                    .prompt().user(mergePrompt).call().content();
+                    .prompt().user(prompt).call().content();
             raw = raw.replaceAll("(?s)```json\\s*|```\\s*", "").trim();
 
             WikiMergeResult result = objectMapper.readValue(raw, WikiMergeResult.class);
@@ -198,13 +207,20 @@ public class MemoryService {
 
         for (WikiMergeResult.TriggerAction u : updates) {
             switch (u.getAction()) {
-                case "new" -> existing.add(new WikiObservation(
-                        u.getObservation(), 1, today, today,
-                        u.getConfidence() != null ? u.getConfidence() : "medium"));
+                case "new" -> {
+                    String conf = u.getConfidence() != null ? u.getConfidence() : "medium";
+                    WikiObservation o = new WikiObservation(u.getObservation(), 1, today, today, conf, 0.0);
+                    o.setScore(computeScore(1, today, conf));
+                    existing.add(o);
+                }
                 case "increment" -> existing.stream()
                         .filter(o -> o.getObservation().equalsIgnoreCase(u.getObservation()))
                         .findFirst()
-                        .ifPresent(o -> { o.setCount(o.getCount() + 1); o.setLastSeen(today); });
+                        .ifPresent(o -> {
+                            o.setCount(o.getCount() + 1);
+                            o.setLastSeen(today);
+                            o.setScore(computeScore(o.getCount(), today, o.getConfidence()));
+                        });
                 case "remove" -> existing.removeIf(
                         o -> o.getObservation().equalsIgnoreCase(u.getObservation()));
             }
@@ -249,12 +265,15 @@ public class MemoryService {
             if (longMemory.getEmotionPattern() != null)
                 context.append("Emotion pattern: ").append(longMemory.getEmotionPattern()).append("\n");
 
-            // triggers：按出现频次降序，高频触发点排前面
+            // triggers：score 降序，过滤低于 0.3 的陈旧/低置信观察（P1-5）
             List<WikiObservation> triggers = parseTriggers(longMemory.getTriggers());
-            if (!triggers.isEmpty()) {
-                triggers.sort((a, b) -> b.getCount() - a.getCount());
-                String triggerText = triggers.stream()
-                        .map(t -> t.getObservation() + " (×" + t.getCount() + ")")
+            List<WikiObservation> activeTriggers = triggers.stream()
+                    .filter(t -> t.getScore() >= 0.3)
+                    .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                    .toList();
+            if (!activeTriggers.isEmpty()) {
+                String triggerText = activeTriggers.stream()
+                        .map(t -> t.getObservation() + " (×" + t.getCount() + ", score=" + t.getScore() + ")")
                         .collect(Collectors.joining(", "));
                 context.append("Known triggers: ").append(triggerText).append("\n");
             }
@@ -296,6 +315,30 @@ public class MemoryService {
         }
 
         return context.toString();
+    }
+
+    /** P0-2: 首次对话专用 — 纯提取，无旧档案干扰，格式与 WikiMergeResult 一致 */
+    private String buildFirstExtractPrompt(List<ConversationMessage> history) {
+        StringBuilder conv = new StringBuilder();
+        history.forEach(m -> conv.append(m.getRole()).append(": ").append(m.getContent()).append("\n"));
+        return """
+            You are building an initial psychological profile from a first therapy-adjacent conversation.
+            Be specific and evidence-based — only record what is clearly evidenced.
+            Return ONLY valid JSON, no markdown:
+            {
+              "emotionPattern": "specific patterns observed, or null",
+              "coreStruggles": "specific stressors/pain points, or null",
+              "effectiveCoping": "what seemed to help in this session, or null",
+              "languageStyle": "how this person expresses inner states, or null",
+              "triggerUpdates": [
+                {"observation": "specific trigger", "action": "new", "confidence": "high|medium|low"}
+              ],
+              "newProgressNote": "any notable first-session insight, or null",
+              "changeLogEntry": "Initial profile created from first session"
+            }
+            Conversation:
+            %s
+            """.formatted(conv);
     }
 
     /**
@@ -369,10 +412,33 @@ public class MemoryService {
         );
     }
 
+    /**
+     * score = countScore × recencyScore
+     * countScore  = min(1.0, count / 5.0)          — 5次观察达满分
+     * recencyScore = exp(−daysSince / 90)           — 90天半衰期
+     * confirmed   = 1.0（用户亲自确认，不衰减）
+     */
+    private double computeScore(int count, String lastSeen, String confidence) {
+        if ("confirmed".equals(confidence)) return 1.0;
+        double countScore = Math.min(1.0, count / 5.0);
+        double recencyScore = 1.0;
+        if (lastSeen != null) {
+            try {
+                long days = ChronoUnit.DAYS.between(LocalDate.parse(lastSeen), LocalDate.now());
+                recencyScore = Math.exp(-days / 90.0);
+            } catch (Exception ignored) {}
+        }
+        return Math.round(countScore * recencyScore * 100.0) / 100.0;
+    }
+
     private List<WikiObservation> parseTriggers(String json) {
         if (json == null || json.isBlank()) return new ArrayList<>();
         try {
-            return objectMapper.readValue(json, new TypeReference<List<WikiObservation>>() {});
+            List<WikiObservation> list = objectMapper.readValue(json,
+                    new TypeReference<List<WikiObservation>>() {});
+            // 每次加载时实时重算 score — 时间衰减无需定时任务
+            list.forEach(o -> o.setScore(computeScore(o.getCount(), o.getLastSeen(), o.getConfidence())));
+            return list;
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -411,8 +477,10 @@ public class MemoryService {
         dto.setLanguageStyle(mem.getLanguageStyle());
         dto.setReflection(mem.getReflection());
 
-        List<WikiObservation> triggers = parseTriggers(mem.getTriggers());
-        triggers.sort((a, b) -> b.getCount() - a.getCount());
+        List<WikiObservation> triggers = parseTriggers(mem.getTriggers())
+                .stream()
+                .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                .toList();
         dto.setTriggers(triggers);
 
         List<Map<String, String>> notes = parseProgressNotes(mem.getProgressNotes());
@@ -455,7 +523,7 @@ public class MemoryService {
                     .filter(t -> t.getObservation().equalsIgnoreCase(observationText))
                     .findFirst()
                     .ifPresent(t -> t.setObservation(correctionText));
-            case "add"     -> triggers.add(new WikiObservation(correctionText, 1, today, today, "confirmed"));
+            case "add"     -> triggers.add(new WikiObservation(correctionText, 1, today, today, "confirmed", 1.0));
         }
         mem.setTriggers(toJson(triggers));
     }
@@ -606,5 +674,6 @@ public class MemoryService {
         private String firstSeen;
         private String lastSeen;
         private String confidence = "medium";
+        private double score = 0.0; // 0..1，每次 parseTriggers 时实时重算
     }
 }
