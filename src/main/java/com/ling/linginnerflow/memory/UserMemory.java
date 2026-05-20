@@ -33,9 +33,25 @@ public class UserMemory {
     @Column(length = 500)
     private String effectiveCoping;
 
-    // 对话摘要（最近一次）
+    // 已知情绪触发点，如"工作截止日临近、被忽视时"
+    @Column(length = 500)
+    private String triggers;
+
+    // 治疗进展记录，如"第3次会话首次主动识别认知扭曲"
+    @Column(length = 500)
+    private String progressNotes;
+
+    // 用户表达内心状态的语言风格，如"常用身体隐喻，倾向于轻描淡写"
+    @Column(length = 300)
+    private String languageStyle;
+
+    // 对话摘要（最近一次压缩产生的）
     @Column(length = 2000)
     private String conversationSummary;
+
+    // 累计压缩次数，反映对话深度
+    @Column(columnDefinition = "int default 0")
+    private int compressionCount = 0;
 
     // 在 updatedAt 字段前面加
 // 陪伴人格偏好：WARM / QUIET / RATIONAL，默认WARM

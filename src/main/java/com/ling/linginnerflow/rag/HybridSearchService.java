@@ -2,29 +2,27 @@ package com.ling.linginnerflow.rag;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 
 /**
- * 混合检索服务
- * 结合Pinecone向量检索 + ES关键词检索，用RRF算法融合结果
+ * Enhanced hybrid retrieval pipeline:
  *
- * 为什么要混合检索：
- * - 纯向量检索：擅长语义相似，但对精确关键词不敏感
- *   例如：用户说"我总是全或无地看待事情"，向量检索能找到语义相关的内容
- * - ES关键词检索：擅长精确匹配
- *   例如：用户直接说"全或无思维"，ES能精确命中CBT-001
- * - 混合：两者互补，召回更全面
+ *  1. HyDE  — LLM generates a hypothetical CBT document from the user query,
+ *             then embeds it; this vector sits closer to real CBT entries than
+ *             the raw user query embedding.
+ *  2. Pinecone — vector search with the HyDE vector (candidate-k = 10)
+ *  3. ES BM25  — keyword search on raw query (top-5)
+ *  4. RRF     — fuses the two ranked lists into one candidate pool
+ *  5. Re-rank — single LLM call scores every candidate against the original
+ *               query; returns the top-N by relevance
  *
- * RRF（Reciprocal Rank Fusion）算法：
- * score = Σ 1/(k + rank)
- * k=60是经验值，rank是文档在各路检索中的排名
- * 排名越靠前，得分越高；两路都命中的文档得分叠加
+ * Fallback: any stage failure degrades gracefully to plain Pinecone search.
  */
 @Slf4j
 @Service
@@ -34,50 +32,67 @@ public class HybridSearchService {
     private final CBTKnowledgeService cbtKnowledgeService;
     private final CBTDocumentRepository cbtDocumentRepository;
     private final ElasticsearchOperations elasticsearchOperations;
+    private final HyDEService hydeService;
+    private final LLMRerankerService reranker;
 
-    // RRF的k值，经验值60，防止排名靠后的文档得分过高
+    // How many candidates to pull from Pinecone before re-ranking.
+    // Larger pool = better recall, but more tokens in the re-ranking prompt.
+    @Value("${rag.pinecone.candidate-k:10}")
+    private int candidateK;
+
+    // ES candidate count (separate from candidateK so it can be tuned)
+    @Value("${rag.es.candidate-k:5}")
+    private int esCandidateK;
+
+    // RRF constant (empirical; prevents high rank-position dominance)
     private static final int RRF_K = 60;
 
-    // 最终返回的文档数量
+    // Final number of documents returned to the caller
     private static final int TOP_N = 3;
 
     /**
-     * 混合检索主入口
-     * 1. Pinecone向量检索
-     * 2. ES关键词检索
-     * 3. RRF融合排名
-     * 4. 返回TopN结果
+     * Main entry point.
+     * Returns a single string of newline-separated CBT document snippets.
      */
     public String hybridSearch(String userInput) {
         try {
-            // 第一路：Pinecone向量检索，返回文档ID列表（按相似度排序）
+            // ── Stage 1: HyDE query expansion ────────────────────────────
+            List<Float> hydeVector = hydeService.expandQuery(userInput);
+
+            // ── Stage 2: Pinecone vector search (candidate pool) ──────────
             List<String> pineconeIds = cbtKnowledgeService
-                    .retrieveRelevantCBTIds(userInput);
-            log.info("Pinecone命中: {}", pineconeIds);
+                    .retrieveIdsByVector(hydeVector, candidateK);
+            log.info("[HybridSearch] Pinecone hits: {}", pineconeIds);
 
-            // 第二路：ES关键词检索，提取关键词做全文搜索
-            List<String> esIds = esKeywordSearch(userInput);
-            log.info("ES命中: {}", esIds);
+            // ── Stage 3: ES BM25 keyword search ───────────────────────────
+            List<String> esIds = esKeywordSearch(userInput, esCandidateK);
+            log.info("[HybridSearch] ES hits: {}", esIds);
 
-            // 第三步：RRF融合
-            List<String> mergedIds = rrfMerge(pineconeIds, esIds);
-            log.info("RRF融合后排序: {}", mergedIds);
+            // ── Stage 4: RRF fusion ────────────────────────────────────────
+            List<String> candidateIds = rrfMerge(pineconeIds, esIds);
+            log.info("[HybridSearch] RRF candidate pool ({}): {}", candidateIds.size(), candidateIds);
 
-            // 第四步：从ES取出文档内容拼接返回
-            return fetchContent(mergedIds);
+            if (candidateIds.isEmpty()) return "";
+
+            // ── Stage 5: LLM re-ranking ────────────────────────────────────
+            List<String> candidateDocs = fetchDocumentContents(candidateIds);
+            List<String> rerankedIds = reranker.rerank(
+                    userInput, candidateDocs, candidateIds, TOP_N);
+            log.info("[HybridSearch] After re-rank top-{}: {}", TOP_N, rerankedIds);
+
+            // ── Stage 6: Assemble final result ─────────────────────────────
+            return fetchContent(rerankedIds);
 
         } catch (Exception e) {
-            log.error("混合检索失败，降级为纯向量检索: {}", e.getMessage());
-            // 降级：直接用原来的Pinecone检索
+            log.error("[HybridSearch] Pipeline failed, falling back to plain Pinecone: {}",
+                    e.getMessage());
             return cbtKnowledgeService.retrieveRelevantCBT(userInput);
         }
     }
 
-    /**
-     * ES关键词检索
-     * 把用户输入直接作为关键词搜索content字段
-     */
-    private List<String> esKeywordSearch(String userInput) {
+    // ── ES BM25 search ──────────────────────────────────────────────────────
+
+    private List<String> esKeywordSearch(String userInput, int maxResults) {
         try {
             NativeQuery query = NativeQuery.builder()
                     .withQuery(q -> q
@@ -87,7 +102,7 @@ public class HybridSearchService {
                                     .minimumShouldMatch("30%")
                             )
                     )
-                    .withMaxResults(5)
+                    .withMaxResults(maxResults)
                     .build();
 
             SearchHits<CBTDocument> hits = elasticsearchOperations
@@ -95,66 +110,60 @@ public class HybridSearchService {
 
             List<String> ids = new ArrayList<>();
             hits.forEach(hit -> ids.add(hit.getId()));
-
-            log.info("ES全文检索命中: {} 条", ids.size());
+            log.info("[HybridSearch] ES full-text hits: {}", ids.size());
             return ids;
 
         } catch (Exception e) {
-            log.error("ES检索失败: {}", e.getMessage());
-            return new ArrayList<>();
+            log.error("[HybridSearch] ES search failed: {}", e.getMessage());
+            return List.of();
         }
     }
 
-    /**
-     * RRF融合算法
-     * score(doc) = 1/(k + rank_pinecone) + 1/(k + rank_es)
-     * 如果某路没有该文档，不计分
-     */
-    private List<String> rrfMerge(List<String> pineconeIds,
-                                  List<String> esIds) {
+    // ── RRF ─────────────────────────────────────────────────────────────────
 
-        // 收集所有候选文档ID
+    /**
+     * Reciprocal Rank Fusion:  score(doc) = Σ  1 / (k + rank_in_list)
+     * Returns all candidates ordered by descending RRF score (no hard cut here;
+     * the re-ranker decides the final count).
+     */
+    private List<String> rrfMerge(List<String> pineconeIds, List<String> esIds) {
         Set<String> allIds = new LinkedHashSet<>();
         allIds.addAll(pineconeIds);
         allIds.addAll(esIds);
 
-        // 计算每个文档的RRF分数
         Map<String, Double> scores = new HashMap<>();
         for (String id : allIds) {
             double score = 0.0;
-
-            // Pinecone那路的贡献
-            int pineconeRank = pineconeIds.indexOf(id);
-            if (pineconeRank >= 0) {
-                score += 1.0 / (RRF_K + pineconeRank + 1);
-            }
-
-            // ES那路的贡献
-            int esRank = esIds.indexOf(id);
-            if (esRank >= 0) {
-                score += 1.0 / (RRF_K + esRank + 1);
-            }
-
+            int pr = pineconeIds.indexOf(id);
+            if (pr >= 0) score += 1.0 / (RRF_K + pr + 1);
+            int er = esIds.indexOf(id);
+            if (er >= 0) score += 1.0 / (RRF_K + er + 1);
             scores.put(id, score);
         }
 
-        // 按分数降序排序
         List<String> sorted = new ArrayList<>(scores.keySet());
         sorted.sort((a, b) -> Double.compare(scores.get(b), scores.get(a)));
-
-        // 返回TopN
-        return sorted.subList(0, Math.min(TOP_N, sorted.size()));
+        return sorted;
     }
 
-    /**
-     * 根据ID列表从ES取出文档内容
-     */
+    // ── Content fetching ────────────────────────────────────────────────────
+
+    /** Fetch document texts in the order of the given ID list. */
+    private List<String> fetchDocumentContents(List<String> ids) {
+        List<String> contents = new ArrayList<>();
+        for (String id : ids) {
+            cbtDocumentRepository.findById(id)
+                    .ifPresent(doc -> contents.add(doc.getContent()));
+        }
+        return contents;
+    }
+
+    /** Fetch and concatenate document texts for the final result string. */
     private String fetchContent(List<String> ids) {
         StringBuilder sb = new StringBuilder();
         for (String id : ids) {
-            cbtDocumentRepository.findById(id).ifPresent(doc -> {
-                sb.append(doc.getContent()).append("\n---\n");
-            });
+            cbtDocumentRepository.findById(id)
+                    .ifPresent(doc -> sb.append(doc.getContent()).append("\n---\n"));
         }
         return sb.toString();
     }

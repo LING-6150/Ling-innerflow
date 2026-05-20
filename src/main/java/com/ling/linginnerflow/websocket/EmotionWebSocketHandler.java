@@ -208,25 +208,50 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
                     : personaHint.isBlank() ? plannerHint
                     : plannerHint + ". " + personaHint;
 
-            String reActResponse = reActAgent.run(userId, userInput, routeLevel, combinedHint);
+            // Capture effectively-final locals for lambda capture
+            final int finalRouteLevel = routeLevel;
+            final String finalStrategy = state.getStrategy();
+            final StringBuilder fullResponse = new StringBuilder();
 
-            // 直接发送，不走流式
-            ChatMessage aiMsg = new ChatMessage();
-            aiMsg.setUserId(userId);
-            aiMsg.setRole("assistant");
-            aiMsg.setContent(reActResponse);
-            aiMsg.setTargetLevel(routeLevel);
-            aiMsg.setRouteStrategy(state.getStrategy());
-            chatMessageRepository.save(aiMsg);
+            reActAgent.runStreaming(userId, userInput, routeLevel, combinedHint)
+                    .doOnNext(chunk -> {
+                        try {
+                            fullResponse.append(chunk);
+                            sendMessage(session, Map.of("type", "chunk", "content", chunk));
+                        } catch (Exception e) {
+                            log.error("推送chunk失败 userId={}: {}", userId, e.getMessage());
+                        }
+                    })
+                    .doOnError(e -> {
+                        log.error("流式回复出错 userId={}: {}", userId, e.getMessage());
+                        try {
+                            sendMessage(session, Map.of("type", "done"));
+                        } catch (Exception ex) {
+                            log.error("发送done失败: {}", ex.getMessage());
+                        }
+                    })
+                    .doOnComplete(() -> {
+                        try {
+                            String aiReply = fullResponse.toString();
 
-            memoryService.addMessage(userId, "assistant", reActResponse);
-            petService.addAwareness(userId, level);
+                            ChatMessage aiMsg = new ChatMessage();
+                            aiMsg.setUserId(userId);
+                            aiMsg.setRole("assistant");
+                            aiMsg.setContent(aiReply);
+                            aiMsg.setTargetLevel(finalRouteLevel);
+                            aiMsg.setRouteStrategy(finalStrategy);
+                            chatMessageRepository.save(aiMsg);
 
-            sendMessage(session, Map.of(
-                    "type", "response",
-                    "content", reActResponse
-            ));
-            sendMessage(session, Map.of("type", "done"));
+                            memoryService.addMessage(userId, "assistant", aiReply);
+                            petService.addAwareness(userId, level);
+
+                            sendMessage(session, Map.of("type", "done"));
+                            log.info("ReAct流式回复完成: userId={}, tokens={}", userId, aiReply.length());
+                        } catch (Exception e) {
+                            log.error("ReAct完成回复失败 userId={}: {}", userId, e.getMessage());
+                        }
+                    })
+                    .subscribe();
             return;
         }
 

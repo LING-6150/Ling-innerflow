@@ -135,12 +135,20 @@ public class CBTKnowledgeService {
      * 检索相关CBT知识，返回ID列表（供混合检索使用）
      */
     public List<String> retrieveRelevantCBTIds(String userInput) {
-        try {
-            List<Float> embeddingList = toFloatList(
-                    embeddingModel.embed(userInput));
+        return retrieveIdsByVector(toFloatList(embeddingModel.embed(userInput)), topK);
+    }
 
+    /**
+     * Pinecone search using a pre-computed vector (used by HyDE so the caller
+     * can supply the hypothetical-document vector instead of the raw query vector).
+     *
+     * @param vector  pre-computed embedding
+     * @param k       number of candidates to retrieve
+     */
+    public List<String> retrieveIdsByVector(List<Float> vector, int k) {
+        try {
             QueryResponseWithUnsignedIndices response =
-                    pineconeIndex.query(topK, embeddingList, null, null, null,
+                    pineconeIndex.query(k, vector, null, null, null,
                             null, null, true, true);
 
             List<String> ids = new ArrayList<>();
@@ -150,7 +158,7 @@ public class CBTKnowledgeService {
                 }
             });
 
-            log.info("Pinecone向量检索命中ID: {}", ids);
+            log.info("Pinecone向量检索命中ID (k={}): {}", k, ids);
             return ids;
 
         } catch (Exception e) {

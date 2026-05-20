@@ -2,6 +2,7 @@ package com.ling.linginnerflow.checkin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ling.linginnerflow.agent.EmotionGraph;
+import com.ling.linginnerflow.cache.RedisDefenseService;
 import com.ling.linginnerflow.emotion.EmotionLogService;
 import com.ling.linginnerflow.pet.PetService;
 import lombok.RequiredArgsConstructor;
@@ -51,9 +52,8 @@ public class CheckInConsumer {
     private static final String PROCESSED_KEY = "kafka:processed:checkin";
 
     private final EmotionLogService emotionLogService;
-
-    // 注入PetService
     private final PetService petService;
+    private final RedisDefenseService cacheDefenseService;
 
 
     @KafkaListener(
@@ -145,61 +145,43 @@ public class CheckInConsumer {
     }
 
     private void processMessage(String message) throws Exception {
-        CheckInEvent event = objectMapper
-                .readValue(message, CheckInEvent.class);
-        log.info("收到打卡事件: checkInId={}, userId={}, partition消费",
-                event.getCheckInId(), event.getUserId());
+        CheckInEvent event = objectMapper.readValue(message, CheckInEvent.class);
+        log.info("收到打卡事件: checkInId={}, userId={}", event.getCheckInId(), event.getUserId());
 
         String cacheKey = CACHE_PREFIX + sha256(event.getContent());
-        String cached = redisTemplate.opsForValue().get(cacheKey);
+        String lockKey  = "lock:analysis:" + sha256(event.getContent());
 
-        int emotionLevel;
-        String aiResponse;
+        // 三重防御：防穿透 + 防雪崩 + 防击穿
+        CachedAnalysis analysis = cacheDefenseService.getWithMutex(
+                cacheKey, lockKey,
+                () -> {
+                    log.info("缓存未命中，调用LLM分析");
+                    Map<String, Object> input = new HashMap<>();
+                    input.put("userInput", event.getContent());
+                    try {
+                        AgentState finalState = emotionGraph.buildGraph().invoke(input).get();
+                        int level = (int) finalState.data().getOrDefault("emotionLevel", 1);
+                        String resp = (String) finalState.data().getOrDefault("response", "");
+                        return new CachedAnalysis(level, resp);
+                    } catch (Exception e) {
+                        throw new RuntimeException("LLM analysis failed", e);
+                    }
+                },
+                CachedAnalysis.class,
+                CACHE_TTL
+        );
 
-        if (cached != null) {
-            log.info("Redis缓存命中，跳过LLM: key={}", cacheKey);
-            CachedAnalysis analysis = objectMapper
-                    .readValue(cached, CachedAnalysis.class);
-            emotionLevel = analysis.getEmotionLevel();
-            aiResponse = analysis.getAiResponse();
-        } else {
-            log.info("缓存未命中，调用LLM分析");
-            Map<String, Object> input = new HashMap<>();
-            input.put("userInput", event.getContent());
-            AgentState finalState = emotionGraph.buildGraph()
-                    .invoke(input).get();
-
-            emotionLevel = (int) finalState.data()
-                    .getOrDefault("emotionLevel", 1);
-            aiResponse = (String) finalState.data()
-                    .getOrDefault("response", "");
-
-            CachedAnalysis analysis = new CachedAnalysis(
-                    emotionLevel, aiResponse);
-            redisTemplate.opsForValue().set(
-                    cacheKey,
-                    objectMapper.writeValueAsString(analysis),
-                    CACHE_TTL,
-                    TimeUnit.MINUTES
-            );
-            log.info("分析结果已缓存: key={}", cacheKey);
-        }
+        int emotionLevel = analysis != null ? analysis.getEmotionLevel() : 1;
+        String aiResponse = analysis != null ? analysis.getAiResponse() : "";
 
         checkInRepository.findById(event.getCheckInId())
                 .ifPresent(checkIn -> {
                     checkIn.setEmotionLevel(emotionLevel);
                     checkIn.setAiResponse(aiResponse);
                     checkInRepository.save(checkIn);
-                    log.info("打卡记录更新完成: id={}, level=L{}",
-                            checkIn.getId(), emotionLevel);
+                    log.info("打卡记录更新完成: id={}, level=L{}", checkIn.getId(), emotionLevel);
                 });
-        emotionLogService.log(
-                event.getUserId(),
-                emotionLevel,
-                event.getContent(),
-                aiResponse,
-                "checkin"
-        );
+        emotionLogService.log(event.getUserId(), emotionLevel, event.getContent(), aiResponse, "checkin");
     }
 
     private String sha256(String content) {
@@ -222,7 +204,7 @@ public class CheckInConsumer {
     @lombok.Data
     @lombok.NoArgsConstructor
     @lombok.AllArgsConstructor
-    static class CachedAnalysis {
+    public static class CachedAnalysis {
         private int emotionLevel;
         private String aiResponse;
     }

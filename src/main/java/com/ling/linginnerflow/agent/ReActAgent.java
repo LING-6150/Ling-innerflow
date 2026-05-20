@@ -4,6 +4,7 @@ import com.ling.linginnerflow.agent.tool.AgentTool;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
@@ -26,15 +27,13 @@ public class ReActAgent {
                         Function.identity()));
     }
 
+    // ── Blocking (kept for backwards compatibility) ──────────────────────
+
     public String run(String userId, String userInput,
                       int emotionLevel, String toneHint) {
-        // 最多循环3次，防止死循环
         int maxIterations = 3;
         StringBuilder scratchpad = new StringBuilder();
-
-        String toolDescriptions = tools.values().stream()
-                .map(t -> "- " + t.getName() + ": " + t.getDescription())
-                .collect(Collectors.joining("\n"));
+        String toolDescriptions = buildToolDescriptions();
 
         for (int i = 0; i < maxIterations; i++) {
             String prompt = buildReActPrompt(
@@ -46,7 +45,6 @@ public class ReActAgent {
 
             log.info("[ReAct] Round {}:\n{}", i + 1, response);
 
-            // 有Final Answer直接返回
             if (response.contains("Final Answer:")) {
                 String answer = response.substring(
                         response.indexOf("Final Answer:") + 13).trim();
@@ -54,43 +52,164 @@ public class ReActAgent {
                 return answer;
             }
 
-            // 有Action就执行工具
             if (response.contains("Action:")) {
-                String action = extractBetween(
-                        response, "Action:",
-                        response.contains("Action Input:") ? "Action Input:" : "\n")
-                        .trim().replaceAll("\\s+", "");
-
-                String actionInput = response.contains("Action Input:")
-                        ? extractAfter(response, "Action Input:").trim() : "";
-
-                // L5保护
-                if (emotionLevel == 5) {
+                String observation = executeAction(response, userId, emotionLevel);
+                if (observation == null) {
                     return "I'm very concerned about you right now. Please call or text 988 immediately.";
                 }
-
-                // 执行工具
-                String toolInput = "HistoryContextRetriever".equals(action)
-                        ? userId : actionInput;
-                AgentTool tool = tools.get(action);
-                String observation = (tool != null)
-                        ? tool.execute(toolInput)
-                        : "Tool not found:" + action;
-
-                log.info("[ReAct] Action={}, Observation={}",
-                        action, observation);
-
-                // 把结果加入scratchpad
                 scratchpad.append(response)
                         .append("\nObservation: ").append(observation)
                         .append("\n\n");
             } else {
-                // 没有Action也没有Final Answer，直接返回
                 return response.trim();
             }
         }
 
         return generateFallback(userInput, emotionLevel);
+    }
+
+    // ── Streaming (real token-by-token output) ───────────────────────────
+
+    /**
+     * Tool-gathering phase runs synchronously (max 2 iterations) so that
+     * structured Thought/Action output can be parsed reliably.
+     * The final user-facing response is generated via a streaming call,
+     * returning a Flux<String> where each element is one token.
+     */
+    public Flux<String> runStreaming(String userId, String userInput,
+                                     int emotionLevel, String toneHint) {
+        StringBuilder scratchpad = new StringBuilder();
+        String toolDescriptions = buildToolDescriptions();
+
+        // Phase 1: synchronous tool-gathering (max 2 iterations)
+        for (int i = 0; i < 2; i++) {
+            String prompt = buildReActPrompt(
+                    userInput, emotionLevel, toneHint,
+                    toolDescriptions, scratchpad.toString());
+
+            String response = chatClientBuilder.build()
+                    .prompt().user(prompt).call().content();   // <-- blocking call
+
+            log.info("[ReAct-Stream] Tool round {}:\n{}", i + 1, response);
+
+            if (!response.contains("Action:")) {
+                // No tool needed — proceed directly to streaming response
+                break;
+            }
+
+            String observation = executeAction(response, userId, emotionLevel);
+            if (observation == null) {
+                // L5 safety — return a fixed Flux immediately
+                return Flux.just(
+                        "I'm very concerned about you right now. " +
+                        "Please call or text 988 immediately.");
+            }
+            log.info("[ReAct-Stream] Observation: {}", observation);
+            scratchpad.append(response)
+                    .append("\nObservation: ").append(observation)
+                    .append("\n\n");
+        }
+
+        // Phase 2: stream the final user-facing response
+        String finalPrompt = buildStreamingResponsePrompt(
+                userInput, emotionLevel, toneHint, scratchpad.toString());
+        log.info("[ReAct-Stream] Streaming final response for userId={}", userId);
+
+        return chatClientBuilder.build()
+                .prompt()
+                .user(finalPrompt)
+                .stream()
+                .content();    // <-- returns Flux<String>; one element per token
+    }
+
+    // ── Shared tool execution ────────────────────────────────────────────
+
+    /** Returns the tool observation, or null when L5 safety protection triggered. */
+    private String executeAction(String response, String userId, int emotionLevel) {
+        String action = extractBetween(
+                response, "Action:",
+                response.contains("Action Input:") ? "Action Input:" : "\n")
+                .trim().replaceAll("\\s+", "");
+
+        String actionInput = response.contains("Action Input:")
+                ? extractAfter(response, "Action Input:").trim() : "";
+
+        if (emotionLevel == 5) return null;
+
+        String toolInput = "HistoryContextRetriever".equals(action) ? userId : actionInput;
+        AgentTool tool = tools.get(action);
+        String observation = (tool != null)
+                ? tool.execute(toolInput)
+                : "Tool not found: " + action;
+
+        log.info("[ReAct] Action={}, Observation={}", action, observation);
+        return observation;
+    }
+
+    // ── Prompt builders ──────────────────────────────────────────────────
+
+    private String buildToolDescriptions() {
+        return tools.values().stream()
+                .map(t -> "- " + t.getName() + ": " + t.getDescription())
+                .collect(Collectors.joining("\n"));
+    }
+
+    /**
+     * Prompt for the streaming response phase.
+     * Instructs the model to output ONLY the reply text — no Thought/Action prefixes —
+     * so every streamed token goes directly to the user.
+     */
+    private String buildStreamingResponsePrompt(String userInput, int emotionLevel,
+                                                 String toneHint, String context) {
+        String plannerSection = (toneHint != null && !toneHint.isBlank())
+                ? "PLANNER GUIDANCE (follow this):\n" + toneHint + "\n\n"
+                : "";
+        String contextSection = context.isBlank() ? ""
+                : "CONTEXT FROM TOOLS:\n" + context + "\n\n";
+
+        return """
+        You are not a therapist. You don't diagnose, judge, or lecture.
+        You are simply a present, caring person sitting with the user right now.
+
+        %s%s
+        EMOTION LEVEL GUIDANCE:
+        %s
+
+        CORE RULES:
+        - Talk like a real person, not a script
+        - Don't rush to fix things; no advice unless explicitly asked
+        - [CRITICAL] Output ONLY your response to the user.
+          Do NOT include any prefix such as "Thought:", "Final Answer:", or "Assistant:".
+          Just speak directly, as if in a conversation.
+
+        User said: %s
+        """.formatted(plannerSection, contextSection, buildLevelGuidance(emotionLevel), userInput);
+    }
+
+    private String buildLevelGuidance(int emotionLevel) {
+        return switch (emotionLevel) {
+            case 1 -> """
+                    User is emotionally stable. Be a quiet, present companion.
+                    - One natural response; make the user feel heard
+                    - No advice, no analysis, no question unless it flows naturally
+                    - Under 40 words""";
+            case 2 -> """
+                    User is feeling a little low. Be a gentle companion.
+                    - 1 sentence of natural empathy
+                    - Optionally 1 light conversational question
+                    - 60–90 words max""";
+            case 3 -> """
+                    User is moderately distressed. Be a perceptive companion.
+                    - 1 sentence of empathy; name a feeling or pattern you notice
+                    - Ask 1 open question to invite more sharing
+                    - 80–120 words max""";
+            case 4 -> """
+                    User is in pain. Be a steady, grounded presence.
+                    - First sentence must make them feel you are there
+                    - No analysis; short sentences, slow tone
+                    - Ask 1 very simple question about their current state""";
+            default -> "Respond with warmth and presence.";
+        };
     }
 
     private String buildReActPrompt(String userInput, int emotionLevel,
@@ -264,12 +383,11 @@ public class ReActAgent {
     private String generateFallback(String userInput, int emotionLevel) {
         return chatClientBuilder.build()
                 .prompt()
-                .user("Respond warmly and briefly：" + userInput)
+                .user("Respond warmly and briefly: " + userInput)
                 .call().content();
     }
 
-    private String extractBetween(String text,
-                                  String start, String end) {
+    private String extractBetween(String text, String start, String end) {
         int s = text.indexOf(start) + start.length();
         int e = text.indexOf(end, s);
         return (e > s) ? text.substring(s, e) : "";

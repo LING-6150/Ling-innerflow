@@ -46,7 +46,10 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/ws/**",
                                 "/*.html",
-                                "/static/**"
+                                "/static/**",
+                                "/actuator/prometheus",
+                                "/actuator/health"
+
 
                         ).permitAll()
                         .anyRequest().authenticated()

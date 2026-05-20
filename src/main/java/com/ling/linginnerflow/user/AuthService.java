@@ -1,5 +1,9 @@
 package com.ling.linginnerflow.user;
 
+import com.ling.linginnerflow.exception.AccountDisabledException;
+import com.ling.linginnerflow.exception.AuthenticationFailedException;
+import com.ling.linginnerflow.exception.DuplicateEmailException;
+import com.ling.linginnerflow.exception.DuplicateUsernameException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,13 +26,11 @@ public class AuthService {
      * 注册
      */
     public AuthResponse register(RegisterRequest request) {
-        // 检查邮箱是否已存在
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("邮箱已被注册");
+            throw new DuplicateEmailException(request.getEmail());
         }
-        // 检查用户名是否已存在
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("用户名已被使用");
+            throw new DuplicateUsernameException(request.getUsername());
         }
 
         // 创建用户
@@ -52,18 +54,15 @@ public class AuthService {
      * 登录
      */
     public AuthResponse login(LoginRequest request) {
-        // 根据邮箱查用户
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("邮箱或密码错误"));
+                .orElseThrow(AuthenticationFailedException::new);
 
-        // 验证密码
-        if (!passwordEncoder.matches(
-                request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("邮箱或密码错误");
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new AuthenticationFailedException();
         }
 
         if (!user.isEnabled()) {
-            throw new RuntimeException("账号已被禁用");
+            throw new AccountDisabledException();
         }
 
         log.info("用户登录成功: userId={}", user.getId());

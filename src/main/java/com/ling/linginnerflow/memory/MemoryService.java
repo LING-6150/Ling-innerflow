@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +33,7 @@ public class MemoryService {
     private final UserMemoryRepository userMemoryRepository;
     private final ChatClient.Builder chatClientBuilder;
     private final ObjectMapper objectMapper;
+    private final MemoryCompressionService compressionService;
 
     // 获取用户人格，默认WARM
     public Persona getPersona(String userId) {
@@ -58,12 +60,12 @@ public class MemoryService {
         userMemoryRepository.save(memory);
     }
 
-    // 短期记忆Key前缀
     private static final String SHORT_MEMORY_PREFIX = "memory:short:";
-    // 短期记忆TTL：30分钟无操作则过期
     private static final long SHORT_MEMORY_TTL = 30;
-    // 触发摘要压缩的对话轮数
-    private static final int SUMMARY_THRESHOLD = 10;
+
+    // Configurable threshold: how many rounds before triggering compression
+    @Value("${memory.compression.threshold:10}")
+    private int compressionThreshold;
 
     // ==================== 短期记忆 ====================
 
@@ -89,9 +91,10 @@ public class MemoryService {
             log.info("短期记忆更新: userId={}, 当前轮数={}",
                     userId, history.size() / 2);
 
-            // 超过阈值触发摘要压缩
-            if (history.size() >= SUMMARY_THRESHOLD * 2) {
-                compressMemory(userId, history);
+            // When history exceeds the threshold, trigger async sliding-window compression.
+            // Pass a snapshot so the async task works on stable data.
+            if (history.size() >= compressionThreshold * 2) {
+                compressionService.compressAsync(userId, new ArrayList<>(history));
             }
 
         } catch (Exception e) {
@@ -173,6 +176,15 @@ public class MemoryService {
             if (extract.getEffectiveCoping() != null) {
                 memory.setEffectiveCoping(extract.getEffectiveCoping());
             }
+            if (extract.getTriggers() != null) {
+                memory.setTriggers(extract.getTriggers());
+            }
+            if (extract.getProgressNotes() != null) {
+                memory.setProgressNotes(extract.getProgressNotes());
+            }
+            if (extract.getLanguageStyle() != null) {
+                memory.setLanguageStyle(extract.getLanguageStyle());
+            }
 
             userMemoryRepository.save(memory);
             log.info("长期记忆更新完成: userId={}", userId);
@@ -185,57 +197,6 @@ public class MemoryService {
         }
     }
 
-    // ==================== 摘要压缩 ====================
-
-    /**
-     * 摘要压缩
-     * 对话超过10轮时，把历史压缩成摘要，清空Redis重新开始
-     */
-    private void compressMemory(String userId,
-                                List<ConversationMessage> history) {
-        try {
-            log.info("触发摘要压缩: userId={}, 对话轮数={}",
-                    userId, history.size() / 2);
-
-            // 调LLM生成摘要
-            String summaryPrompt = buildSummaryPrompt(history);
-            String summary = chatClientBuilder.build()
-                    .prompt()
-                    .user(summaryPrompt)
-                    .call()
-                    .content();
-
-            // 更新长期记忆里的摘要
-            UserMemory memory = userMemoryRepository
-                    .findByUserId(userId)
-                    .orElse(new UserMemory());
-            memory.setUserId(userId);
-            memory.setConversationSummary(summary);
-            userMemoryRepository.save(memory);
-
-            // 清空Redis，用摘要作为新的起点
-            List<ConversationMessage> compressed = new ArrayList<>();
-            compressed.add(new ConversationMessage(
-                    "system",
-                    "[Previous conversation summary] " + summary,
-                    System.currentTimeMillis()
-            ));
-
-            String key = SHORT_MEMORY_PREFIX + userId;
-            redisTemplate.opsForValue().set(
-                    key,
-                    objectMapper.writeValueAsString(compressed),
-                    SHORT_MEMORY_TTL,
-                    TimeUnit.MINUTES
-            );
-
-            log.info("摘要压缩完成: userId={}", userId);
-
-        } catch (Exception e) {
-            log.error("摘要压缩失败: {}", e.getMessage());
-        }
-    }
-
     // ==================== Prompt构建 ====================
 
     /**
@@ -245,42 +206,42 @@ public class MemoryService {
     public String buildContextPrompt(String userId) {
         StringBuilder context = new StringBuilder();
 
-        // 加入长期记忆
         UserMemory longMemory = getLongMemory(userId);
         if (longMemory != null) {
-            context.append("[User Background]\n");
-            if (longMemory.getEmotionPattern() != null) {
-                context.append("Emotion pattern: ")
-                        .append(longMemory.getEmotionPattern())
-                        .append("\n");
-            }
-            if (longMemory.getCoreStruggles() != null) {
-                context.append("Core struggles: ")
-                        .append(longMemory.getCoreStruggles())
-                        .append("\n");
-            }
-            if (longMemory.getEffectiveCoping() != null) {
-                context.append("Effective coping: ")
-                        .append(longMemory.getEffectiveCoping())
-                        .append("\n");
-            }
-            if (longMemory.getReflection() != null) {
-                context.append("Deep Insight: ")
-                        .append(longMemory.getReflection())
-                        .append("\n");
-            }
-            context.append("\n");
+            context.append("=== USER WIKI ===\n");
+
+            if (longMemory.getCoreStruggles() != null)
+                context.append("Core struggles: ").append(longMemory.getCoreStruggles()).append("\n");
+
+            if (longMemory.getEmotionPattern() != null)
+                context.append("Emotion pattern: ").append(longMemory.getEmotionPattern()).append("\n");
+
+            if (longMemory.getTriggers() != null)
+                context.append("Known triggers: ").append(longMemory.getTriggers()).append("\n");
+
+            if (longMemory.getEffectiveCoping() != null)
+                context.append("What helps: ").append(longMemory.getEffectiveCoping()).append("\n");
+
+            if (longMemory.getProgressNotes() != null)
+                context.append("Progress: ").append(longMemory.getProgressNotes()).append("\n");
+
+            if (longMemory.getLanguageStyle() != null)
+                context.append("How they speak: ").append(longMemory.getLanguageStyle()).append("\n");
+
+            if (longMemory.getReflection() != null)
+                context.append("Deep insight: ").append(longMemory.getReflection()).append("\n");
+
+            context.append("=================\n\n");
         }
 
-        // 加入短期记忆（最近5轮）
+        // 最近5轮对话
         List<ConversationMessage> history = getShortMemory(userId);
         if (!history.isEmpty()) {
             context.append("[Recent Conversation]\n");
             int start = Math.max(0, history.size() - 10);
             for (int i = start; i < history.size(); i++) {
                 ConversationMessage msg = history.get(i);
-                String roleLabel = "user".equals(msg.getRole())
-                        ? "User" : "AI";
+                String roleLabel = "user".equals(msg.getRole()) ? "User" : "AI";
                 context.append(roleLabel).append(": ")
                         .append(msg.getContent()).append("\n");
             }
@@ -291,37 +252,33 @@ public class MemoryService {
     }
 
     /**
-     * 构建信息提取Prompt
+     * 构建信息提取Prompt（Wiki编译模式）
      */
     private String buildExtractPrompt(
             List<ConversationMessage> history) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Extract key psychological information from the following conversation. ");
-        sb.append("Return ONLY a JSON object with no extra text or markdown:\n\n");
+        sb.append("""
+            You are compiling a structured psychological profile (User Wiki) \
+            from a therapy-adjacent conversation. Be specific and observational — \
+            not generic. Only record what is actually evidenced in this conversation.
+            Return ONLY a JSON object with no extra text or markdown.
+
+            Conversation:
+            """);
         history.forEach(msg -> sb.append(msg.getRole())
                 .append(": ").append(msg.getContent()).append("\n"));
         sb.append("""
-            \nReturn format (all values must be in English):
-            {
-              "emotionPattern": "e.g. prone to anxiety, all-or-nothing thinking",
-              "coreStruggles": "e.g. work stress, low self-worth",
-              "effectiveCoping": "e.g. responds well to breathing exercises"
-            }
-            If there is insufficient information for a field, return null.
-            """);
-        return sb.toString();
-    }
 
-    /**
-     * 构建摘要压缩Prompt
-     */
-    private String buildSummaryPrompt(
-            List<ConversationMessage> history) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Summarize the following conversation in under 100 words in English. ");
-        sb.append("Preserve key emotional information and important turning points:\n\n");
-        history.forEach(msg -> sb.append(msg.getRole())
-                .append(": ").append(msg.getContent()).append("\n"));
+            Return format (all values must be in English, null if insufficient evidence):
+            {
+              "emotionPattern": "recurring emotional patterns, cognitive distortions observed (e.g. catastrophizing when deadlines approach)",
+              "coreStruggles": "specific life stressors and pain points (e.g. fear of disappointing others, work-identity fusion)",
+              "effectiveCoping": "what visibly helped or what user responded well to in this session",
+              "triggers": "specific situations, words, or events that escalated emotion in this session",
+              "progressNotes": "any signs of growth, new insight, or shift compared to baseline (e.g. user named their own pattern for first time)",
+              "languageStyle": "how this person expresses inner states — metaphors, minimizing, externalizing, etc."
+            }
+            """);
         return sb.toString();
     }
 
@@ -398,5 +355,8 @@ public class MemoryService {
         private String emotionPattern;
         private String coreStruggles;
         private String effectiveCoping;
+        private String triggers;
+        private String progressNotes;
+        private String languageStyle;
     }
 }
