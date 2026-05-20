@@ -33,13 +33,17 @@ public class UserMemory {
     @Column(length = 500)
     private String effectiveCoping;
 
-    // 已知情绪触发点，如"工作截止日临近、被忽视时"
-    @Column(length = 500)
+    // 已知情绪触发点，JSON数组，每条带count/firstSeen/lastSeen
+    @Column(columnDefinition = "TEXT")
     private String triggers;
 
-    // 治疗进展记录，如"第3次会话首次主动识别认知扭曲"
-    @Column(length = 500)
+    // 治疗进展记录，JSON数组，每条带date/note
+    @Column(columnDefinition = "TEXT")
     private String progressNotes;
+
+    // Wiki变更日志，记录每次编译更新了什么
+    @Column(columnDefinition = "TEXT")
+    private String wikiChangeLog;
 
     // 用户表达内心状态的语言风格，如"常用身体隐喻，倾向于轻描淡写"
     @Column(length = 300)
