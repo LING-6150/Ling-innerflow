@@ -93,6 +93,89 @@
       </div>
     </div>
 
+    <!-- User Wiki — What I Know About You -->
+    <div v-if="wiki.hasData" class="wiki-card glass-card">
+      <div class="wiki-header">
+        <h3 class="chart-title" style="margin-bottom:0">🧠 What I Know About You</h3>
+        <span class="wiki-sub">Tap to correct anything that feels off</span>
+      </div>
+
+      <!-- Triggers -->
+      <div v-if="wiki.triggers?.length" class="wiki-section">
+        <p class="wiki-label">Known triggers</p>
+        <div class="trigger-chips">
+          <div v-for="t in wiki.triggers" :key="t.observation" class="trigger-chip">
+            <span class="chip-text">{{ t.observation }}</span>
+            <span class="chip-count">×{{ t.count }}</span>
+            <button class="chip-del" @click="deleteTrigger(t.observation)" title="Remove">✕</button>
+          </div>
+          <button class="chip-add" @click="showAddTrigger = true">+ Add</button>
+        </div>
+        <div v-if="showAddTrigger" class="inline-edit">
+          <input v-model="newTriggerText" placeholder="e.g. unexpected schedule changes"
+                 class="edit-input" @keyup.enter="addTrigger" />
+          <button class="edit-save" @click="addTrigger">Add</button>
+          <button class="edit-cancel" @click="showAddTrigger = false">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Core Struggles -->
+      <div v-if="wiki.coreStruggles" class="wiki-section">
+        <p class="wiki-label">Core struggles</p>
+        <div v-if="editingField !== 'coreStruggles'" class="wiki-value-row">
+          <p class="wiki-value">{{ wiki.coreStruggles }}</p>
+          <button class="edit-btn" @click="startEdit('coreStruggles', wiki.coreStruggles)">✏️</button>
+        </div>
+        <div v-else class="inline-edit">
+          <textarea v-model="editText" class="edit-input" rows="2" />
+          <button class="edit-save" @click="saveEdit('coreStruggles')">Save</button>
+          <button class="edit-cancel" @click="editingField = ''">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Emotion Pattern -->
+      <div v-if="wiki.emotionPattern" class="wiki-section">
+        <p class="wiki-label">Emotion pattern</p>
+        <div v-if="editingField !== 'emotionPattern'" class="wiki-value-row">
+          <p class="wiki-value">{{ wiki.emotionPattern }}</p>
+          <button class="edit-btn" @click="startEdit('emotionPattern', wiki.emotionPattern)">✏️</button>
+        </div>
+        <div v-else class="inline-edit">
+          <textarea v-model="editText" class="edit-input" rows="2" />
+          <button class="edit-save" @click="saveEdit('emotionPattern')">Save</button>
+          <button class="edit-cancel" @click="editingField = ''">Cancel</button>
+        </div>
+      </div>
+
+      <!-- What Helps -->
+      <div v-if="wiki.effectiveCoping" class="wiki-section">
+        <p class="wiki-label">What helps</p>
+        <div v-if="editingField !== 'effectiveCoping'" class="wiki-value-row">
+          <p class="wiki-value">{{ wiki.effectiveCoping }}</p>
+          <button class="edit-btn" @click="startEdit('effectiveCoping', wiki.effectiveCoping)">✏️</button>
+        </div>
+        <div v-else class="inline-edit">
+          <textarea v-model="editText" class="edit-input" rows="2" />
+          <button class="edit-save" @click="saveEdit('effectiveCoping')">Save</button>
+          <button class="edit-cancel" @click="editingField = ''">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Progress Notes -->
+      <div v-if="wiki.progressNotes?.length" class="wiki-section">
+        <p class="wiki-label">Progress</p>
+        <div v-for="n in wiki.progressNotes" :key="n.date" class="progress-note">
+          <span class="note-date">{{ n.date }}</span>
+          <span class="note-text">{{ n.note }}</span>
+        </div>
+      </div>
+
+      <!-- Clear All -->
+      <button class="clear-wiki-btn" @click="confirmClearWiki">
+        Clear all memory
+      </button>
+    </div>
+
     <!-- Emotional Canvas Gallery -->
     <div class="gallery-card glass-card">
       <div class="gallery-header">
@@ -188,6 +271,67 @@ interface EmotionImage {
 }
 const recentImages = ref<EmotionImage[]>([])
 const selectedImage = ref<EmotionImage | null>(null)
+
+// Wiki 纠错
+interface WikiTrigger { observation: string; count: number; confidence: string; lastSeen: string }
+interface Wiki {
+  hasData: boolean
+  coreStruggles?: string
+  emotionPattern?: string
+  effectiveCoping?: string
+  languageStyle?: string
+  reflection?: string
+  triggers?: WikiTrigger[]
+  progressNotes?: { date: string; note: string }[]
+}
+const wiki = ref<Wiki>({ hasData: false })
+const editingField = ref('')
+const editText = ref('')
+const showAddTrigger = ref(false)
+const newTriggerText = ref('')
+
+async function loadWiki() {
+  try {
+    const res = await request.get('/api/memory/wiki') as any
+    wiki.value = { ...res, hasData: !!(res.coreStruggles || res.triggers?.length || res.emotionPattern) }
+  } catch (e) { console.error(e) }
+}
+
+function startEdit(field: string, current: string) {
+  editingField.value = field
+  editText.value = current
+}
+
+async function saveEdit(field: string) {
+  await request.post('/api/memory/wiki/correct', {
+    field, correctionType: 'correct', correctionText: editText.value, observationText: null
+  })
+  await loadWiki()
+  editingField.value = ''
+}
+
+async function deleteTrigger(observation: string) {
+  await request.post('/api/memory/wiki/correct', {
+    field: 'triggers', correctionType: 'delete', observationText: observation, correctionText: null
+  })
+  await loadWiki()
+}
+
+async function addTrigger() {
+  if (!newTriggerText.value.trim()) return
+  await request.post('/api/memory/wiki/correct', {
+    field: 'triggers', correctionType: 'add', observationText: null, correctionText: newTriggerText.value.trim()
+  })
+  newTriggerText.value = ''
+  showAddTrigger.value = false
+  await loadWiki()
+}
+
+async function confirmClearWiki() {
+  if (!confirm('This will clear all memory the AI has about you. Continue?')) return
+  await request.delete('/api/memory/wiki')
+  await loadWiki()
+}
 
 const usernameInitial = computed(() =>
     authStore.username?.charAt(0).toUpperCase() || '?'
@@ -301,6 +445,7 @@ async function loadImages() {
 onMounted(() => {
   loadData()
   loadImages()
+  loadWiki()
 })
 </script>
 
@@ -534,6 +679,109 @@ onMounted(() => {
   color: var(--text-muted);
   width: 20px;
   text-align: right;
+}
+
+/* ===== User Wiki ===== */
+.wiki-card { padding: 16px; margin-bottom: 12px; }
+
+.wiki-header {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 16px;
+}
+
+.wiki-sub { font-size: 11px; color: var(--text-muted); }
+
+.wiki-section { margin-bottom: 14px; }
+
+.wiki-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+}
+
+.wiki-value-row { display: flex; align-items: flex-start; gap: 8px; }
+
+.wiki-value {
+  flex: 1; font-size: 13px; color: var(--text-secondary);
+  line-height: 1.5; margin: 0;
+}
+
+.edit-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; padding: 0 4px; flex-shrink: 0;
+  opacity: 0.5; transition: opacity 0.2s;
+}
+.edit-btn:hover { opacity: 1; }
+
+.trigger-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.trigger-chip {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 20px;
+  background: rgba(240,147,251,0.1);
+  border: 1px solid rgba(240,147,251,0.2);
+}
+
+.chip-text { font-size: 12px; color: var(--text-secondary); }
+.chip-count { font-size: 10px; color: var(--text-muted); }
+
+.chip-del {
+  background: none; border: none; cursor: pointer;
+  font-size: 10px; color: var(--text-muted); padding: 0 2px;
+  line-height: 1;
+}
+.chip-del:hover { color: #e53e3e; }
+
+.chip-add {
+  padding: 4px 10px; border-radius: 20px; font-size: 12px;
+  background: none; border: 1px dashed rgba(100,80,150,0.3);
+  color: var(--text-muted); cursor: pointer;
+}
+.chip-add:hover { border-color: rgba(240,147,251,0.5); color: var(--text-secondary); }
+
+.inline-edit {
+  display: flex; gap: 6px; align-items: flex-start;
+  margin-top: 6px; flex-wrap: wrap;
+}
+
+.edit-input {
+  flex: 1; min-width: 0; padding: 6px 10px;
+  border: 1px solid rgba(100,80,150,0.2); border-radius: 8px;
+  background: rgba(255,255,255,0.5); font-size: 13px;
+  color: var(--text-primary); resize: vertical;
+  font-family: inherit;
+}
+
+.edit-save {
+  padding: 6px 14px; border-radius: 8px;
+  background: var(--gradient-primary); border: none;
+  color: white; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+
+.edit-cancel {
+  padding: 6px 12px; border-radius: 8px;
+  background: none; border: 1px solid rgba(100,80,150,0.2);
+  color: var(--text-muted); font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+
+.progress-note {
+  display: flex; gap: 10px; padding: 6px 0;
+  border-bottom: 1px solid rgba(100,80,150,0.06);
+  font-size: 12px;
+}
+.progress-note:last-child { border-bottom: none; }
+.note-date { color: var(--text-muted); flex-shrink: 0; }
+.note-text { color: var(--text-secondary); line-height: 1.4; }
+
+.clear-wiki-btn {
+  margin-top: 12px; width: 100%; padding: 8px;
+  background: none; border: 1px solid rgba(229,62,62,0.2);
+  border-radius: 8px; color: rgba(229,62,62,0.6);
+  font-size: 12px; cursor: pointer; transition: all 0.2s;
+}
+.clear-wiki-btn:hover {
+  background: rgba(229,62,62,0.05);
+  border-color: rgba(229,62,62,0.4);
+  color: #e53e3e;
 }
 
 /* ===== 情绪画像墙 ===== */

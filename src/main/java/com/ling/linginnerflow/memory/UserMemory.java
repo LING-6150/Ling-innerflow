@@ -45,6 +45,10 @@ public class UserMemory {
     @Column(columnDefinition = "TEXT")
     private String wikiChangeLog;
 
+    // 用户主动纠错记录，JSON数组，作为审计追踪
+    @Column(columnDefinition = "TEXT")
+    private String userCorrections;
+
     // 用户表达内心状态的语言风格，如"常用身体隐喻，倾向于轻描淡写"
     @Column(length = 300)
     private String languageStyle;

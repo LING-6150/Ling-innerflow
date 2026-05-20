@@ -395,6 +395,123 @@ public class MemoryService {
         }
     }
 
+    // ==================== 用户反馈闭环 ====================
+
+    /**
+     * 返回当前用户的 Wiki 摘要（供前端展示 + 纠错）
+     */
+    public WikiSummaryDto getWikiSummary(String userId) {
+        UserMemory mem = getLongMemory(userId);
+        WikiSummaryDto dto = new WikiSummaryDto();
+        if (mem == null) return dto;
+
+        dto.setCoreStruggles(mem.getCoreStruggles());
+        dto.setEmotionPattern(mem.getEmotionPattern());
+        dto.setEffectiveCoping(mem.getEffectiveCoping());
+        dto.setLanguageStyle(mem.getLanguageStyle());
+        dto.setReflection(mem.getReflection());
+
+        List<WikiObservation> triggers = parseTriggers(mem.getTriggers());
+        triggers.sort((a, b) -> b.getCount() - a.getCount());
+        dto.setTriggers(triggers);
+
+        List<Map<String, String>> notes = parseProgressNotes(mem.getProgressNotes());
+        int start = Math.max(0, notes.size() - 5);
+        dto.setProgressNotes(notes.subList(start, notes.size()));
+
+        return dto;
+    }
+
+    /**
+     * 用户主动纠错 — 直接修改 Wiki，用户纠错视为最高置信度
+     */
+    public void applyUserCorrection(String userId, String field,
+                                     String observationText, String correctionType,
+                                     String correctionText) {
+        UserMemory mem = userMemoryRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("No wiki found for user: " + userId));
+
+        switch (field) {
+            case "triggers" -> applyTriggerCorrection(mem, observationText, correctionType, correctionText);
+            case "emotionPattern" -> { if ("correct".equals(correctionType)) mem.setEmotionPattern(correctionText); }
+            case "coreStruggles"  -> { if ("correct".equals(correctionType)) mem.setCoreStruggles(correctionText); }
+            case "effectiveCoping"-> { if ("correct".equals(correctionType)) mem.setEffectiveCoping(correctionText); }
+            case "languageStyle"  -> { if ("correct".equals(correctionType)) mem.setLanguageStyle(correctionText); }
+        }
+
+        recordUserCorrection(mem, field, observationText, correctionType, correctionText);
+        appendChangeLog(mem, "User correction on [" + field + "]: " + correctionType);
+        userMemoryRepository.save(mem);
+        log.info("[Wiki] 用户纠错: userId={}, field={}, type={}", userId, field, correctionType);
+    }
+
+    private void applyTriggerCorrection(UserMemory mem, String observationText,
+                                         String correctionType, String correctionText) {
+        List<WikiObservation> triggers = parseTriggers(mem.getTriggers());
+        String today = LocalDate.now().toString();
+        switch (correctionType) {
+            case "delete"  -> triggers.removeIf(t -> t.getObservation().equalsIgnoreCase(observationText));
+            case "correct" -> triggers.stream()
+                    .filter(t -> t.getObservation().equalsIgnoreCase(observationText))
+                    .findFirst()
+                    .ifPresent(t -> t.setObservation(correctionText));
+            case "add"     -> triggers.add(new WikiObservation(correctionText, 1, today, today, "confirmed"));
+        }
+        mem.setTriggers(toJson(triggers));
+    }
+
+    /**
+     * 用户主动清除所有记忆（CCPA / 隐私权）
+     */
+    public void clearUserWiki(String userId) {
+        userMemoryRepository.findByUserId(userId).ifPresent(mem -> {
+            mem.setEmotionPattern(null);
+            mem.setCoreStruggles(null);
+            mem.setEffectiveCoping(null);
+            mem.setTriggers(null);
+            mem.setProgressNotes(null);
+            mem.setLanguageStyle(null);
+            mem.setReflection(null);
+            mem.setWikiChangeLog(null);
+            mem.setUserCorrections(null);
+            mem.setConversationSummary(null);
+            userMemoryRepository.save(mem);
+        });
+        log.info("[Wiki] 用户清除记忆: userId={}", userId);
+    }
+
+    private void recordUserCorrection(UserMemory mem, String field, String observationText,
+                                       String correctionType, String correctionText) {
+        try {
+            List<Map<String, String>> corrections = mem.getUserCorrections() != null
+                    ? objectMapper.readValue(mem.getUserCorrections(), new TypeReference<>() {})
+                    : new ArrayList<>();
+            Map<String, String> entry = new LinkedHashMap<>();
+            entry.put("date", LocalDate.now().toString());
+            entry.put("field", field);
+            entry.put("observation", observationText != null ? observationText : "");
+            entry.put("type", correctionType);
+            entry.put("correction", correctionText != null ? correctionText : "");
+            corrections.add(entry);
+            if (corrections.size() > 50) corrections = corrections.subList(corrections.size() - 50, corrections.size());
+            mem.setUserCorrections(toJson(corrections));
+        } catch (Exception e) {
+            log.warn("[Wiki] 纠错记录写入失败: {}", e.getMessage());
+        }
+    }
+
+    // DTO
+    @lombok.Data
+    public static class WikiSummaryDto {
+        private String coreStruggles;
+        private String emotionPattern;
+        private String effectiveCoping;
+        private String languageStyle;
+        private String reflection;
+        private List<WikiObservation> triggers = new ArrayList<>();
+        private List<Map<String, String>> progressNotes = new ArrayList<>();
+    }
+
     // ==================== 活跃时间更新 ====================
 
     public void updateLastActiveAt(String userId) {
