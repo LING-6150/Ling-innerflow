@@ -76,6 +76,10 @@ public class UserMemory {
     @Column(columnDefinition = "TEXT")
     private String conflicts;
 
+    // Triggers that have decayed below archive threshold, preserved for audit
+    @Column(columnDefinition = "TEXT")
+    private String archivedTriggers;
+
     private LocalDateTime lastActiveAt;
 
     @PrePersist

@@ -597,6 +597,7 @@ public class MemoryService {
             mem.setLanguageStyle(null);
             mem.setReflection(null);
             mem.setConflicts(null);
+            mem.setArchivedTriggers(null);
             mem.setWikiChangeLog(null);
             mem.setUserCorrections(null);
             mem.setConversationSummary(null);
@@ -638,6 +639,34 @@ public class MemoryService {
         private List<Map<String, String>> conflicts = new ArrayList<>();
         private List<Map<String, String>> changeLog = new ArrayList<>();
         private boolean hasData;
+    }
+
+    // ==================== P2-7: Trigger archiving ====================
+
+    /**
+     * 将 score < 0.1 的触发点从活跃列表移入 archivedTriggers。
+     * 由 TriggerArchiveScheduler 每日调用；返回归档条数。
+     */
+    public int archiveDecayedTriggers(String userId) {
+        return userMemoryRepository.findByUserId(userId).map(mem -> {
+            List<WikiObservation> active = parseTriggers(mem.getTriggers());
+            List<WikiObservation> toArchive = active.stream()
+                    .filter(t -> t.getScore() < 0.1)
+                    .toList();
+            if (toArchive.isEmpty()) return 0;
+
+            active.removeAll(toArchive);
+            mem.setTriggers(toJson(active));
+
+            List<WikiObservation> archived = parseTriggers(mem.getArchivedTriggers());
+            archived.addAll(0, toArchive);          // prepend newest first
+            if (archived.size() > 100) archived = archived.subList(0, 100);
+            mem.setArchivedTriggers(toJson(archived));
+
+            userMemoryRepository.save(mem);
+            log.info("[TriggerArchive] userId={} archived={}", userId, toArchive.size());
+            return toArchive.size();
+        }).orElse(0);
     }
 
     // ==================== 活跃时间更新 ====================
