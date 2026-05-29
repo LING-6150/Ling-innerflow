@@ -1,0 +1,38 @@
+pattern_key: conflict_aversion
+display_name_zh: 冲突回避
+display_name_en: Conflict Aversion
+primary_domain: intimate
+also_in: [family, social, work]
+
+neutral_description: >
+  Consistently avoiding direct disagreement or confrontation in close
+  relationships — through silence, subject-changing, premature capitulation,
+  or excessive reassurance-giving — in a way that leaves important things
+  unsaid and produces growing distance or internal resentment.
+
+what_it_is_not:
+  - Choosing not to argue over genuinely minor differences.
+  - Being calm, patient, or slow to anger.
+  - A permanent personality trait or diagnosis.
+
+evidence_shapes:
+  - "Agrees with a partner or family member in the moment, then expresses the real view only to a third party or in a journal."
+  - "Changes plans or drops requests to avoid a potential disagreement, without telling the other person why."
+  - "Describes prolonged tension or silence that followed an avoided conversation, rather than resolution."
+
+reflective_prompts:
+  - "What do you imagine would happen in that relationship if you said what you actually thought?"
+  - "Has there ever been a conflict you avoided that you later wished you'd had?"
+  - "What does 'conflict' feel like in your body, and where does that response come from?"
+
+version: 1
+
+lexical_cues:
+  - "不想吵架"
+  - "算了不说了"
+  - "忍着没开口"
+  - "just let it go"
+  - "didn't want to start something"
+  - "怕起冲突"
+
+hyde_exemplars: 3

@@ -1,0 +1,37 @@
+pattern_key: emotional_suppression
+display_name_zh: 情绪压抑
+display_name_en: Emotional Suppression
+primary_domain: self
+also_in: [family, intimate]
+
+neutral_description: >
+  Habitually pushing down, concealing, or minimizing one's own emotional
+  reactions — especially negative ones — so they are not expressed or
+  examined, often emerging later as physical tension, irritability, or exhaustion.
+
+what_it_is_not:
+  - Appropriate situational regulation (e.g., composure in an emergency).
+  - Being a private person or not wanting to share with strangers.
+  - A clinical diagnosis of any kind.
+
+evidence_shapes:
+  - "Describes an obviously painful event, then immediately says 'it's fine' or 'doesn't matter' without elaboration."
+  - "Reports physical symptoms (headaches, tight chest, insomnia) that follow emotionally charged situations."
+  - "Says they do not cry, do not get angry, or 'don't really feel things that much' across many different situations."
+
+reflective_prompts:
+  - "If that feeling had been allowed to exist, what do you think it would have said?"
+  - "Who taught you — directly or indirectly — that this emotion wasn't okay to have?"
+  - "What do you think would happen if the people around you saw that reaction?"
+
+version: 1
+
+lexical_cues:
+  - "没什么感觉"
+  - "忍一忍就过了"
+  - "不想让别人看到"
+  - "I don't really feel anything"
+  - "keep it to myself"
+  - "压下去"
+
+hyde_exemplars: 3

@@ -1,0 +1,36 @@
+pattern_key: people_pleasing
+display_name_zh: 讨好倾向
+display_name_en: People-Pleasing
+primary_domain: social
+also_in: [family, intimate, work]
+
+neutral_description: >
+  Repeatedly prioritizing others' comfort over one's own needs,
+  followed by internal cost (resentment, exhaustion, self-criticism).
+
+what_it_is_not:
+  - A personality flaw or diagnosis.
+  - The same thing as being kind or generous.
+  - A label to wear permanently.
+
+evidence_shapes:
+  - "Says yes, then privately regrets it."
+  - "Apologizes before disagreeing."
+  - "Tracks others' moods preemptively and adjusts behavior."
+
+reflective_prompts:
+  - "When you said yes this time, what were you afraid would happen if you said no?"
+  - "Who in your life have you never said no to?"
+  - "If this person didn't need you to be okay, what would change?"
+
+version: 1
+
+lexical_cues:
+  - "说了yes"
+  - "对不起"
+  - "不好意思"
+  - "怕他失望"
+  - "I don't want to upset them"
+  - "答应了但不想去"
+
+hyde_exemplars: 3

@@ -1,0 +1,37 @@
+pattern_key: comparison_loop
+display_name_zh: 比较循环
+display_name_en: Comparison Loop
+primary_domain: self
+also_in: [work, social]
+
+neutral_description: >
+  Repeatedly measuring one's own worth by comparing to others,
+  followed by a cycle of brief relief when ahead and persistent unease when behind,
+  with neither outcome producing a stable sense of being enough.
+
+what_it_is_not:
+  - A permanent character trait or personality type.
+  - The same thing as healthy ambition or learning from others.
+  - A label to apply to every moment of noticing a difference.
+
+evidence_shapes:
+  - "Notices a peer's achievement and immediately evaluates their own standing against it."
+  - "Feels temporarily better after outperforming someone, then finds a new comparison target."
+  - "Avoids sharing personal wins out of fear of triggering others' comparisons, or fear of losing the edge."
+
+reflective_prompts:
+  - "When you make that comparison, what are you actually checking for?"
+  - "Can you remember a time you were clearly ahead — and it still didn't feel like enough?"
+  - "If the person you compare to most often disappeared tomorrow, what would you measure yourself by?"
+
+version: 1
+
+lexical_cues:
+  - "比别人"
+  - "凭什么他"
+  - "我怎么还没"
+  - "feel so behind"
+  - "everyone else seems to"
+  - "比较"
+
+hyde_exemplars: 3

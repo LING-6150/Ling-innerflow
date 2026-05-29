@@ -1,0 +1,37 @@
+pattern_key: rumination
+display_name_zh: 反刍思维
+display_name_en: Rumination
+primary_domain: self
+also_in: [intimate, work]
+
+neutral_description: >
+  Repetitively returning to the same upsetting thought, event, or conversation
+  without reaching a new conclusion, in a loop that creates more distress
+  than the original situation.
+
+what_it_is_not:
+  - Normal, productive problem-solving or planning.
+  - Grief processing after a major loss, which naturally takes time.
+  - A permanent cognitive style or something that defines a person.
+
+evidence_shapes:
+  - "Replays an argument or embarrassing moment mentally days or weeks after it occurred."
+  - "Asks the same 'what if' question across multiple conversations without new information arriving."
+  - "Reports being unable to sleep or concentrate because a specific thought keeps returning."
+
+reflective_prompts:
+  - "When this thought loops back, what is it trying to solve that it hasn't solved yet?"
+  - "How many times would you say you've had this exact thought this week?"
+  - "If you somehow already knew the answer to that 'what if,' what would change for you right now?"
+
+version: 1
+
+lexical_cues:
+  - "一直在想"
+  - "反复想那件事"
+  - "脑子里停不下来"
+  - "can't stop thinking about"
+  - "keep replaying"
+  - "一遍遍地想"
+
+hyde_exemplars: 3

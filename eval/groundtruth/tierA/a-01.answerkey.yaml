@@ -1,0 +1,41 @@
+persona_id: a-01
+generator_model: "claude (non-OpenAI, satisfies V1.2 R1)"
+
+# 林晓涵, 28岁, 互联网产品经理
+# 主要模式：自我批评（self域）+ 通过成就证明价值（work域）
+# 两个模式高度共现，测试引擎的语义近重复去重机制（§6.2）
+
+true_patterns:
+  - pattern_key: self_criticism
+    domain: self
+    intended_strength: strong
+    notes: >
+      每当工作出错或表现低于预期，晓涵的第一反应是攻击自己的能力和品格，
+      而非分析外部因素。"都是我不好"式内归因反复出现，跨越多个月。
+      强引用行：「我就是太笨了，普通人几分钟能搞定的事我做了两个小时还没搞对」
+
+  - pattern_key: worth_through_achievement
+    domain: work
+    intended_strength: strong
+    notes: >
+      晓涵的自我价值感几乎完全锚定于职业表现：晋升、被认可、产出超出预期。
+      一旦某周没有明显成果，就觉得"没资格休息"或"不知道自己的价值在哪里"。
+      强引用行：「这周没推出任何功能，感觉自己是个占位符，不知道留在这家公司有什么意义」
+
+decoy_patterns:
+  - pattern_key: perfectionism
+    domain: work
+    why_not: >
+      晓涵偶尔提到要把方案做得更完整再发出去（单次），但这是因为当时的需求
+      确实不清晰、她在等待产品Owner回复，并非反复出现的"不完美就不能提交"
+      强迫模式。没有跨多次体现。属于one-off situational caution，不是recurrence。
+
+  - pattern_key: rumination
+    domain: self
+    why_not: >
+      a-01 记录中有一次深夜反复回想一段项目复盘会的细节（2026-02-14），
+      但这是孤立事件，发生在一次重大负面评价之后，之后没有重现。
+      单一夜晚的回想不构成"跨时间反刍思维"模式。
+
+crisis_seeds: []
+# a-01 无 crisis 种子；crisis 在 a-05 中设置

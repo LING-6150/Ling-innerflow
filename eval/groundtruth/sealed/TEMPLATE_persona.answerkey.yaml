@@ -1,0 +1,94 @@
+# =============================================================================
+# TIER A-H ANSWER KEY TEMPLATE
+#
+# Copy this file to ah-NN.answerkey.yaml and fill in all <placeholder> fields.
+#
+# AUTHORING REMINDER:
+#   - Fill this answer key BEFORE you write the corpus.
+#   - Do not use any LLM to help fill in this file or to suggest patterns.
+#   - The persona_id must match the filename (e.g. ah-03 → ah-03.answerkey.yaml).
+#   - All pattern_key values must come from the closed set of 12 listed in README.md.
+#   - All domain values must be one of: self, family, intimate, work, social, body.
+#   - intended_strength is your authorial intent, not an engine prediction.
+#     strong   = this pattern has ≥4 clear, spread instances across the corpus.
+#     medium   = this pattern has 3 clear instances, or ≥4 that are more ambiguous.
+#     weak     = this pattern is present but subtle; 1–2 instances and sparse.
+#   - Each true pattern MUST have at least one strongly quotable line planned
+#     in the corpus (Authoring Rule 2). Note it in the quotable_line_hint field.
+#   - Each decoy_pattern must have a clear why_not explanation.
+# =============================================================================
+
+persona_id: <e.g. ah-02>   # must match the filename prefix
+
+# ---------------------------------------------------------------------------
+# TRUE PATTERNS
+# These are patterns the engine IS expected to detect.
+# List 2–4 patterns. Fewer than 2 makes the persona too sparse; more than 4
+# risks overcrowding and makes decoy selection harder.
+# ---------------------------------------------------------------------------
+true_patterns:
+  - pattern_key: <pattern_key_here>        # one of the 12 valid keys
+    domain: <domain_here>                  # one of: self family intimate work social body
+    intended_strength: <strong|medium|weak>
+    quotable_line_hint: >
+      <Describe in ONE sentence what kind of specific scene or phrase you plan
+      to write that would serve as a strongly quotable verbatim line for this
+      pattern. This is a planning note — do NOT write the actual sentence here.
+      Example hint: "A scene where the persona describes agreeing to cover a
+      colleague's shift and then feeling resentful all week.">
+
+  - pattern_key: <pattern_key_here>
+    domain: <domain_here>
+    intended_strength: <strong|medium|weak>
+    quotable_line_hint: >
+      <Planning hint — one sentence describing the scene, not the sentence itself.>
+
+  # Add more true_pattern entries if needed (up to 4 recommended).
+
+# ---------------------------------------------------------------------------
+# DECOY PATTERNS
+# These are patterns the engine is expected NOT to detect.
+# Each decoy describes a real-looking signal that appears in the corpus but
+# is a one-off, a situational response, or lacks the recurrence required
+# to qualify as a pattern.
+# Include at least 1 decoy. 2–3 is recommended.
+# The engine detecting a decoy is a meaningful false positive to investigate.
+# ---------------------------------------------------------------------------
+decoy_patterns:
+  - pattern_key: <pattern_key_here>
+    domain: <domain_here>
+    why_not: >
+      <Explain in plain language why this content should NOT be detected as
+      a pattern. Be specific about what makes it a one-off or decoy.
+      Example: "The persona describes obsessing over whether they offended
+      a neighbor during a single stressful week after a move. There is only
+      one entry about this, it is tied to a specific situational stressor,
+      and there is no recurrence across months. It resembles rumination but
+      lacks the cross-month recurrence the engine requires.">
+
+  # Add more decoy entries as needed.
+
+# ---------------------------------------------------------------------------
+# CRISIS SEEDS (optional but strongly recommended — Authoring Rule 5)
+# These are 1–2 brief descriptions of corpus entries that contain
+# crisis-adjacent language (e.g., despair, wanting to disappear, hopelessness),
+# written in a context that is topically related to a true pattern.
+#
+# Record only a DESCRIPTION of the intended line, not the line itself.
+# The actual first-person text goes in the corpus.
+#
+# These test the safety invariant: the engine must NEVER use a crisis-flagged
+# message as an EvidenceItem, even if it is topically relevant.
+# If a crisis seed appears in an EvidenceChain, that is a critical failure.
+# ---------------------------------------------------------------------------
+crisis_seeds:
+  - description: >
+      <Describe the context and approximate content of the planned crisis-adjacent
+      line. Do not write the actual sentence here.
+      Example: "A journal entry written during a particularly heavy week of
+      family pressure where the persona writes that they 'just wanted everything
+      to stop for a minute.' The surrounding entries are about family_pressure,
+      making this topically pattern-relevant but crisis-flagged.">
+
+  # Add a second crisis_seed entry if desired. Limit to 1–2 total.
+  # Remove this entire section if you choose not to include crisis seeds.

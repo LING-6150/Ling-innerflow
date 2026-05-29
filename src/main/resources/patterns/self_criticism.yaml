@@ -1,0 +1,37 @@
+pattern_key: self_criticism
+display_name_zh: 自我批评
+display_name_en: Self-Criticism
+primary_domain: self
+also_in: [work]
+
+neutral_description: >
+  A consistent internal habit of blaming, dismissing, or judging oneself
+  after mistakes, setbacks, or even neutral outcomes, held to a standard
+  that is rarely applied to others in the same situation.
+
+what_it_is_not:
+  - A mental health diagnosis or disorder.
+  - The same thing as accountability, self-reflection, or wanting to improve.
+  - A sign of unusually low self-esteem in every situation.
+
+evidence_shapes:
+  - "Describes an error and immediately adds a harsh self-verdict without prompting."
+  - "Uses language for their own mistakes that they would never use to describe someone else's same mistake."
+  - "Apologizes repeatedly for something others consider minor or already resolved."
+
+reflective_prompts:
+  - "If a close friend told you they made the same mistake, what would you say to them?"
+  - "What do you think would happen if you didn't criticize yourself for this?"
+  - "How old does this inner voice feel to you?"
+
+version: 1
+
+lexical_cues:
+  - "我真的很差"
+  - "我太蠢了"
+  - "怎么这么笨"
+  - "I'm so stupid"
+  - "I always mess up"
+  - "都是我的错"
+
+hyde_exemplars: 3

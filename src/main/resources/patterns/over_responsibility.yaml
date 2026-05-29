@@ -1,0 +1,37 @@
+pattern_key: over_responsibility
+display_name_zh: 过度负责
+display_name_en: Over-Responsibility
+primary_domain: family
+also_in: [intimate, work]
+
+neutral_description: >
+  Habitually taking on responsibility for other people's feelings, problems,
+  or outcomes — to the point where one's own needs go unattended and the
+  relief of others becomes the organizing priority of daily life.
+
+what_it_is_not:
+  - Being a caring, reliable, or responsible person.
+  - The same as co-dependency, which is a clinical term we do not use.
+  - A label for every moment of helping someone.
+
+evidence_shapes:
+  - "Describes managing or worrying about another person's emotional state as a regular, draining task."
+  - "Takes the blame for an outcome that involved multiple people, without others acknowledging shared ownership."
+  - "Reports not having time or energy for their own needs because they were managing someone else's."
+
+reflective_prompts:
+  - "Whose problem is this actually — and how did it become yours to solve?"
+  - "What do you think would happen to that person if you didn't carry this?"
+  - "What have you not done for yourself while doing this for them?"
+
+version: 1
+
+lexical_cues:
+  - "都是我没照顾好"
+  - "我得帮他处理"
+  - "没人管就只能我来"
+  - "feel responsible for their feelings"
+  - "if I don't do it no one will"
+  - "都压在我身上"
+
+hyde_exemplars: 3
