@@ -1,0 +1,38 @@
+pattern_key: family_pressure
+display_name_zh: 家庭压力内化
+display_name_en: Family Pressure Internalization
+primary_domain: family
+also_in: [self, work]
+
+neutral_description: >
+  Carrying family expectations — about career, relationships, lifestyle, or
+  identity — as an internal standard one feels compelled to meet, even
+  without the family being present, in ways that regularly conflict with
+  one's own preferences or direction.
+
+what_it_is_not:
+  - Respecting family values or caring about the family's wellbeing.
+  - A diagnosis or a statement that family relationships are bad.
+  - Something only certain cultures experience.
+
+evidence_shapes:
+  - "Makes a personal decision (career, relationship, lifestyle) and immediately frames it through whether family would approve."
+  - "Describes ongoing tension between what they want and what they feel they should want, citing family expectations."
+  - "Expresses guilt or anxiety about choices the family doesn't know about, as if already being judged."
+
+reflective_prompts:
+  - "If your family's opinion on this genuinely didn't exist, what would you choose?"
+  - "Whose voice do you hear when you feel like you're not doing it right?"
+  - "What do you imagine would actually happen if you did it the way you want to?"
+
+version: 1
+
+lexical_cues:
+  - "家里不同意"
+  - "对不起父母"
+  - "辜负了他们"
+  - "family expects me to"
+  - "disappoint my parents"
+  - "家里的期望"
+
+hyde_exemplars: 3

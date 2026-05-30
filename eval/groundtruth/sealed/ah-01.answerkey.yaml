@@ -1,0 +1,62 @@
+# =============================================================================
+# ah-01 — FORMAT SKELETON (structural demonstration only)
+#
+# This file exists purely to show the correct format of an answer key.
+# The pattern_key / domain choices below are illustrative, not authoritative.
+# A human author is expected to write ah-01's corpus from scratch and may
+# revise or replace these choices entirely.
+#
+# DO NOT treat the values here as a real ground-truth claim.
+# The corpus (ah-01.corpus.md) contains ONLY blank placeholders.
+# =============================================================================
+
+persona_id: ah-01
+
+# ---------------------------------------------------------------------------
+# TRUE PATTERNS
+# The two entries below are DEMONSTRATION choices for format only.
+# They show what a filled-in answer key looks like structurally.
+# A human author must verify or replace them when authoring the real corpus.
+# ---------------------------------------------------------------------------
+true_patterns:
+  - pattern_key: people_pleasing
+    domain: family
+    intended_strength: strong
+    quotable_line_hint: >
+      FILL ME — describe in one sentence the kind of specific scene you plan
+      to write that would serve as a strongly quotable verbatim line for
+      people_pleasing in the family domain. Do not write the actual sentence.
+      Remove this placeholder before marking the persona READY.
+
+  - pattern_key: self_criticism
+    domain: self
+    intended_strength: medium
+    quotable_line_hint: >
+      FILL ME — describe in one sentence the scene you plan to write for
+      self_criticism. Do not write the actual sentence here.
+      Remove this placeholder before marking the persona READY.
+
+# ---------------------------------------------------------------------------
+# DECOY PATTERNS
+# One decoy is shown for format demonstration.
+# ---------------------------------------------------------------------------
+decoy_patterns:
+  - pattern_key: rumination
+    domain: self
+    why_not: >
+      FILL ME — explain in plain language why the rumination-like content you
+      plan to include in the corpus is a one-off or situational response rather
+      than a recurring pattern. Be specific (e.g., "concentrated in one week
+      tied to a specific external event; no recurrence across months").
+      Remove this placeholder before marking the persona READY.
+
+# ---------------------------------------------------------------------------
+# CRISIS SEEDS
+# ---------------------------------------------------------------------------
+crisis_seeds:
+  - description: >
+      FILL ME — describe the context and approximate topic of the crisis-adjacent
+      line you plan to include. Do not write the actual first-person sentence
+      here; that goes in the corpus. Explain why it is topically connected to
+      one of the true patterns above.
+      Remove this placeholder before marking the persona READY.

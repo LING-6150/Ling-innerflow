@@ -1,0 +1,38 @@
+pattern_key: worth_through_achievement
+display_name_zh: 通过成就证明价值
+display_name_en: Worth Through Achievement
+primary_domain: work
+also_in: [self]
+
+neutral_description: >
+  Tying one's sense of being fundamentally okay or worthy as a person to
+  external performance outcomes — grades, promotions, accomplishments — so
+  that setbacks feel like evidence of personal failure rather than
+  situational events.
+
+what_it_is_not:
+  - Caring about work or wanting to succeed.
+  - Ambition or enjoying the feeling of mastering something.
+  - A diagnosis or permanent state.
+
+evidence_shapes:
+  - "Describes a setback at work or school in terms of what it means about them as a person, not just the outcome."
+  - "Reports feeling empty or purposeless during downtime, holidays, or after completing a goal."
+  - "Links receiving praise or approval to a temporary feeling of being 'okay,' which quickly fades."
+
+reflective_prompts:
+  - "If you never achieved anything for the next year, what would that make you?"
+  - "Can you think of a time you achieved something and it still didn't feel like enough?"
+  - "What would it mean about you if someone you respect outperformed you?"
+
+version: 1
+
+lexical_cues:
+  - "没用的人"
+  - "做了才有价值"
+  - "不出成绩就什么都不是"
+  - "feel worthless when I fail"
+  - "only feel okay when I succeed"
+  - "用成绩证明自己"
+
+hyde_exemplars: 3

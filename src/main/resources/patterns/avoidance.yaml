@@ -1,0 +1,37 @@
+pattern_key: avoidance
+display_name_zh: 回避型应对
+display_name_en: Avoidance Coping
+primary_domain: self
+also_in: [intimate, work]
+
+neutral_description: >
+  Consistently delaying, sidestepping, or exiting situations that feel
+  uncomfortable or uncertain, providing short-term relief at the cost
+  of a growing list of things left unaddressed.
+
+what_it_is_not:
+  - A reasonable choice to withdraw from something genuinely harmful or unsafe.
+  - Introversion or preferring time alone.
+  - A permanent personality type that cannot change.
+
+evidence_shapes:
+  - "Postpones a necessary conversation or decision across multiple sessions, always with a new reason."
+  - "Changes the subject or lightens the tone when a topic starts to feel heavy."
+  - "Describes relief after not doing something difficult, followed later by increased anxiety about it."
+
+reflective_prompts:
+  - "What do you imagine would happen in the worst case if you didn't avoid this?"
+  - "What has staying away from this cost you so far?"
+  - "Is there a version of approaching this that feels even 10% more manageable?"
+
+version: 1
+
+lexical_cues:
+  - "不想去想"
+  - "先不管了"
+  - "拖着"
+  - "just avoiding it"
+  - "keep putting it off"
+  - "懒得处理"
+
+hyde_exemplars: 3

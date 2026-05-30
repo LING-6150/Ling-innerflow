@@ -1,0 +1,44 @@
+persona_id: a-03
+generator_model: "claude (non-OpenAI, satisfies V1.2 R1)"
+
+# 苏梅, 24岁, 应届研究生，求职中
+# 主要模式：家庭压力内化（family域）+ 情绪压抑（self域）
+# 测试：family_pressure + emotional_suppression 的共现，及其对social域的溢出
+
+true_patterns:
+  - pattern_key: family_pressure
+    domain: family
+    intended_strength: strong
+    notes: >
+      苏梅的择业方向、城市选择、乃至日常情绪，都被家庭的"回家考公"叙事深度
+      渗透。她频繁内化父母的标准（稳定=正确、离家=不孝），并按此判断自己的
+      选择。即使内心倾向于去大城市，她也不断用家庭的话语框架来解释自己的
+      焦虑，而非建立自己的标准。
+      强引用行：「妈的逻辑是：稳定最重要。我现在不确定这是妈的逻辑还是我的逻辑」
+
+  - pattern_key: emotional_suppression
+    domain: self
+    intended_strength: medium
+    notes: >
+      苏梅在与家人的场景中系统性地切断情绪表达，她可以在日记中非常清晰地
+      描述委屈、焦虑或愤怒，但在家人面前一律"没事""挺好的"。她描述情绪
+      在身体上积累（胸口发紧、睡不好），但不允许自己说出来。
+      强引用行：「我知道我现在很委屈，但当时说不出来，只说了'没关系，我自己想想'」
+
+decoy_patterns:
+  - pattern_key: avoidance
+    domain: self
+    why_not: >
+      苏梅在求职决策上拖延了几周没有提交某家公司的材料，表面上像回避，
+      但在日记中她清楚写明：她在等待那家公司的招聘信息是否真的发布，
+      以及在准备材料。这是有据可查的情境性等待，而非反复逃避触发性话题
+      或决策的模式。后来她确实提交了材料，没有跨越多个月的拖延轨迹。
+
+  - pattern_key: over_responsibility
+    domain: family
+    why_not: >
+      苏梅有一次提到她帮弟弟准备了一份竞赛材料（单次），因为弟弟当时感冒。
+      这是一次性的家庭互助，没有显示她系统性地承担超出自己范围的责任、
+      或用承担他人责任来压抑自己的需求。单次帮忙不构成 over_responsibility 模式。
+
+crisis_seeds: []

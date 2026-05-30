@@ -15,6 +15,9 @@ public interface CheckInRepository extends JpaRepository<com.ling.linginnerflow.
     // 查询某用户的所有打卡记录，按时间倒序
     List<com.ling.linginnerflow.checkin.CheckIn> findByUserIdOrderByCreatedAtDesc(String userId);
 
+    // Pattern Engine S0: assemble user-authored check-ins in chronological order
+    List<com.ling.linginnerflow.checkin.CheckIn> findByUserIdOrderByCreatedAtAsc(String userId);
+
     // 查询所有公开的打卡记录，按时间倒序（树洞广场用）
     List<com.ling.linginnerflow.checkin.CheckIn> findByVisibilityOrderByCreatedAtDesc(String visibility);
 }

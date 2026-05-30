@@ -1,0 +1,56 @@
+persona_id: a-04
+generator_model: "claude (non-OpenAI, satisfies V1.2 R1)"
+
+# 王浩然, 31岁, 自由职业摄影师
+# 设计目的: 低基率 persona — 大量噪声/日常记录，只有一个真实模式
+# 主要模式：反刍思维（self域，medium）
+# 测试：过度检测惩罚。过触发的引擎会在噪声里找到并不存在的模式。
+
+true_patterns:
+  - pattern_key: rumination
+    domain: self
+    intended_strength: medium
+    notes: >
+      王浩然在遭遇特定负面事件（客户退单、合作破裂、被否定的作品）后，
+      会在多天内反复回想事件细节，寻找"我哪里做错了"，即使事情已经无法更改。
+      这一模式跨越三个月，出现至少五次，具备时间跨度和重复性。
+      强引用行：「那个客户是两周前退单的，我昨晚还是又把当时的对话翻出来看了一遍」
+
+decoy_patterns:
+  - pattern_key: self_criticism
+    domain: self
+    why_not: >
+      浩然在某几次的反刍中确实有"是不是我做错了"这样的疑问，但他并没有
+      系统性地攻击自己的能力或价值。他反刍的是"哪里可以改"而非"我就是不行"，
+      而且反刍结束之后他通常能恢复状态去接下一个项目。这是认知上的回放，
+      不是对自我价值的持续否定。
+
+  - pattern_key: avoidance
+    domain: self
+    why_not: >
+      浩然有几次推迟了整理作品集的时间，但他记录了明确的外部原因：订单接连，
+      没有空档期。不是接触到触发性内容后逃离，而是实际的时间管理问题。
+      且他在时间合适时完成了整理（有记录）。不是 avoidance 模式。
+
+  - pattern_key: worth_through_achievement
+    domain: work
+    why_not: >
+      浩然在拍到好片子或客户满意时心情明显变好，这是正常的正反馈，
+      而非自我价值完全依附于成就。他多次记录了和朋友的闲聊、随手拍日落、
+      "今天没干活但很高兴"等条目，说明他能在无成就事件时保持良好的自我感。
+      不构成 worth_through_achievement。
+
+  - pattern_key: comparison_loop
+    domain: social
+    why_not: >
+      浩然提到过一次看见摄影界同龄人在某展览亮相，感慨了一下"人家比我努力"，
+      这是偶发的感叹，且没有在后续记录中重复。一次感慨不构成跨时间的比较循环。
+
+noise_topics:
+  - 日常拍摄题材（城市、市集、建筑）
+  - 器材研究和参数探讨
+  - 和朋友吃饭、看展
+  - 接单谈价格的日常
+  - 运动：骑车、游泳
+
+crisis_seeds: []

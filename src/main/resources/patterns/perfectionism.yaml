@@ -1,0 +1,38 @@
+pattern_key: perfectionism
+display_name_zh: 完美主义
+display_name_en: Perfectionism
+primary_domain: work
+also_in: [self]
+
+neutral_description: >
+  Setting standards for output or behavior that are very difficult to meet,
+  and responding to any gap between the standard and the result with significant
+  distress, avoidance of starting, or excessive revision — in a way that
+  regularly interferes with completion or satisfaction.
+
+what_it_is_not:
+  - Care, quality, or high standards in themselves.
+  - The same thing as being thorough or detail-oriented.
+  - A diagnosis or a permanent identity.
+
+evidence_shapes:
+  - "Avoids submitting or sharing work because it does not feel ready, even past deadlines."
+  - "Spends disproportionate time on a part of a task that others consider done."
+  - "Describes strong distress (shame, anxiety, anger at self) in response to minor errors or less-than-ideal outcomes."
+
+reflective_prompts:
+  - "What would have to be true for this to be good enough?"
+  - "Who would see the flaw you're trying to fix — and would it change anything for them?"
+  - "What would you do with the time you spend correcting this if it were already done?"
+
+version: 1
+
+lexical_cues:
+  - "不够好"
+  - "再改一改"
+  - "达不到标准"
+  - "not good enough yet"
+  - "can't hand it in like this"
+  - "差一点点"
+
+hyde_exemplars: 3

@@ -1,0 +1,43 @@
+persona_id: a-02
+generator_model: "claude (non-OpenAI, satisfies V1.2 R1)"
+
+# 陈建国, 35岁, 中学历史老师
+# 主要模式：讨好倾向（family域，证明可出现在非默认social域）+ 冲突回避（intimate域）
+# 测试：pattern_key 在非默认 primary_domain 的域分配准确性（§4.3）
+
+true_patterns:
+  - pattern_key: people_pleasing
+    domain: family
+    intended_strength: strong
+    notes: >
+      建国在父母（尤其是父亲）面前系统性地压制自己的需求和意见，
+      持续同意他们的安排（住房、工作时间、孙辈计划），事后频繁感到
+      疲惫和隐性怨恨，但继续顺从。此行为在家庭场景中反复跨月出现。
+      强引用行：「我说行，但心里清楚我根本不想做这些，只是说行比解释容易得多」
+
+  - pattern_key: conflict_aversion
+    domain: intimate
+    intended_strength: medium
+    notes: >
+      与妻子有分歧时，建国惯性选择"算了"或假装同意，从不把自己真实的不满
+      说出来。长期积压导致他在日记中多次描述与妻子的疏离感，但仍然回避。
+      强引用行：「她说了什么让我很不舒服，但我没说，我只是点了点头，然后去书房了」
+
+decoy_patterns:
+  - pattern_key: boundary_difficulty
+    domain: family
+    why_not: >
+      建国对父母��顺从表面上看像边界困难，但仔细读记录可见他是主动选择
+      顺从（"说行比解释容易"），而非不知道如何拒绝或感到没有权利拒绝。
+      他一次明确拒绝了父亲要他调换班级的要求，说明边界能力存在，
+      只是在某些场景下不启用。此处不是 boundary_difficulty，而是 people_pleasing。
+
+  - pattern_key: emotional_suppression
+    domain: intimate
+    why_not: >
+      建国不表达不满，但这是因为他在回避冲突（策略性的conflict_aversion），
+      而不是他不能识别或接触到自己的情绪——他在日记中非常清晰地描述了
+      自己当下的感受，只是不对妻子说。情绪压抑强调的是内部切断，
+      而他的内部识别是完好的，只是输出被阻断。
+
+crisis_seeds: []

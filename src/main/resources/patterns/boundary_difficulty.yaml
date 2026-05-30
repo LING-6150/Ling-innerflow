@@ -1,0 +1,37 @@
+pattern_key: boundary_difficulty
+display_name_zh: 边界困难
+display_name_en: Boundary Difficulty
+primary_domain: family
+also_in: [intimate, work]
+
+neutral_description: >
+  Recurring difficulty saying no, limiting access, or protecting personal time
+  and space from the expectations or demands of specific people — combined with
+  guilt, obligation, or fear of rejection when attempting to do so.
+
+what_it_is_not:
+  - A personality defect or anything inherent to a person.
+  - Being a good son, daughter, partner, or employee.
+  - A skill some people simply don't have — it is a learned habit that can change.
+
+evidence_shapes:
+  - "Describes agreeing to something with a family member or close person they had already decided they would not do."
+  - "Expresses guilt or anxiety at the idea of saying no, even to requests they find unreasonable."
+  - "Reports resentment or exhaustion after a visit or interaction where they felt unable to set a limit."
+
+reflective_prompts:
+  - "What would saying no to this person cost you, in your mind?"
+  - "Has this person ever shown you what happens when someone says no to them?"
+  - "What does your own time and space feel like when this relationship isn't in the room?"
+
+version: 1
+
+lexical_cues:
+  - "拒绝不了"
+  - "说不出口"
+  - "开不了口"
+  - "can't say no to them"
+  - "feel so guilty when I push back"
+  - "做不到拒绝"
+
+hyde_exemplars: 3

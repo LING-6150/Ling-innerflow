@@ -1,0 +1,53 @@
+persona_id: a-06
+generator_model: "claude (non-OpenAI, satisfies V1.2 R1)"
+
+# 李敏华, 33岁, 独立创业者（餐饮）+ 家中长女
+# 主要模式: 比较循环（social域）+ 边界困难（intimate域）+ 过度负责（family域）
+# 测试: 三个模式共存，跨越三个域，同时测试引擎的多标签输出和去重
+
+true_patterns:
+  - pattern_key: comparison_loop
+    domain: social
+    intended_strength: medium
+    notes: >
+      敏华在同龄创业圈的社交中系统性地与他人比较店面规模、融资进展、
+      媒体曝光，并由此反复产生"我是不是落后了"的焦虑。这一循环不是一次
+      感慨，而是每次接触圈子信息后重启，历时三个月。
+      强引用行：「看完那篇报道我就开始想——她当时比我起步还晚，现在已经有四家分店了，我在干什么」
+
+  - pattern_key: boundary_difficulty
+    domain: intimate
+    intended_strength: medium
+    notes: >
+      与男友之间存在持续模式：男友提出占用她睡前时间、工作时间的请求，
+      她虽然疲惫甚至有怨气，但无法说"今晚不行"，并在事后感到精力透支。
+      这一模式不是不爱，而是无法划定自己的时间边界，跨越整个观察期。
+      强引用行：「他说能不能陪他打一局游戏，我已经十一点了，但我说了好，然后一点才睡」
+
+  - pattern_key: over_responsibility
+    domain: family
+    intended_strength: strong
+    notes: >
+      作为家中长女，敏华在父母的医疗决策、弟弟的就业问题、以及家里的
+      日常财务问题上承担了超出"子女"范围的组织和执行责任，同时压抑自己
+      在店里的困难，不让家里知道。她多次描述"他们的问题是我的问题，我的问题不是问题"。
+      强引用行：「弟弟的事我来处理，爸妈的检查我来安排，我自己的账期问题我没跟任何人说」
+
+decoy_patterns:
+  - pattern_key: people_pleasing
+    domain: social
+    why_not: >
+      敏华在商业社交场合会表现得很热情，但这是业务导向的主动行为，
+      而非压抑自己的需求来满足他人的内驱动力。她在日记中明确记录了她
+      对某些合作伙伴不满意但继续维系关系是因为利益，这是理性选择而非讨好模式。
+      此外，这只在商业语境中出现，没有跨越私人关系的系统性表现。
+
+  - pattern_key: conflict_aversion
+    domain: intimate
+    why_not: >
+      敏华和男友确实很少正面冲突，但在记录中她有两次明确和男友表达了
+      不同意见（一次关于春节安排，一次关于搬家时间线），说明冲突能力存在。
+      她在 intimate 域的 boundary_difficulty 是能力���面的边界问题，
+      而非系统性的冲突回避。这两个模式表面相似但机制不同。
+
+crisis_seeds: []
