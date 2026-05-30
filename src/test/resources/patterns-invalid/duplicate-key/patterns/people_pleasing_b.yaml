@@ -1,0 +1,23 @@
+pattern_key: people_pleasing
+display_name_zh: 讨好倾向 B
+display_name_en: People-Pleasing B
+primary_domain: social
+also_in: [work]
+neutral_description: Second duplicate fixture definition.
+what_it_is_not:
+  - Not one
+  - Not two
+  - Not three
+evidence_shapes:
+  - Shape one
+  - Shape two
+  - Shape three
+reflective_prompts:
+  - Prompt one
+  - Prompt two
+  - Prompt three
+lexical_cues:
+  - cue one
+  - cue two
+  - cue three
+hyde_exemplars: 3
