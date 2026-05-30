@@ -1,0 +1,23 @@
+pattern_key: avoidance
+display_name_zh: 回避倾向
+display_name_en: Avoidance
+primary_domain: self
+also_in: [work]
+neutral_description: Fixture definition for wrong count coverage.
+what_it_is_not:
+  - Not one
+  - Not two
+  - Not three
+evidence_shapes:
+  - Shape one
+  - Shape two
+  - Shape three
+reflective_prompts:
+  - Prompt one
+  - Prompt two
+  - Prompt three
+lexical_cues:
+  - cue one
+  - cue two
+  - cue three
+hyde_exemplars: 3
