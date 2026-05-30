@@ -1,6 +1,10 @@
 package com.ling.linginnerflow.pattern.eval.baseline;
 
 import com.ling.linginnerflow.pattern.definition.PatternDefinitionLoader;
+import com.ling.linginnerflow.pattern.domain.Domain;
+import com.ling.linginnerflow.pattern.eval.CorpusRecord;
+import com.ling.linginnerflow.pattern.eval.GTPersona;
+import com.ling.linginnerflow.pattern.eval.PredictedPattern;
 import com.ling.linginnerflow.pattern.retrieval.EvidenceRetrievalService;
 import com.ling.linginnerflow.pattern.retrieval.PatternRecallService;
 import org.junit.jupiter.api.Disabled;
@@ -27,7 +31,7 @@ class B3_RetrievalNoVerifyBaselineTest {
         Set<PredictedPattern> predictions = baseline.predict(peoplePleasingPersona());
 
         assertThat(predictions).contains(new PredictedPattern(
-                "people_pleasing", defs.get("people_pleasing").getPrimaryDomain()));
+                "people_pleasing", Domain.valueOf(defs.get("people_pleasing").getPrimaryDomain())));
     }
 
     @Test
@@ -90,7 +94,7 @@ class B3_RetrievalNoVerifyBaselineTest {
     }
 
     private GTPersona peoplePleasingPersona() {
-        return new GTPersona("fixture-b3", List.of(
+        return new GTPersona("fixture-b3", null, List.of(), List.of(), List.of(), List.of(
                 record(0, "I don't want to upset them, so I agreed even though I was exhausted."),
                 record(1, "I don't want to upset them at work, so I keep taking extra tasks."),
                 record(2, "I don't want to upset them when friends ask for help, so I cancel my own plans."),
