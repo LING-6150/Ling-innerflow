@@ -3,7 +3,11 @@ package com.ling.linginnerflow.pattern.eval.baseline;
 import com.ling.linginnerflow.pattern.corpus.CorpusAssemblyService;
 import com.ling.linginnerflow.pattern.corpus.CorpusDoc;
 import com.ling.linginnerflow.pattern.definition.PatternDefinitionLoader;
+import com.ling.linginnerflow.pattern.domain.Domain;
 import com.ling.linginnerflow.pattern.domain.SourceType;
+import com.ling.linginnerflow.pattern.eval.CorpusRecord;
+import com.ling.linginnerflow.pattern.eval.GTPersona;
+import com.ling.linginnerflow.pattern.eval.PredictedPattern;
 import com.ling.linginnerflow.pattern.retrieval.EvidenceRetrievalService;
 import com.ling.linginnerflow.pattern.retrieval.PatternRecallService;
 
@@ -70,7 +74,7 @@ public class B3_RetrievalNoVerifyBaseline implements Baseline {
                     .limit(MIN_RETRIEVED_DOCS)
                     .toList();
             if (evidence.size() >= MIN_RETRIEVED_DOCS) {
-                predictions.add(new PredictedPattern(key, defs.get(key).getPrimaryDomain()));
+                predictions.add(new PredictedPattern(key, Domain.valueOf(defs.get(key).getPrimaryDomain())));
             }
         }
         return predictions;
@@ -147,17 +151,3 @@ public class B3_RetrievalNoVerifyBaseline implements Baseline {
 
 }
 
-interface Baseline {
-    Set<PredictedPattern> predict(GTPersona persona);
-
-    String name();
-}
-
-record GTPersona(String id, List<CorpusRecord> corpus) {
-}
-
-record CorpusRecord(LocalDate date, String type, String text) {
-}
-
-record PredictedPattern(String patternKey, String domain) {
-}
