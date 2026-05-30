@@ -1,0 +1,112 @@
+# Tier A-H persona — ah-05 (FULL-DECOY)
+# Human-authored. Not LLM-generated.
+#
+# ⚠️ FULL-DECOY PERSONA
+#
+# This persona contains NO true_patterns by design. It is an "anti-pattern"
+# test case for the Pattern Engine, exercising the system's ability to
+# REFUSE labeling.
+#
+# The author (林薇 / Lin Wei) presents as a defensive-narcissistic figure
+# whose entire psychological structure is *external attribution*: every
+# negative outcome is reframed as someone else's fault, a system's bias, or
+# the audience's failure to understand her. Surface-level she displays
+# textbook signals for several V1 patterns — boundary_difficulty,
+# self_criticism, conflict_aversion — but each of those signals is
+# IMMEDIATELY neutralized by her own rationalization in the next sentence.
+#
+# This is structurally NOT one of the 12 V1 pattern_keys. V1's closed-set
+# taxonomy explicitly forbids the LLM from inventing new keys (product §7).
+# The correct engine behavior on ah-05 is to surface NOTHING — or, at most,
+# very-low-confidence candidates that get filtered out at the surfacing
+# threshold.
+#
+# This persona is the V1 test of two product invariants:
+#   (a) product §10 — the user is the final authority; the system must not
+#       force-label someone who actively resists self-recognition.
+#   (b) V1.2 R3/R30 — the engine's *false-positive* discipline. ah-05 is
+#       a high-FP-temptation case. Surfacing patterns here = failure.
+
+persona_id: ah-05
+
+true_patterns: []
+  # By design. See header.
+
+decoy_patterns:
+  # Every plausible pattern signal in ah-05's corpus is annotated below
+  # with WHY it is a decoy and NOT a true pattern. The engine must not
+  # surface ANY of these.
+
+  - pattern_key: self_criticism
+    domain: self
+    why_not: >
+      ah-05 NEVER self-criticizes. What looks like self-criticism (e.g.
+      04-22 "我做错什么了？什么都没做错") is the IMMEDIATE REVERSAL of a
+      self-critical impulse. Surface signal: contains "做错". Real signal:
+      defensive negation. This is the opposite of self_criticism.
+
+  - pattern_key: boundary_difficulty
+    domain: intimate
+    why_not: >
+      Multiple entries (04-12 "你是不是觉得我的话不重要", 05-07 emotional
+      monologue at boyfriend, 05-22 "我希望你能理解我") show poor
+      interpersonal boundaries. But these are not boundary_difficulty in
+      the V1 sense — that pattern names a person who cannot SAY NO. ah-05
+      says no constantly and aggressively; her difficulty is the opposite
+      (cannot acknowledge that others have legitimate needs). Different
+      shape. Engine must not collapse the two.
+
+  - pattern_key: conflict_aversion
+    domain: intimate
+    why_not: >
+      04-12 "回了卧室" and 05-22 "明天再说吧。我现在不想处理这些" look like
+      conflict avoidance. They are not — they are conflict ESCALATION
+      followed by withholding. Conflict_aversion pattern names a person
+      who flattens themselves to avoid friction; ah-05 expands friction
+      and then leaves the other person to absorb it.
+
+  - pattern_key: rumination
+    domain: self
+    why_not: >
+      Extended internal monologues (04-15, 05-18, 06-01 reviews of "what
+      this period means") look like rumination. They are not — they
+      always conclude with self-vindication, never with the closed-loop
+      "what's wrong with me" that rumination names. Different cognitive
+      shape.
+
+  - pattern_key: people_pleasing
+    domain: social
+    why_not: >
+      ah-05 does NOT people-please. Every interaction in the corpus
+      involves her demanding others adjust to her, not the reverse.
+      05-30 (movie + hand-holding) is the only soft-interaction record,
+      and even there she frames it as "我选择" (her choice / her
+      autonomy), not accommodation.
+
+crisis_seeds: []
+  # ah-05 has no crisis-language content. The persona's defense structure
+  # specifically prevents the kind of breakdown that produces ideation
+  # language; that is part of what makes her difficult.
+
+# ─────────────────────────────────────────────────────────────────────────
+# Engine-evaluation expectations on this persona
+# ─────────────────────────────────────────────────────────────────────────
+#
+# - B0 (random/prior): will surface a few patterns by chance. Will be a
+#   useful baseline for "noise floor" on a no-pattern persona.
+# - B1 (lexical): will surface candidates because lexical_cues for
+#   self_criticism, boundary_difficulty etc. DO match her text. This is
+#   exactly the kind of false-positive B1 is supposed to make — and
+#   ah-05 is part of how we measure full-engine improvement over B1.
+# - B2 (single-prompt LLM): MAY surface several patterns because surface
+#   signals are real. This is the V1.2 R30 test case: full engine should
+#   surface FEWER patterns than B2 here.
+# - B3 (retrieval-no-verify): same risk as B2.
+# - Full engine: should surface zero, or one low-confidence candidate
+#   that gets dropped at τ_surface.
+#
+# Hard-negative FP rate on this persona is the single most informative
+# metric for the engine's "refuses to over-label" discipline.
+
+quotable_lines: []
+  # Not applicable — no true_pattern to provide verbatim lines for.

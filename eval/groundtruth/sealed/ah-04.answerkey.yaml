@@ -1,0 +1,75 @@
+# Tier A-H persona — ah-04
+# Human-authored. Not LLM-generated.
+
+persona_id: ah-04
+
+true_patterns:
+  - pattern_key: comparison_loop
+    domain: self
+    intended_strength: strong
+    notes: >
+      Comparison is the persona's organizing principle. Constant cross-class
+      comparison (04-02 salary math, 04-05 luxury-vlogger, 04-12 ski-trip ex,
+      04-18 college-classmate house, 05-08 starbucks moment, 05-20 college
+      roommate's beach wedding, 05-23 B-station video, 06-07 zhihu thread).
+      Both upward (peers) and downward (mother's market wage) comparisons —
+      the pattern is the LOOP itself, not the direction.
+
+  - pattern_key: self_criticism
+    domain: self
+    intended_strength: medium
+    notes: >
+      Less of his core pattern than comparison_loop, but real. 04-28
+      ("我什么时候开始，需要用别人的错误来证明自己没那么差……觉得自己挺恶心的"),
+      04-23 ("我以为我已经爬出来了，但其实我只是从井底爬到了井口"),
+      05-12 dating-rejection self-talk.
+
+  - pattern_key: worth_through_achievement
+    domain: work
+    intended_strength: medium
+    notes: >
+      06-02 ("从小到大都在跟自己说'不能认输'") — the entire "不能认输" loop
+      is achievement-as-identity. But it's quieter than ah-02's version
+      because it has a class-trauma origin, not a perfectionism origin.
+
+decoy_patterns:
+  - pattern_key: perfectionism
+    domain: work
+    why_not: >
+      04-28 (catching Lin Xi's error) and 05-25 (debugging late at night
+      with her) look like perfectionism on the surface, but they are actually
+      WORK self-criticism mixed with class envy — not the recurring "must
+      do flawlessly" pattern that perfectionism names. The 05-28 entry
+      ("她也没那么讨厌……是命不一样") is mature self-awareness, not
+      perfectionism-anxiety. Do NOT label as perfectionism.
+
+  - pattern_key: rumination
+    domain: self
+    why_not: >
+      Many extended internal monologues (04-23 well analogy, 06-07 zhihu
+      reply) look like rumination. They are NOT — they are structural
+      analysis of class mobility, with cognitive endpoints and conclusions.
+      Rumination is closed-loop "what's wrong with me" — these are open-loop
+      "what's wrong with this system." Different pattern. The line between
+      them is exactly the kind of confound the engine must not collapse.
+
+  - pattern_key: avoidance
+    domain: family
+    why_not: >
+      05-01 ("没回家。不想回去") and 04-15 mother-call-ending look like
+      family avoidance. But the avoidance is bounded and topic-specific
+      (婚姻 + 隔壁老王 questions), not the avoidant coping style. The
+      entry on 05-15 father-truck-driver memory shows deep family
+      connection, not avoidance.
+
+crisis_seeds: []
+  # ah-04 has no crisis-language content. The persona is built around
+  # class-comparison exhaustion, not ideation. Including would dilute the
+  # signal.
+
+quotable_lines:
+  - "我以为我已经爬出来了，但其实我只是从井底爬到了井口"      # comparison_loop / self_criticism
+  - "你攒钱的速度，永远赶不上房价涨的速度��你努力的速度，永远赶不上别人起跑线的位置"  # comparison_loop
+  - "我什么时候开始，需要用别人的错误来证明自己没那么差"      # self_criticism
+  - "从小到大都在跟自己说'不能认输'"                          # worth_through_achievement
+  - "更绝望的是，你知道你只是一个普通人，但你连做个普通人的资格都没有"  # comparison_loop

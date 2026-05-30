@@ -1,0 +1,123 @@
+# Tier A-H persona — ah-06 (FULL-DECOY)
+# Human-authored. Not LLM-generated.
+#
+# ⚠️ FULL-DECOY PERSONA
+#
+# This persona contains NO true_patterns by design. It is an "anti-pattern"
+# test case for the Pattern Engine.
+#
+# The author (许哲 / Xu Zhe) presents as a covert-narcissistic / sub-clinical
+# antisocial figure. His psychological structure — calculated persona
+# maintenance, indirect manipulation through plausible deniability,
+# strategic disclosure, never-quite-saying-what-he-means — falls OUTSIDE
+# the V1 12-pattern taxonomy entirely. V1 patterns name self-experienced
+# distress; ah-06 has no distress because he doesn't acknowledge any
+# internal state to himself.
+#
+# This persona is the V1 test of two product invariants:
+#   (a) the engine must NOT extend the closed-set taxonomy beyond the 12
+#       V1 keys (product §7) — including not stretching existing keys
+#       (e.g. "emotional_suppression") to cover what is actually
+#       a different psychological structure.
+#   (b) the engine's discipline against false labeling of high-functioning
+#       presentations. ah-06 LOOKS calm, polite, even reflective. The
+#       engine must not be charmed.
+#
+# Compared to ah-05 (defensive narcissism, loud), ah-06 is quiet — which
+# makes him the more dangerous false-positive case. He may trigger
+# self_criticism candidates (he says "觉得自己挺恶心的" at 04-18) but
+# every such moment is performative, not genuine.
+
+persona_id: ah-06
+
+true_patterns: []
+  # By design.
+
+decoy_patterns:
+  # Every plausible pattern signal is annotated.
+
+  - pattern_key: emotional_suppression
+    domain: self
+    why_not: >
+      ah-06 looks like classic emotional_suppression — he never expresses
+      what he feels, he maintains a "sunshine boy" persona, he tells
+      himself "我已经分不清哪句是真是假了". This is NOT suppression. In
+      suppression, the emotion exists and is held back. In ah-06's
+      structure, the emotion is DELETED at the meta-cognitive level: he
+      doesn't have access to a "real self" being suppressed; he has
+      access to a persona being maintained. Different shape. Engine
+      must not collapse the two.
+
+  - pattern_key: self_criticism
+    domain: self
+    why_not: >
+      Several entries (04-18 "觉得自己挺恶心的", 05-28 mirror scene,
+      06-01 "我害了他吗？没有") look like self_criticism. They are not —
+      they are PERFORMANCE of self-criticism for an internal audience.
+      Each one is followed by self-exoneration. ("不关我的事" / "我没做错
+      什么" / "对吧？") Real self_criticism doesn't conclude with
+      "I am still good." This does.
+
+  - pattern_key: people_pleasing
+    domain: social
+    why_not: >
+      ah-06 cultivates a likeable persona constantly — bringing coffee,
+      helping the new intern, complimenting Xiao Yang. This LOOKS like
+      people_pleasing but is its opposite: people_pleasing is a felt
+      need to be liked at one's own expense; ah-06's persona is
+      INSTRUMENTAL — he reports the helpfulness in his journal as
+      strategy ("但她不会知道"). Different shape.
+
+  - pattern_key: conflict_aversion
+    domain: intimate
+    why_not: >
+      Multiple entries (04-15, 04-25, 05-25) show conflict-avoidance on
+      the surface — he never directly confronts Xiao Zhou, never disputes
+      his ex's framing, always agrees with leader. Not conflict_aversion.
+      conflict_aversion names someone who fears conflict; ah-06 actively
+      ENGINEERS conflicts for others (Xiao Zhou's project failure was
+      indirectly his doing) while remaining out of frame. Strategic
+      non-confrontation, not aversion.
+
+  - pattern_key: avoidance
+    domain: intimate
+    why_not: >
+      05-10 "让她等" (making the ex wait), 04-25 ghosting tactics —
+      avoidance pattern. But these are not avoidance — they are
+      CONTROL through indirect-action. Avoidance is escape from a
+      threatening situation; this is positioning within one.
+
+  - pattern_key: rumination
+    domain: self
+    why_not: >
+      Long, structured internal monologues about his own functioning
+      (05-28, 06-01) might be coded as rumination by the engine.
+      They are not — they have the CONTENT of self-observation but
+      the FUNCTION of self-congratulation ("多完美"). Rumination's
+      cognitive endpoint is stuck distress; ah-06's endpoint is
+      complacency.
+
+crisis_seeds: []
+  # No crisis content. The persona's structure prevents it.
+
+# ─────────────────────────────────────────────────────────────────────────
+# Engine-evaluation expectations on this persona
+# ─────────────────────────────────────────────────────────────────────────
+#
+# - B1 (lexical): WILL surface several false positives because ah-06's
+#   language contains "觉得自己" (self_criticism cues), "随便" (avoidance),
+#   "挺好" (people_pleasing). This is exactly the B1 weakness V1.2 R30 is
+#   testing against.
+# - B2 (single-prompt LLM): HIGH false-positive risk. ah-06's prose is
+#   sophisticated and "psychological-sounding" enough to fool a one-shot
+#   LLM into surfacing 3-5 patterns.
+# - Full engine: should surface zero. The verifier's job is to notice
+#   that the candidate evidence is followed by exoneration in EVERY
+#   case — i.e. the entailment is reversed.
+#
+# If the full engine surfaces ANY pattern on ah-06, that's a serious
+# failure mode worth investigating. It means the verifier cannot detect
+# self-vindicating structure, which is a known limit of LLM-based
+# entailment.
+
+quotable_lines: []
