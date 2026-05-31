@@ -187,8 +187,11 @@ These objects should be treated as durable domain state:
 - EvidenceItem records or references into the source evidence store.
 - UserReview and normalized ReviewStatus.
 - Safety flags, crisis flags, source redaction state, and review timestamps where already part of the source model.
+- Rejection cooldown audit records keyed by rejected `(pattern_key, domain)`, including rejection timestamp, cooldown expiry timestamp, rejected `source_ref` set or hash, and Jaccard score / comparison metadata for suppressed re-surfacing attempts.
 
 Persisted state should be sufficient to determine eligibility and regenerate PatternStructure without relying on a previous generated artifact.
+
+Cooldown semantics are owned by the Review State Machine design. This domain model only requires durable audit state so rejected patterns do not quietly regain Structure availability through cached or repeated evidence.
 
 ### 5.2 Generated Objects
 
