@@ -164,7 +164,7 @@ Query parameters:
 | Field | Type | Required | Default | Purpose | Safety rationale |
 | --- | --- | --- | --- | --- | --- |
 | `evidence_item_ids` | comma-separated UUID list | no | all referenced items | Limits response to selected evidence IDs. | Supports drawer-level expansion without exposing unrelated evidence. |
-| `include_hidden_counts` | boolean | no | `true` | Includes counts for safety-filtered evidence. | Makes redaction explicit without exposing blocked content. |
+| `include_hidden_counts` | boolean | no | `false` | Includes counts for safety-filtered evidence. | Keeps redaction metadata opt-in while still allowing explicit audit views. |
 
 ## 4. Common Types
 
@@ -229,6 +229,7 @@ StructureEligibilityDto {
   required_actions: EligibilityAction[]
   evidence_summary: EligibilityEvidenceSummary
   safety_summary: EligibilitySafetySummary
+  cooldown_summary: EligibilityCooldownSummary | null
 }
 ```
 
@@ -245,6 +246,7 @@ Fields:
 | `required_actions` | array | Indicates possible next UI actions such as review or add evidence. | Encourages explicit user control instead of automatic inference. |
 | `evidence_summary` | object | Summarizes evidence sufficiency. | Makes sparse states explicit. |
 | `safety_summary` | object | Summarizes safety blocking at a high level. | Makes restraint visible without exposing lint internals. |
+| `cooldown_summary` | object or null | Summarizes rejected/cooldown timing when relevant. | Exposes cooldown state without redefining review transition rules. |
 
 ```text
 EligibilityState =
@@ -267,9 +269,13 @@ reserved future extension and must not be required by V1 clients.
 EligibilityReasonCode =
   confirmed_pattern |
   partially_confirmed_pattern |
+  insufficient_evidence |
   too_few_evidence_items |
   evidence_window_too_sparse |
   rejected_by_user |
+  rejection_cooldown_active |
+  archived |
+  stale_evidence |
   awaiting_user_review |
   user_deferred_review |
   safety_blocked_crisis |
@@ -296,7 +302,16 @@ EligibilitySafetySummary {
   blocked_reason: crisis | policy | unavailable | null
   hidden_evidence_count: integer
 }
+
+EligibilityCooldownSummary {
+  rejected_at: timestamp
+  cooldown_expires_at: timestamp
+  can_reopen: boolean
+}
 ```
+
+`cooldown_summary` appears only when relevant to rejected or cooldown states.
+The Review State Machine design owns cooldown semantics and reopen rules.
 
 ### 5.2 Required Eligibility States
 
