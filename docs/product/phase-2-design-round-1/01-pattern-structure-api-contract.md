@@ -185,6 +185,7 @@ Machine design:
 candidate
 confirmed
 partially_confirmed
+deferred
 rejected
 archived
 ```
@@ -216,8 +217,6 @@ Purpose and safety rationale:
 - `not_requested` means the client requested another module.
 
 ## 5. Eligibility Contract
-
-### 5.1 Eligibility DTO
 
 ```text
 StructureEligibilityDto {
