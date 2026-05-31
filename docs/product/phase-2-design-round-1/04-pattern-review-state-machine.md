@@ -285,8 +285,8 @@ API surfaces may expose review statuses but must not redefine transitions.
 Minimum API behavior:
 
 - Pattern listing APIs may return `candidate`, `confirmed`, `partially_confirmed`, `rejected`, `deferred`, and `archived` if needed for review/history surfaces.
-- Structure APIs must return `canShow: true` only for `confirmed` and eligible `partially_confirmed` instances.
-- Structure APIs must return `canShow: false` for `candidate`, `rejected`, `deferred`, and `archived`.
+- Structure APIs must return `can_show_structure: true` only for `confirmed` and eligible `partially_confirmed` instances.
+- Structure APIs must return `can_show_structure: false` for `candidate`, `rejected`, `deferred`, and `archived`.
 - Structure APIs must return a clear reason when blocked, such as `unreviewed_candidate`, `rejected`, `rejection_cooldown_active`, `deferred`, `archived`, `safety_blocked`, `stale_evidence`, or `insufficient_evidence`.
 - Understanding APIs may include only `confirmed` and eligible `partially_confirmed` instances.
 - Review mutation APIs should accept explicit actions, not raw arbitrary status writes, unless used by internal audited admin tooling.
