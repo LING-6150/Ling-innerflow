@@ -327,7 +327,7 @@ Inputs:
 | `allowedActions` | UI triggers supplied by Review State Machine owner. |
 | `pendingAction` | Current in-flight action, if any. |
 | `disabledReason` | Optional reason actions are disabled. |
-| `actions` | Confirm, reject, defer, undo/open review flow where allowed. |
+| `actions` | Confirm, partially confirm, reject, defer, edit/correct, and restore/reopen where allowed. |
 
 Behavior:
 
