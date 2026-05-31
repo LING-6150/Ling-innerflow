@@ -157,6 +157,13 @@ evidence_chains:
     evidence_item_ids:
       - ev-sparse-2026-05-12
 
+  - id: chain-insufficient-evidence-v1
+    pattern_instance_id: pat-insufficient-evidence
+    generator_version: pattern-structure-mvp-fixture-v1
+    generated_at: "2026-05-13T10:00:00+08:00"
+    evidence_item_ids:
+      - ev-sparse-2026-05-12
+
   - id: chain-safety-blocked-v1
     pattern_instance_id: pat-safety-blocked
     generator_version: pattern-structure-mvp-fixture-v1
@@ -165,7 +172,7 @@ evidence_chains:
       - ev-crisis-2026-05-20
 
   - id: chain-neighbor-ambiguity-v1
-    pattern_instance_id: pat-confirmed-brief-updates
+    pattern_instance_id: pat-neighbor-follow-up
     generator_version: pattern-structure-mvp-fixture-v1
     generated_at: "2026-05-16T10:05:00+08:00"
     evidence_item_ids:
@@ -212,7 +219,7 @@ pattern_instances:
   - id: pat-insufficient-evidence
     status: confirmed
     summary_fixture: "Brief update may appear in one note."
-    active_evidence_chain_id: chain-candidate-v1
+    active_evidence_chain_id: chain-insufficient-evidence-v1
     expected_structure_availability: unavailable_insufficient_evidence
 
   - id: pat-safety-blocked
