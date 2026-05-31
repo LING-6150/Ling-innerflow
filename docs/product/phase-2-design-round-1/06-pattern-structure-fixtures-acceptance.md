@@ -188,51 +188,51 @@ pattern_instances:
     status: confirmed
     summary_fixture: "In some work meetings, updates are kept brief even when more context exists."
     active_evidence_chain_id: chain-work-brief-updates-v1
-    expected_structure_availability: available
+    expected_eligibility_state: allowed
 
   - id: pat-partial-topic-shift
     status: partially_confirmed
     user_edited_summary_fixture: "This is only sometimes true in family conversations, especially when I want to keep logistics moving."
     active_evidence_chain_id: chain-family-topic-shift-v1
-    expected_structure_availability: available_with_partial_scope
+    expected_eligibility_state: allowed
 
   - id: pat-candidate-brief-updates
     status: candidate
     summary_fixture: "Possibly brief updates."
     active_evidence_chain_id: chain-candidate-v1
-    expected_structure_availability: unavailable_unreviewed
+    expected_eligibility_state: unreviewed
 
   - id: pat-rejected-topic-shift
     status: rejected
     summary_fixture: "Topic changes in personal conversations."
     active_evidence_chain_id: chain-family-topic-shift-v1
     rejected_at: "2026-05-12T12:00:00+08:00"
-    expected_structure_availability: unavailable_rejected_or_cooldown
+    expected_eligibility_state: rejected
 
   - id: pat-deferred-topic-shift
     status: deferred
     summary_fixture: "Topic changes in personal conversations."
     active_evidence_chain_id: chain-family-topic-shift-v1
     deferred_until: "2026-06-01T09:00:00+08:00"
-    expected_structure_availability: unavailable_deferred
+    expected_eligibility_state: deferred
 
   - id: pat-insufficient-evidence
     status: confirmed
     summary_fixture: "Brief update may appear in one note."
     active_evidence_chain_id: chain-insufficient-evidence-v1
-    expected_structure_availability: unavailable_insufficient_evidence
+    expected_eligibility_state: insufficient_evidence
 
   - id: pat-safety-blocked
     status: confirmed
     summary_fixture: "Private note contains safety-sensitive material."
     active_evidence_chain_id: chain-safety-blocked-v1
-    expected_structure_availability: unavailable_safety_blocked
+    expected_eligibility_state: crisis_safety_blocked
 
   - id: pat-neighbor-follow-up
     status: confirmed
     summary_fixture: "Additional details are sometimes sent after meetings."
     active_evidence_chain_id: chain-neighbor-ambiguity-v1
-    expected_structure_availability: available_as_neighbor_candidate
+    expected_eligibility_state: allowed
 ```
 
 ## 5. Expected High-Level Pattern Structure Outputs
@@ -287,7 +287,7 @@ expected_modules:
     status: available
     flat_neighbors_only:
       - pattern_instance_id: pat-neighbor-follow-up
-        relationship_label: nearby_in_same_meeting_window
+        connector_label: nearby_in_same_meeting_window
         representative_pairs:
           - current_evidence_item_id: ev-standup-2026-05-08
             neighbor_evidence_item_id: ev-neighbor-2026-05-08
@@ -397,7 +397,7 @@ unavailable_fixtures:
     expected_eligibility:
       can_show_structure: false
       pattern_status: confirmed
-      reason_code: too_few_evidence_items
+      reason_code: insufficient_evidence
     expected_modules: []
     expected_frontend_state: insufficient_evidence
     expected_copy_intent: "Explain that there is not enough supporting material."
