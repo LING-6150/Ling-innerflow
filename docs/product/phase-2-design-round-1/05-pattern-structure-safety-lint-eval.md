@@ -257,10 +257,9 @@ Severity guidance:
 A fixture or product acceptance suite derived from this spec should verify that:
 
 1. Ineligible review states produce no user-facing Pattern Structure modules.
-2. Supported observable-shape claims display only with direct accepted evidence references.
-3. Unsupported claims are removed, downgraded, or blocked.
-4. Forbidden framing is blocked even when evidence contains similar wording.
-5. Sensitive evidence can be counted only when policy allows it and is hidden from default excerpt display.
-6. `partially_confirmed` display uses the user's edited summary/version when present and does not broaden it.
-7. Scene, relationship, temporal, neighbor, and summary outputs each apply their specific safety checks.
-8. API and frontend states distinguish safety-blocked, evidence-insufficient, and available outputs without redefining DTOs or components.
+2. Unsupported claims are removed, downgraded, or blocked.
+3. Forbidden framing is blocked even when evidence contains similar wording.
+4. Sensitive evidence can be counted only when policy allows it and is hidden from default excerpt display.
+5. `partially_confirmed` display uses the user's edited summary/version when present and does not broaden it.
+6. Scene, relationship, temporal, neighbor, and summary outputs each apply their specific safety checks.
+7. API and frontend states distinguish safety-blocked, evidence-insufficient, and available outputs without redefining DTOs or components.
