@@ -18,7 +18,8 @@ Primary design inputs:
 
 Fixture dependency:
 
-- `docs/product/phase-2-design-round-1/06-pattern-structure-fixtures-acceptance.md` is not present in this worktree. Fixture-specific IDs, payload names, and exact example data must be filled in by a later readiness pass after that document exists. This plan therefore maps fixture categories and expected assertions without inventing fixture contents.
+- `docs/product/phase-2-design-round-1/06-pattern-structure-fixtures-acceptance.md` is the P6 authoritative fixture and acceptance source for Pattern Structure MVP acceptance scenarios.
+- This plan maps future test strategy to the P6 fixture categories and exact fixture IDs at a high level, without inventing fixtures beyond P6.
 
 Existing test/tooling observations:
 
@@ -97,22 +98,21 @@ CI implication for frontend: because `frontend/package.json` currently has build
 
 ## 6. Fixture-to-Test Mapping
 
-The missing fixture acceptance document should eventually become the canonical source for exact fixture names and payloads. Until then, future tests should reserve fixture categories that cover each contract surface.
+The P6 fixture doc is the canonical source for exact fixture names and acceptance expectations. Future tests should consume its fixture IDs and categories as the product oracle while asserting backend, API, and frontend behavior against the sibling contracts.
 
 | Fixture category | Backend unit mapping | API mapping | Frontend mapping | Expected acceptance outcome |
 |---|---|---|---|---|
-| Confirmed eligible pattern with all modules | Eligibility mapper, module builders, evidence coverage | Structure endpoint returns `allowed` and available modules | `StructurePanel` renders all section components | Full structure visible with accepted evidence references. |
-| Partially confirmed with user-edited wording | Review-summary selector, safety result applier | Structure/eligibility uses partial reason and safe edited wording | Partial state is visibly distinct and does not broaden user wording | Narrow user-confirmed claim is preserved. |
-| Confirmed but sparse evidence | Coverage evaluator, module status normalizer | Eligibility or modules return `insufficient_evidence`/`insufficient_data` | Insufficient state renders without guessed copy | Sparse data is restrained. |
-| Candidate/unreviewed | Review eligibility mapper | Eligibility returns `unreviewed`, `can_show_structure: false` | Unreviewed state renders review action | No modules shown before user review. |
-| Deferred | Review eligibility mapper | Eligibility returns `deferred`, `can_show_structure: false` | Deferred state renders without stale modules | No user-facing structure until review resumes. |
-| Rejected with cooldown | Cooldown mapper, review status mapper | Eligibility returns `rejected` or cooldown reason with `cooldown_summary` | Rejected/cooldown copy renders, structure hidden | Rejected patterns cannot leak structure. |
-| Archived or stale evidence | Staleness/archival eligibility mapper | Eligibility returns `unsupported`, `archived`, or `stale_evidence` reason | Unavailable state renders | Old state is not presented as current structure. |
-| Crisis/safety-blocked pattern | Safety gate, result applier | Eligibility returns `crisis_safety_blocked` and no generated modules | Safety-blocked state renders as restraint | No unsafe module or fallback copy appears. |
+| Confirmed eligible pattern: `confirmed_pattern_available_structure` / `pat-confirmed-brief-updates` | Eligibility mapper, module builders, evidence coverage | Structure endpoint returns `allowed`, `confirmed_pattern`, and available modules | `StructurePanel` renders all section components | Full structure visible with accepted evidence references. |
+| Partially confirmed pattern: `partially_confirmed_available_structure` / `pat-partial-topic-shift` | Review-summary selector, safety result applier | Structure/eligibility uses `partially_confirmed_pattern` and safe edited wording | Partial state is visibly distinct and does not broaden user wording | Narrow user-confirmed claim is preserved. |
+| Candidate/unreviewed: `unreviewed_candidate_no_structure` / `pat-candidate-brief-updates` | Review eligibility mapper | Eligibility returns `awaiting_user_review`, `can_show_structure: false` | Unreviewed state renders review action | No modules shown before user review. |
+| Rejected cooldown: `rejected_pattern_no_structure` / `pat-rejected-topic-shift` | Cooldown mapper, review status mapper | Eligibility returns `rejection_cooldown_active` with cooldown behavior owned by the state machine | Rejected/cooldown copy renders, structure hidden | Rejected patterns cannot leak structure. |
+| Deferred: `deferred_pattern_no_structure` / `pat-deferred-topic-shift` | Review eligibility mapper | Eligibility returns `user_deferred_review`, `can_show_structure: false` | Deferred state renders without stale modules | No user-facing structure until review resumes. |
+| Insufficient evidence: `insufficient_evidence_no_structure` / `pat-insufficient-evidence` | Coverage evaluator, module status normalizer | Eligibility returns `insufficient_evidence` and no generated modules | Insufficient state renders without guessed copy | Sparse data is restrained. |
+| Safety/crisis-blocked: `safety_blocked_crisis_evidence` / `pat-safety-blocked` | Safety gate, result applier | Eligibility returns `safety_blocked_crisis` and no generated modules | Safety-blocked state renders as restraint | No unsafe module or fallback copy appears. |
+| Neighbor ambiguity: `neighbor_pattern_ambiguity` / `pat-confirmed-brief-updates` with `pat-neighbor-follow-up` | Neighbor builder | Neighbor list response is flat with paired evidence references when shown | `NeighborPatternList` remains flat | No graph/network/topology UI or causal neighbor copy. |
 | Safety-blocked single module | Module safety applier, summary dependency checker | Affected module is `hidden_for_safety`; dependent summary is removed or neutralized | Section-level safety notice renders | Safe independent modules may remain if not dependent. |
 | Hidden excerpts with allowed counts | Evidence visibility mapper | Evidence endpoint omits default hidden excerpts but may expose counts when policy allows | Evidence list shows hidden/aggregate state | Sensitive evidence is counted only when allowed. |
 | Unsupported pattern/source type | Eligibility mapper, request validation | Eligibility returns `unsupported_*` or `structure_not_enabled` reason | Unsupported state renders from backend message | Unsupported inputs do not produce speculative structure. |
-| Neighbor overlap only | Neighbor builder | Neighbor list response is flat with overlap/distinction labels | `NeighborPatternList` remains flat | No graph/network/topology UI. |
 
 Fixture readiness rule: every acceptance fixture should declare expected review status, eligibility state, reason code, module statuses, safety/lint result, evidence visibility, and allowed frontend state. Tests should assert those explicit expectations rather than infer them from generated prose.
 
@@ -165,7 +165,7 @@ Backend CI should eventually separate fast deterministic checks from slower acce
 |---|---|---|
 | Backend unit | Eligibility mappers, domain invariants, module builders, safety result application, DTO mappers | Required on every PR. |
 | Backend API contract | Spring MVC/API tests for structure, eligibility, evidence, and error response shapes | Required on Pattern Structure backend PRs; eventually every PR once stable. |
-| Backend fixture acceptance | Deterministic acceptance fixtures derived from the missing fixture doc | Required before Pattern Structure MVP release; may start as targeted CI lane. |
+| Backend fixture acceptance | Deterministic acceptance fixtures derived from the P6 fixture doc | Required before Pattern Structure MVP release; may start as targeted CI lane. |
 | Safety/lint acceptance | Forbidden-language, evidence-coverage, blocker/warning, and hidden-excerpt checks | Required before any user-facing enablement. |
 | Frontend type/build | Existing `frontend` type-check/build scripts | Required for frontend PRs; can remain build/type-only until test tooling exists. |
 | Frontend component/state | Future component tests for `StructurePanel`, sections, evidence references, review actions, and safety states | Required after frontend test tooling is introduced. |
@@ -191,16 +191,14 @@ Why this first PR:
 - It locks the highest-risk backend-owned boundary before UI rendering depends on it.
 - It is fast and deterministic under existing JUnit/Spring Boot test dependencies.
 - It does not require frontend test-runner decisions.
-- It does not require the missing fixture acceptance document.
+- It can reference P6 fixture IDs later without requiring the first mapper test PR to implement the full fixture suite.
 - It creates a stable base for later API contract, fixture acceptance, and frontend component tests.
 
 ## 11. Readiness Gaps
 
 Open dependencies before full acceptance coverage:
 
-- Add or locate `docs/product/phase-2-design-round-1/06-pattern-structure-fixtures-acceptance.md` so exact fixture IDs and expected payloads can replace the category-level mapping in this document.
 - Decide whether Pattern Structure implementation will introduce a dedicated `pattern/structure` package or extend existing `pattern/service`, `pattern/domain`, and `pattern/safety` packages; test package placement should mirror that decision.
 - Choose frontend test tooling for Vue component/state tests; current frontend tooling has build/type-check only.
 - Define whether API contract assertions will use hand-written JSON expectations, shared DTO serialization tests, generated OpenAPI snapshots, or a hybrid approach.
 - Decide how deterministic safety/lint fixtures will be separated from any later LLM-assisted lint evals.
-
