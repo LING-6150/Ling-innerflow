@@ -157,6 +157,21 @@ Status handling:
 - `archived` is not eligible for V1 MVP structure.
 - `high_trust` remains a future extension only and must not become an MVP eligibility path.
 
+### 7.1 Status to Eligibility Mapping
+
+| review_status (`PatternStatus`) | eligibility `state` | reason_code (typical) |
+|---|---|---|
+| `confirmed` (with evidence + safety pass) | `allowed` | `confirmed_pattern` |
+| `partially_confirmed` (with safety scope check) | `allowed` | `partially_confirmed_pattern` |
+| `candidate` | `unreviewed` | `awaiting_user_review` |
+| `deferred` | `deferred` | `user_deferred_review` |
+| `rejected` (within 90d cooldown) | `rejected` | `rejection_cooldown_active` |
+| `rejected` (cooldown expired but not reopened) | `rejected` | `rejected_by_user` |
+| `archived` | `unsupported` | `unsupported_pattern_type` |
+| any state + insufficient evidence | `insufficient_evidence` | `too_few_evidence_items` or `evidence_window_too_sparse` |
+| any state + crisis flagged | `crisis_safety_blocked` | `safety_blocked_crisis` |
+| any state + active chain stale | (state retains) | `stale_evidence` |
+
 Evidence handling:
 
 - Use a minimum active-chain evidence threshold aligned with the API contract's `minimum_required_count` field and current engine invariant of at least three surfaced evidence items.
