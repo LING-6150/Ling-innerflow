@@ -246,7 +246,7 @@ Missing:
 Missing:
 
 - Dedicated `PatternStructureEligibilityService`.
-- Machine-readable eligibility reasons such as `unreviewed_candidate`, `rejected`, `deferred`, `archived`, `insufficient_evidence`, `safety_blocked`, `stale_evidence`, `abstain_boundary`, and `low_trust` where applicable.
+- Machine-readable eligibility reasons. The full enum is defined by `01-pattern-structure-api-contract.md` §5.1 `EligibilityReasonCode`. V1 MVP must implement at minimum: `confirmed_pattern`, `partially_confirmed_pattern`, `awaiting_user_review`, `rejected_by_user`, `rejection_cooldown_active`, `user_deferred_review`, `insufficient_evidence`, `too_few_evidence_items`, `evidence_window_too_sparse`, `safety_blocked_crisis`, `stale_evidence`. Backend internal abstain decisions (R4 etc.) exist in test/validation code only and must NOT be promoted into V1 MVP eligibility; V2 abstain research line is closed per postmortem 002 §10.
 - Explicit distinction between whole-structure unavailable and per-module unavailable.
 - Handling for `partially_confirmed` that prefers user-edited scope and prevents broadening beyond accepted/corrected content.
 - Production linkage to abstain/low-trust decisions. Current abstain logic lives in test/validation code.
