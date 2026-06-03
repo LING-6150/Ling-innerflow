@@ -109,16 +109,7 @@ public class StandalonePipeline {
         OpenAiApi openAiApi = OpenAiApi.builder().apiKey(apiKey).build();
         CountingChatModel chatModel = createCountingChatModel();
 
-        OpenAiEmbeddingOptions embeddingOptions = OpenAiEmbeddingOptions.builder()
-                .model("text-embedding-3-small")
-                .build();
-        OpenAiEmbeddingModel delegateEmbeddingModel = new OpenAiEmbeddingModel(
-                openAiApi,
-                MetadataMode.EMBED,
-                embeddingOptions,
-                RetryUtils.SHORT_RETRY_TEMPLATE,
-                ObservationRegistry.NOOP);
-        CountingEmbeddingModel embeddingModel = new CountingEmbeddingModel(delegateEmbeddingModel);
+        CountingEmbeddingModel embeddingModel = createCountingEmbeddingModel(openAiApi);
 
         PatternDefinitionLoader definitions = new PatternDefinitionLoader();
         definitions.load();
@@ -140,6 +131,23 @@ public class StandalonePipeline {
                 verifier,
                 new EvidenceChainAssembler(),
                 buildScorer());
+    }
+
+    public static CountingEmbeddingModel createCountingEmbeddingModel() {
+        return createCountingEmbeddingModel(OpenAiApi.builder().apiKey(readApiKey()).build());
+    }
+
+    private static CountingEmbeddingModel createCountingEmbeddingModel(OpenAiApi openAiApi) {
+        OpenAiEmbeddingOptions embeddingOptions = OpenAiEmbeddingOptions.builder()
+                .model("text-embedding-3-small")
+                .build();
+        OpenAiEmbeddingModel delegateEmbeddingModel = new OpenAiEmbeddingModel(
+                openAiApi,
+                MetadataMode.EMBED,
+                embeddingOptions,
+                RetryUtils.SHORT_RETRY_TEMPLATE,
+                ObservationRegistry.NOOP);
+        return new CountingEmbeddingModel(delegateEmbeddingModel);
     }
 
     /** Build ConfidenceScorer with V1.2 default weights (since Spring isn't injecting them). */

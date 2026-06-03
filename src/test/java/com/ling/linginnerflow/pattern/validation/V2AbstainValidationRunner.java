@@ -35,9 +35,11 @@ class V2AbstainValidationRunner {
     private static final String V2_RUNNER = "V2-abstain-r2";
     private static final String SANITY_RUNNER = "V2-abstain-r1.5-sanity";
     private static final String R3_RUNNER = "V2-abstain-r3-quote";
+    private static final String R4_RUNNER = "V2-contrastive-r4";
     private static final Path REPORT = Path.of("eval/RESULTS_V2_ABSTAIN_R2.md");
     private static final Path SANITY_REPORT = Path.of("eval/RESULTS_V2_ABSTAIN_R1_5_SANITY.md");
     private static final Path R3_REPORT = Path.of("eval/RESULTS_V2_ABSTAIN_R3.md");
+    private static final Path R4_REPORT = Path.of("eval/RESULTS_V2_CONTRASTIVE_R4.md");
 
     private final PatternDefinitionLoader definitions = loadedDefinitions();
     private final GroundTruthLoader groundTruth = new GroundTruthLoader();
@@ -54,6 +56,20 @@ class V2AbstainValidationRunner {
 
         StandalonePipeline full = StandalonePipeline.create(true);
         StandalonePipeline noVerify = StandalonePipeline.create(false);
+        boolean r4 = Boolean.getBoolean("pattern.v2.contrastive.r4");
+        if (r4) {
+            StandalonePipeline.CountingEmbeddingModel contrastiveEmbedding = StandalonePipeline.createCountingEmbeddingModel();
+            ContrastiveStrengthCalculator calculator = new ContrastiveStrengthCalculator(definitions, contrastiveEmbedding);
+            List<RunnerResult> rows = new ArrayList<>();
+            for (GTPersona persona : all) {
+                rows.add(runPipeline("V1-full", persona, full, null));
+                rows.add(runPipeline("V1-no-verify", persona, noVerify, null));
+                rows.add(runContrastivePipeline(persona, noVerify, calculator, contrastiveEmbedding));
+            }
+            writeContrastiveReport(tierA, tierAH, rows);
+            return;
+        }
+
         boolean sanity = Boolean.getBoolean("pattern.eval.v2.sanity");
         boolean r3 = Boolean.getBoolean("pattern.eval.v2.r3");
         String v2Runner = r3 ? R3_RUNNER : sanity ? SANITY_RUNNER : V2_RUNNER;
@@ -98,7 +114,34 @@ class V2AbstainValidationRunner {
 
         Duration wall = Duration.between(start, Instant.now());
         return new RunnerResult(runner, persona, predicted, metrics.score(predicted, persona), usage, wall,
-                result.predictions(), abstentions);
+                result.predictions(), abstentions, Map.of());
+    }
+
+    private RunnerResult runContrastivePipeline(GTPersona persona, StandalonePipeline pipeline,
+                                                ContrastiveStrengthCalculator calculator,
+                                                StandalonePipeline.CountingEmbeddingModel contrastiveEmbedding) {
+        Instant start = Instant.now();
+        StandalonePipeline.PipelineResult result = pipeline.predict(persona);
+        StandalonePipeline.TokenUsage beforeContrastive = contrastiveEmbedding.usage();
+        Map<String, ContrastiveStrengthCalculator.ContrastiveDecision> decisions = new LinkedHashMap<>();
+        Set<PredictedPattern> filtered = new LinkedHashSet<>();
+
+        for (PredictedPattern prediction : result.predictions().stream().sorted(predictionComparator()).toList()) {
+            StandalonePipeline.PatternTrace trace = result.trace().patterns().get(prediction.patternKey());
+            ContrastiveStrengthCalculator.ContrastiveDecision decision = calculator.decide(prediction.patternKey(), trace);
+            decisions.put(key(prediction), decision);
+            if (decision.surface()) {
+                filtered.add(prediction);
+            }
+        }
+
+        StandalonePipeline.TokenUsage afterContrastive = contrastiveEmbedding.usage();
+        StandalonePipeline.TokenUsage usage = StandalonePipeline.TokenUsage.sum(
+                result.tokenUsage(), diff(afterContrastive, beforeContrastive));
+        Duration wall = Duration.between(start, Instant.now());
+        Set<PredictedPattern> predicted = Set.copyOf(filtered);
+        return new RunnerResult(R4_RUNNER, persona, predicted, metrics.score(predicted, persona), usage, wall,
+                result.predictions(), Map.of(), decisions);
     }
 
     private AbstainGate.AbstainResult enforceQuoteVerification(String patternKey, StandalonePipeline.PatternTrace trace,
@@ -217,6 +260,100 @@ class V2AbstainValidationRunner {
                         }));
 
         Files.writeString(report, md.toString());
+    }
+
+    private void writeContrastiveReport(List<GTPersona> tierA, List<GTPersona> tierAH, List<RunnerResult> rows) throws IOException {
+        StringBuilder md = new StringBuilder();
+        md.append("# Pattern Engine V2.1 Contrastive Retrieval R4\n\n")
+                .append("Generated: ").append(Instant.now()).append("\n\n")
+                .append("## Purpose\n\n")
+                .append("This eval-only R4 run tests contrastive retrieval / differential evidence scoring. `ah-06` is a dev-set diagnostic, not final held-out proof.\n\n")
+                .append("Hard criteria: Tier A F1 >= 0.300; Tier A killed true positives = 0; total LABEL count >= 12. Soft: ah-05 + ah-06 <= 2.\n\n")
+                .append("## Summary Metrics\n\n")
+                .append("### Tier A\n")
+                .append(summaryTable(rows, ids(tierA), R4_RUNNER))
+                .append("\n### Tier A-H\n")
+                .append(summaryTable(rows, ids(tierAH), R4_RUNNER))
+                .append("\n## Full-Decoy Safety\n\n")
+                .append(decoyTable(rows, R4_RUNNER))
+                .append("\n## Per-Persona Detail\n\n")
+                .append("| runner | persona | true | before gate | surfaced | filtered | before true hits | after true hits | killed true hits | precision | recall | F1 | tokens | cost | wall |\n")
+                .append("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n");
+
+        rows.stream().sorted(Comparator.comparing(RunnerResult::personaId).thenComparing(RunnerResult::runner))
+                .forEach(row -> md.append("| ").append(row.runner()).append(" | ")
+                        .append(row.persona().id()).append(" | ")
+                        .append(row.persona().truePatterns().size()).append(" | ")
+                        .append(row.beforeGate().size()).append(" | ")
+                        .append(row.predicted().size()).append(" | ")
+                        .append(row.filteredCount()).append(" | ")
+                        .append(row.beforeTrueHits()).append(" | ")
+                        .append(row.afterTrueHits()).append(" | ")
+                        .append(row.killedTrueHits()).append(" | ")
+                        .append(fmt(row.metric().precision())).append(" | ")
+                        .append(fmt(row.metric().recall())).append(" | ")
+                        .append(fmt(row.metric().f1())).append(" | ")
+                        .append(row.usage().totalTokens()).append(" | $")
+                        .append(cost(row.usage())).append(" | ")
+                        .append(formatDuration(row.wallTime())).append(" |\n"));
+
+        md.append("\n## Surfaced Candidates\n\n")
+                .append("| persona | candidate | true positive? | full-decoy FP? | supportive | max contrastive | margin | strongest confusable |\n")
+                .append("|---|---|---|---|---:|---:|---:|---|\n");
+        rows.stream().filter(row -> row.runner().equals(R4_RUNNER)).sorted(Comparator.comparing(RunnerResult::personaId))
+                .forEach(row -> row.predicted().stream().sorted(predictionComparator()).forEach(candidate -> {
+                    ContrastiveStrengthCalculator.ContrastiveDecision decision = row.contrastiveDecisions().get(key(candidate));
+                    appendContrastiveCandidate(md, row, candidate, decision);
+                }));
+
+        md.append("\n## Filtered Candidates\n\n")
+                .append("| persona | candidate | true positive? | full-decoy FP? | supportive | max contrastive | margin | strongest confusable | reason |\n")
+                .append("|---|---|---|---|---:|---:|---:|---|---|\n");
+        rows.stream().filter(row -> row.runner().equals(R4_RUNNER)).sorted(Comparator.comparing(RunnerResult::personaId))
+                .forEach(row -> row.beforeGate().stream()
+                        .filter(candidate -> !row.predicted().contains(candidate))
+                        .sorted(predictionComparator())
+                        .forEach(candidate -> {
+                            ContrastiveStrengthCalculator.ContrastiveDecision decision = row.contrastiveDecisions().get(key(candidate));
+                            appendFilteredContrastiveCandidate(md, row, candidate, decision);
+                        }));
+
+        List<RunnerResult> r4TierARows = filter(rows, ids(tierA), R4_RUNNER);
+        int labelCount = rows.stream().filter(row -> row.runner().equals(R4_RUNNER)).mapToInt(row -> row.predicted().size()).sum();
+        int fullDecoy = surfaced(rows, R4_RUNNER, "ah-05") + surfaced(rows, R4_RUNNER, "ah-06");
+        md.append("\n## Conclusion\n\n")
+                .append("- Tier A F1: ").append(fmt(avg(r4TierARows, row -> row.metric().f1()))).append("\n")
+                .append("- LABEL count: ").append(labelCount).append("\n")
+                .append("- Tier A killed true positives: ").append(r4TierARows.stream().mapToLong(RunnerResult::killedTrueHits).sum()).append("\n")
+                .append("- Full-decoy surfaced count: ").append(fullDecoy).append("\n")
+                .append("- `ah-06` is a dev-set metric in this report, not evidence that V2.1 has solved NPD-style over-labeling. Fresh held-out hard negatives are required for any final safety claim.\n");
+
+        Files.writeString(R4_REPORT, md.toString());
+    }
+
+    private void appendContrastiveCandidate(StringBuilder md, RunnerResult row, PredictedPattern candidate,
+                                            ContrastiveStrengthCalculator.ContrastiveDecision decision) {
+        md.append("| ").append(row.persona().id()).append(" | ")
+                .append(key(candidate)).append(" | ")
+                .append(row.trueSet().contains(candidate) ? "yes" : "no").append(" | ")
+                .append(row.persona().truePatterns().isEmpty() ? "yes" : "no").append(" | ")
+                .append(fmt(decision.supportiveStrength())).append(" | ")
+                .append(fmt(decision.maxContrastiveStrength())).append(" | ")
+                .append(fmt(decision.margin())).append(" | ")
+                .append(decision.strongestConfusable()).append(" |\n");
+    }
+
+    private void appendFilteredContrastiveCandidate(StringBuilder md, RunnerResult row, PredictedPattern candidate,
+                                                    ContrastiveStrengthCalculator.ContrastiveDecision decision) {
+        md.append("| ").append(row.persona().id()).append(" | ")
+                .append(key(candidate)).append(" | ")
+                .append(row.trueSet().contains(candidate) ? "yes" : "no").append(" | ")
+                .append(row.persona().truePatterns().isEmpty() ? "yes" : "no").append(" | ")
+                .append(fmt(decision.supportiveStrength())).append(" | ")
+                .append(fmt(decision.maxContrastiveStrength())).append(" | ")
+                .append(fmt(decision.margin())).append(" | ")
+                .append(decision.strongestConfusable()).append(" | ")
+                .append(decision.reason()).append(" |\n");
     }
 
     private String summaryTable(List<RunnerResult> rows, Set<String> personaIds, String v2Runner) {
@@ -385,7 +522,8 @@ class V2AbstainValidationRunner {
             StandalonePipeline.TokenUsage usage,
             Duration wallTime,
             Set<PredictedPattern> beforeGate,
-            Map<String, AbstainGate.AbstainResult> abstentions) {
+            Map<String, AbstainGate.AbstainResult> abstentions,
+            Map<String, ContrastiveStrengthCalculator.ContrastiveDecision> contrastiveDecisions) {
 
         String personaId() {
             return persona.id();
@@ -397,6 +535,10 @@ class V2AbstainValidationRunner {
 
         double abstainRate() {
             return abstentions.isEmpty() ? 0.0 : abstainCount() / (double) abstentions.size();
+        }
+
+        int filteredCount() {
+            return Math.max(0, beforeGate.size() - predicted.size());
         }
 
         Set<PredictedPattern> trueSet() {

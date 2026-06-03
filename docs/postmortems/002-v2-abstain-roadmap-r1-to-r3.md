@@ -205,3 +205,64 @@ It should define:
 - R4 eval-only implementation scope;
 - pre-registered R4 acceptance criteria;
 - failure handling and handoff to Phase 2 product planning.
+
+---
+
+## 10. R4 Result and V2 Abstain Research Line Closure
+
+R4 contrastive retrieval (V2.1) ran on the same 11-persona eval. Result:
+metric-equivalent to V1-no-verify on every persona. The contrastive gate
+filtered zero candidates because supportive vs contrastive margins did not
+separate Tier A true positives from `ah-06` full-decoy false positives at any
+threshold:
+
+- `ah-06` FP margins: 0.520 to 0.594.
+- Tier A true positive margins: 0.446 to 0.526.
+
+R4 hard criteria all passed (Tier A F1 = 0.333, LABEL count = 28, killed true
+positives = 0), but the soft full-decoy target failed (`ah-05 + ah-06 = 13`
+surfaced, target was at most 2). More importantly, the `Filtered Candidates`
+table was empty: the gate produced no actual filtering work, only added
+~4000 seconds of wall time and tokens.
+
+This closes the V2 abstain research line. Three independent attractors have now
+been mapped on this dataset:
+
+1. R1, R2, R3: post-hoc LLM prompt gate. Either kills true positives or only
+   relabels reasons.
+2. R1.5 sanity: relaxed prompt gate. Restores Tier A recall but accepts five
+   `ah-06` false positives, identical-shape failure to R4.
+3. R4 contrastive retrieval: differential margin signal does not separate
+   classes. Equivalent to no gate.
+
+No further R-series work is planned on this dataset. Any future abstain claim
+requires fresh held-out hard-negative personas authored after research-line
+closure. `ah-06` is now permanently a dev-set diagnostic, not a held-out proof
+artifact.
+
+The next product-design direction is Pattern Structure MVP. See:
+
+- `docs/product/phase-2-pattern-understanding-plan.md`
+- `docs/superpowers/specs/2026-05-31-pattern-structure-mvp.md`
+- `docs/product/phase-2-design-round-1/01-pattern-structure-api-contract.md`
+  through `06-pattern-structure-fixtures-acceptance.md`
+
+Phase 2 is explicitly designed to not depend on abstain quality: Pattern
+Structure only serves `confirmed` and `partially_confirmed` patterns. R4 does
+not change that design; it confirms why it was correct.
+
+R4 artifacts preserved in this PR:
+
+- `eval/RESULTS_V2_CONTRASTIVE_R4.md` — full LIVE result report.
+- `src/test/java/.../validation/ContrastiveStrengthCalculator.java` — eval
+  harness implementing the §3 confusable matrix and §4 differential scoring
+  from the V2.1 spec. Test scope only; no production code modified.
+- `src/test/java/.../validation/ContrastiveStrengthCalculatorTest.java` —
+  offline unit tests for the harness.
+- `src/test/java/.../validation/V2AbstainValidationRunner.java` and
+  `StandalonePipeline.java` — extended to add the
+  `pattern.v2.contrastive.r4=true` runner mode.
+
+These are kept as research artifacts rather than implementation code, so any
+future contrastive-scoring exploration can reuse the harness without
+redefining the V2.1 conceptual framework.
