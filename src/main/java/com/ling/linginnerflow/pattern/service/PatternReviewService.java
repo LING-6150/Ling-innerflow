@@ -30,8 +30,7 @@ public class PatternReviewService {
                 }
             }
             case "reject" -> instance.setStatus(PatternStatus.rejected);
-            case "defer" -> {
-            }
+            case "defer" -> instance.setStatus(PatternStatus.deferred);
             case "archive" -> instance.setStatus(PatternStatus.archived);
             default -> throw new IllegalArgumentException("Unknown review action: " + action);
         }
