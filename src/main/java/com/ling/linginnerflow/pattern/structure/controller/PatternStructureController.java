@@ -1,7 +1,9 @@
 package com.ling.linginnerflow.pattern.structure.controller;
 
 import com.ling.linginnerflow.pattern.structure.dto.PatternStructureEvidenceResponse;
+import com.ling.linginnerflow.pattern.structure.dto.PatternStructureResponse;
 import com.ling.linginnerflow.pattern.structure.dto.StructureEligibilityDto;
+import com.ling.linginnerflow.pattern.structure.service.PatternStructureAggregateService;
 import com.ling.linginnerflow.pattern.structure.service.PatternStructureEvidenceService;
 import com.ling.linginnerflow.pattern.structure.service.PatternStructureEligibilityService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,14 @@ public class PatternStructureController {
 
     private final PatternStructureEligibilityService eligibilityService;
     private final PatternStructureEvidenceService evidenceService;
+    private final PatternStructureAggregateService aggregateService;
+
+    @GetMapping("/{patternInstanceId}/structure")
+    public PatternStructureResponse structure(@PathVariable String patternInstanceId,
+                                              @RequestParam(name = "module", defaultValue = "all") String module,
+                                              @RequestParam(name = "include_evidence_samples", defaultValue = "false") boolean includeEvidenceSamples) {
+        return aggregateService.getStructure(userId(), patternInstanceId, module, includeEvidenceSamples);
+    }
 
     @GetMapping("/{patternInstanceId}/structure/eligibility")
     public StructureEligibilityDto eligibility(@PathVariable String patternInstanceId) {
