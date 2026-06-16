@@ -2,7 +2,7 @@
 
 > InnerFlow — Pattern Structure MVP design contract.
 >
-> Status: **draft — product/data contract only**
+> Status: **paused — product/data contract only; not active implementation**
 > Date: 2026-05-31
 > Depends on: `docs/STATE.md`,
 > `docs/superpowers/specs/2026-05-29-pattern-discovery-v1-design.md`,
@@ -11,6 +11,13 @@
 ---
 
 ## 0. Purpose
+
+**Pause notice (2026-06-16):** this contract is retained for future use, but
+Pattern Structure module implementation is paused. PR #47 merged an aggregate
+shell as dormant infrastructure only. Do not implement Scene Distribution,
+Relationship Objects, Temporal Structure, or Neighbor Patterns until the
+discovery/abstain pipeline meets the recovery criteria in
+`docs/product/pattern-structure-pause.md`.
 
 Pattern Structure is a read-only layer over patterns the user has already
 accepted or the system can treat as high-trust. It helps the user inspect the
