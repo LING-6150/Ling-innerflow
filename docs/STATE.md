@@ -1,6 +1,6 @@
 # InnerFlow — Current State
 
-> Last updated: 2026-05-30
+> Last updated: 2026-06-16
 > Read this BEFORE asking the user "where are we?"
 >
 > If you are an AI assistant (Codex / Claude / etc.) being asked to help on
@@ -59,6 +59,26 @@ Branch: `feature/v1-validate`. Two reports:
 This is **the most important artifact in the project right now**. Read these
 two files before doing anything else.
 
+### Pattern Structure infrastructure — merged, but paused on 2026-06-16
+
+PRs #43-#47 added early Pattern Structure backend infrastructure:
+
+- review deferral wiring;
+- structure eligibility;
+- eligibility hardening;
+- structure evidence expansion;
+- aggregate structure shell with empty module states.
+
+This is infrastructure only. It must not be treated as product direction or as
+permission to implement module content. The aggregate shell added by #47 returns
+eligibility, evidence-window metadata, module empty states, and safety metadata;
+it does **not** generate Scene Distribution, Relationship Objects, Temporal
+Structure, or Neighbor Pattern content.
+
+As of 2026-06-16, Pattern Structure module implementation is **paused**. Resume
+only after the discovery/abstain pipeline meets the recovery criteria in
+`docs/product/pattern-structure-pause.md`.
+
 ---
 
 ## The hard truth from V1 validation (READ THIS)
@@ -108,10 +128,12 @@ This is the **most dangerous failure mode** for a mirror product.
 V2 direction is now **constrained by data**, not speculation.
 
 **OFF the table:**
-- Pattern Structure (the V2 brainstorm direction from earlier in this
-  project): cannot be built on top of an evidence chain whose underlying
-  pipeline has F1=0 on human prose. Pattern Structure would be a noise
-  amplifier.
+- Pattern Structure module generation (Scene Distribution, Relationship
+  Objects, Temporal Structure, Neighbor Patterns): cannot be built on top of an
+  evidence chain whose underlying pipeline has F1=0 on human prose. Pattern
+  Structure would be a noise amplifier. The merged shell endpoints remain
+  dormant infrastructure until the abstain/trust gate earns the right to feed
+  them.
 - Joint calibration: single-pattern confidences are already wrong
   (0.900-1.000 on false positives); joint structure cannot rescue them.
 
@@ -149,7 +171,10 @@ V2 is therefore reframed as:
    the eval already exposed the failure mode; more personas won't change the
    diagnosis.
 5. **Do** help with: OOD detection design, abstain mechanism design,
-   re-running validation after changes, V2 spec writing.
+   threshold-sweep calibration, re-running validation after changes, V2 spec
+   writing.
+6. **Do NOT continue Pattern Structure modules** until
+   `docs/product/pattern-structure-pause.md` says the recovery criteria are met.
 
 ---
 
@@ -160,6 +185,7 @@ V2 is therefore reframed as:
 | V1 final engine spec | `docs/superpowers/specs/2026-05-29-pattern-engine-v1.2.md` |
 | V1 product spec | `docs/superpowers/specs/2026-05-29-pattern-discovery-v1-design.md` |
 | LIVE validation results | `eval/RESULTS_LIVE.md` + `eval/RESULTS_DECOY.md` |
+| Pattern Structure pause decision | `docs/product/pattern-structure-pause.md` |
 | First postmortem | `docs/postmortems/001-epic-compile-break.md` |
 | Operations manual | `docs/issues/README.md` |
 | GitHub repo | https://github.com/LING-6150/Ling-innerflow |

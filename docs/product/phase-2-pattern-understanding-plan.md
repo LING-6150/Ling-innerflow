@@ -1,12 +1,20 @@
 # InnerFlow Phase 2 — From Pattern Discovery to Pattern Understanding
 
-> Status: product direction draft  
+> Status: paused after V1/V2 eval results
 > Scope: docs-only planning  
-> Last updated: 2026-05-31
+> Last updated: 2026-06-16
 
 ---
 
 ## 1. Product Thesis
+
+**Pause notice (2026-06-16):** this plan remains useful as a future product
+direction, but it is not the active implementation roadmap. After V1 LIVE
+validation and V2 abstain experiments, the project does not yet have a
+discovery/abstain pipeline that can reliably feed Pattern Structure on human
+prose. PR #47 merged an aggregate shell as dormant infrastructure only. Do not
+implement the four Structure modules until the recovery criteria in
+`docs/product/pattern-structure-pause.md` are met.
 
 Pattern Discovery is the entry point to InnerFlow, not the destination.
 
@@ -299,6 +307,10 @@ root cause.
 ## 9. Roadmap
 
 ### Phase 2 MVP
+
+**Paused.** The active roadmap is V2 abstain/calibration, not Pattern Structure
+module generation. The following MVP scope should be revisited only after the
+discovery gate meets the documented recovery criteria.
 
 Build Pattern Structure as a separate product layer for confirmed/high-trust
 patterns only.
