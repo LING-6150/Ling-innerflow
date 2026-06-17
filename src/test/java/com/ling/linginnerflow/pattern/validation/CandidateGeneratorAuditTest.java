@@ -3,6 +3,7 @@ package com.ling.linginnerflow.pattern.validation;
 import com.ling.linginnerflow.pattern.eval.GroundTruthLoader;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -10,31 +11,42 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CandidateGeneratorAuditTest {
 
+    private static final Path SOURCE_REPORT = Path.of("eval/RESULTS_V2_ABSTAIN_R1_5_SANITY.md");
+    private static final Path GENERATED_REPORT = Path.of("eval/RESULTS_V2_CANDIDATE_GENERATOR_AUDIT.md");
+
     private final CandidateGeneratorAudit audit = new CandidateGeneratorAudit();
     private final GroundTruthLoader groundTruth = new GroundTruthLoader();
 
     @Test
     void parses_r1_5_prevented_and_surfaced_candidates() throws Exception {
-        List<CandidateGeneratorAudit.AuditedCandidate> candidates = audit.parseR15Candidates(
-                Path.of("eval/RESULTS_V2_ABSTAIN_R1_5_SANITY.md"));
+        List<CandidateGeneratorAudit.AuditedCandidate> candidates = audit.parseR15Candidates(SOURCE_REPORT);
+        List<CandidateGeneratorAudit.AuditedCandidate> surfaced = candidates.stream()
+                .filter(CandidateGeneratorAudit.AuditedCandidate::surfaced)
+                .toList();
+        List<CandidateGeneratorAudit.AuditedCandidate> prevented = candidates.stream()
+                .filter(candidate -> !candidate.surfaced())
+                .toList();
 
         assertThat(candidates).hasSize(28);
-        assertThat(candidates.stream().filter(CandidateGeneratorAudit.AuditedCandidate::surfaced))
-                .hasSize(18);
-        assertThat(candidates.stream().filter(candidate -> !candidate.surfaced()))
-                .hasSize(10);
-        assertThat(candidates).anySatisfy(candidate -> {
+        assertThat(prevented).hasSize(10);
+        assertThat(surfaced).hasSize(18);
+        assertThat(prevented).anySatisfy(candidate -> {
             assertThat(candidate.personaId()).isEqualTo("ah-06");
             assertThat(candidate.prediction().patternKey()).isEqualTo("self_criticism");
             assertThat(candidate.prediction().domain().name()).isEqualTo("self");
             assertThat(candidate.surfaced()).isFalse();
         });
+        assertThat(surfaced).anySatisfy(candidate -> {
+            assertThat(candidate.personaId()).isEqualTo("a-01");
+            assertThat(candidate.prediction().patternKey()).isEqualTo("self_criticism");
+            assertThat(candidate.prediction().domain().name()).isEqualTo("self");
+            assertThat(candidate.surfaced()).isTrue();
+        });
     }
 
     @Test
     void report_pins_candidate_generator_recall_failures() throws Exception {
-        List<CandidateGeneratorAudit.AuditedCandidate> candidates = audit.parseR15Candidates(
-                Path.of("eval/RESULTS_V2_ABSTAIN_R1_5_SANITY.md"));
+        List<CandidateGeneratorAudit.AuditedCandidate> candidates = audit.parseR15Candidates(SOURCE_REPORT);
 
         String report = audit.report(candidates, groundTruth.loadTierA(), groundTruth.loadTierAH());
 
@@ -50,5 +62,14 @@ class CandidateGeneratorAuditTest {
                 "| a-01 | worth_through_achievement / work |",
                 "| surfaced | ah-06 | worth_through_achievement / work |",
                 "| prevented | ah-06 | self_criticism / self |");
+    }
+
+    @Test
+    void committed_report_matches_generated_output() throws Exception {
+        List<CandidateGeneratorAudit.AuditedCandidate> candidates = audit.parseR15Candidates(SOURCE_REPORT);
+
+        String generated = audit.report(candidates, groundTruth.loadTierA(), groundTruth.loadTierAH());
+
+        assertThat(Files.readString(GENERATED_REPORT)).isEqualTo(generated);
     }
 }
