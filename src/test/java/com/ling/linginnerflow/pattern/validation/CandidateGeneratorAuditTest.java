@@ -13,6 +13,7 @@ class CandidateGeneratorAuditTest {
 
     private static final Path SOURCE_REPORT = Path.of("eval/RESULTS_V2_ABSTAIN_R1_5_SANITY.md");
     private static final Path GENERATED_REPORT = Path.of("eval/RESULTS_V2_CANDIDATE_GENERATOR_AUDIT.md");
+    private static final Path RECOVERABILITY_REPORT = Path.of("eval/RESULTS_V2_TIER_A_RECOVERABILITY.md");
 
     private final CandidateGeneratorAudit audit = new CandidateGeneratorAudit();
     private final GroundTruthLoader groundTruth = new GroundTruthLoader();
@@ -71,5 +72,29 @@ class CandidateGeneratorAuditTest {
         String generated = audit.report(candidates, groundTruth.loadTierA(), groundTruth.loadTierAH());
 
         assertThat(Files.readString(GENERATED_REPORT)).isEqualTo(generated);
+    }
+
+    @Test
+    void tier_a_recoverability_report_pins_relabel_ceiling() throws Exception {
+        List<CandidateGeneratorAudit.AuditedCandidate> candidates = audit.parseR15Candidates(SOURCE_REPORT);
+
+        String report = audit.tierARecoverabilityReport(candidates, groundTruth.loadTierA());
+
+        assertThat(report).contains(
+                "- Missing Tier A true labels: `8`.",
+                "- Recoverable by pattern-key relabel only: `1`.",
+                "- Requires new candidate generation: `7`.",
+                "| a-06 | comparison_loop / social | comparison_loop / self<br>rumination / self | recoverable_by_relabel | same pattern key generated under a different domain |",
+                "| a-03 | emotional_suppression / self | comparison_loop / self | needs_new_generation | pattern key absent from generated candidates |",
+                "Domain-agnostic matching is diagnostic only. The headline metric remains strict `(pattern_key, domain)` recall.");
+    }
+
+    @Test
+    void committed_recoverability_report_matches_generated_output() throws Exception {
+        List<CandidateGeneratorAudit.AuditedCandidate> candidates = audit.parseR15Candidates(SOURCE_REPORT);
+
+        String generated = audit.tierARecoverabilityReport(candidates, groundTruth.loadTierA());
+
+        assertThat(Files.readString(RECOVERABILITY_REPORT)).isEqualTo(generated);
     }
 }

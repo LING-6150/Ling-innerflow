@@ -157,6 +157,45 @@ final class CandidateGeneratorAudit {
         return md.toString();
     }
 
+    String tierARecoverabilityReport(List<AuditedCandidate> candidates, List<GTPersona> tierA) {
+        List<RecoverabilityRow> rows = tierA.stream()
+                .flatMap(persona -> recoverabilityRows(persona, candidates).stream())
+                .toList();
+        long recoverableByRelabel = rows.stream()
+                .filter(row -> row.status() == RecoverabilityStatus.RECOVERABLE_BY_RELABEL)
+                .count();
+        long needsNewGeneration = rows.stream()
+                .filter(row -> row.status() == RecoverabilityStatus.NEEDS_NEW_GENERATION)
+                .count();
+
+        StringBuilder md = new StringBuilder();
+        md.append("# Pattern Engine V2 Tier A Recoverability Audit\n\n")
+                .append("Input: `eval/RESULTS_V2_ABSTAIN_R1_5_SANITY.md` prevented + surfaced candidates, Tier A only.\n\n")
+                .append("This is an offline diagnostic over the dev/calibration slice. It does not inspect Tier A-H sealed labels and must not be treated as held-out proof.\n\n")
+                .append("## Decision Summary\n\n")
+                .append("- Missing Tier A true labels: `").append(rows.size()).append("`.\n")
+                .append("- Recoverable by pattern-key relabel only: `").append(recoverableByRelabel).append("`.\n")
+                .append("- Requires new candidate generation: `").append(needsNewGeneration).append("`.\n")
+                .append("- Domain-agnostic matching is diagnostic only. The headline metric remains strict `(pattern_key, domain)` recall.\n\n")
+                .append("Interpretation: the cheap relabel/domain-assignment fix can recover at most one missing Tier A label on this candidate table. The remaining seven misses require the generator to propose additional evidence-grounded candidates before the abstain gate or threshold sweep can help.\n\n")
+                .append("## Recoverability Split\n\n")
+                .append("| persona | missing true label | generated labels for persona | status | diagnostic note |\n")
+                .append("|---|---|---|---|---|\n");
+        rows.forEach(row -> md.append("| ")
+                .append(row.personaId()).append(" | ")
+                .append(label(row.missingLabel())).append(" | ")
+                .append(row.generatedLabels()).append(" | ")
+                .append(row.status().reportValue()).append(" | ")
+                .append(row.note()).append(" |\n"));
+
+        md.append("\n## Design Implication\n\n")
+                .append("- Treat `recoverable_by_relabel` as a bounded domain-assignment experiment, not a metric change.\n")
+                .append("- Treat `needs_new_generation` as the main candidate-generator redesign budget.\n")
+                .append("- Re-measure full-decoy generated and surfaced false positives after any broader generation change; PR #50 showed `13` generated and `5` surfaced full-decoy FPs, above the `<=2` recovery target.\n");
+
+        return md.toString();
+    }
+
     private AuditedCandidate parsePreventedCandidate(String line) {
         String[] columns = line.split("\\|", -1);
         if (columns.length < 7) {
@@ -179,6 +218,36 @@ final class CandidateGeneratorAudit {
             throw new IllegalArgumentException("Malformed candidate label: " + raw);
         }
         return new PredictedPattern(candidateParts[0].trim(), Domain.valueOf(candidateParts[1].trim()));
+    }
+
+    private List<RecoverabilityRow> recoverabilityRows(GTPersona persona, List<AuditedCandidate> candidates) {
+        List<PredictedPattern> generated = candidates.stream()
+                .filter(candidate -> candidate.personaId().equals(persona.id()))
+                .map(AuditedCandidate::prediction)
+                .sorted(predictionComparator())
+                .toList();
+        Set<PredictedPattern> generatedSet = new LinkedHashSet<>(generated);
+        Set<String> generatedKeys = generated.stream()
+                .map(PredictedPattern::patternKey)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        String generatedLabels = generated.isEmpty()
+                ? "`none`"
+                : generated.stream().map(this::label).collect(Collectors.joining("<br>"));
+
+        return trueSet(persona).stream()
+                .filter(trueLabel -> !generatedSet.contains(trueLabel))
+                .sorted(predictionComparator())
+                .map(trueLabel -> {
+                    boolean sameKeyGenerated = generatedKeys.contains(trueLabel.patternKey());
+                    RecoverabilityStatus status = sameKeyGenerated
+                            ? RecoverabilityStatus.RECOVERABLE_BY_RELABEL
+                            : RecoverabilityStatus.NEEDS_NEW_GENERATION;
+                    String note = sameKeyGenerated
+                            ? "same pattern key generated under a different domain"
+                            : "pattern key absent from generated candidates";
+                    return new RecoverabilityRow(persona.id(), trueLabel, generatedLabels, status, note);
+                })
+                .toList();
     }
 
     private SliceSummary summarize(String name, List<GTPersona> personas, List<AuditedCandidate> candidates) {
@@ -395,5 +464,29 @@ final class CandidateGeneratorAudit {
     }
 
     private record Counts(int generated, int surfaced) {
+    }
+
+    private record RecoverabilityRow(
+            String personaId,
+            PredictedPattern missingLabel,
+            String generatedLabels,
+            RecoverabilityStatus status,
+            String note
+    ) {
+    }
+
+    private enum RecoverabilityStatus {
+        RECOVERABLE_BY_RELABEL("recoverable_by_relabel"),
+        NEEDS_NEW_GENERATION("needs_new_generation");
+
+        private final String reportValue;
+
+        RecoverabilityStatus(String reportValue) {
+            this.reportValue = reportValue;
+        }
+
+        String reportValue() {
+            return reportValue;
+        }
     }
 }
