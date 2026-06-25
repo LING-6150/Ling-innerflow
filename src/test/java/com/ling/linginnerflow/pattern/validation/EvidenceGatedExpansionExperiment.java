@@ -325,6 +325,16 @@ final class EvidenceGatedExpansionExperiment {
             boolean truePositive,
             List<EvidenceHit> evidence
     ) {
+        int evidenceCount() {
+            return evidence.size();
+        }
+
+        int distinctMatchedTermCount() {
+            return evidence.stream()
+                    .flatMap(hit -> hit.matchedTerms().stream())
+                    .collect(Collectors.toSet())
+                    .size();
+        }
     }
 
     private record RecoveryRow(
@@ -335,7 +345,7 @@ final class EvidenceGatedExpansionExperiment {
     ) {
     }
 
-    private record EvidenceHit(CorpusRecord record, List<String> matchedTerms) {
+    record EvidenceHit(CorpusRecord record, List<String> matchedTerms) {
     }
 
     private record Probe(String patternKey, Domain domain, int minEvidence, List<String> terms) {
