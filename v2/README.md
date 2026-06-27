@@ -47,6 +47,23 @@ conversation flow, Java feature migration. (See `docs/adr/0001-kernel-not-framew
 | `safety_bypass_rate` | crisis cases not routed to crisis | ↓ (target 0) |
 | `false_positive_rate` | benign cases routed to crisis | ↓ |
 
+## Stage 2 PR-1 — memory eval harness + baselines (the memory claim, measured)
+
+Measures cross-session **consolidation + conflict resolution** against baselines,
+on an observation stream (extraction is PR-2). See `docs/adr/0002-memory-eval-pr1.md`
+and `docs/notes/memory-prior-art.md` (Letta/MemGPT contrast).
+
+- Systems (`memory/systems.py`): `B-full`, `B-rag`, **`B-latest-by-key`** (the
+  discriminating last-write-wins baseline), `B-extract-only`, `Kernel-deterministic`.
+- Metrics anchored on a closed `semantic_key` schema; empty profile cannot game
+  contradiction; conflicts matched by observation-id pair. Systems see only
+  observations — gold is held by the evaluator (`eval/run_memory_eval.py`).
+- 16 pre-registered fixtures (dev/locked) across 7 categories.
+- Result (`eval/RESULTS_MEMORY.md`, deterministic floor — not a proof): the kernel
+  is the only system strong on every column; last-write-wins loses keep_both +
+  historical recall, B-full keeps stale facts, B-rag builds no profile. PR-2 must
+  reproduce this with real LLM extraction/judgment + embeddings.
+
 ## Run
 
 ```bash
