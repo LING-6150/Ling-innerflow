@@ -18,14 +18,14 @@ sys.path.insert(0, str(ROOT / "src"))
 from innerflow_v2.eval.memory_eval import load_memory_eval_cases  # noqa: E402
 from innerflow_v2.eval.run_memory_eval import run_memory_eval  # noqa: E402
 from innerflow_v2.memory.llm import LLMReasoner, OpenAIClient  # noqa: E402
-from innerflow_v2.memory.systems import BLatestByKey, KernelDeterministic  # noqa: E402
+from innerflow_v2.memory.systems import BLatestByKey, BRag, KernelDeterministic  # noqa: E402
 from innerflow_v2.memory.systems_llm import KernelLLM  # noqa: E402
 
 
 def main() -> None:
     client = OpenAIClient()
     locked = load_memory_eval_cases(ROOT / "eval" / "fixtures" / "memory_eval_locked.jsonl")
-    factories = [BLatestByKey, KernelDeterministic, (lambda: KernelLLM(LLMReasoner(client)))]
+    factories = [BRag, BLatestByKey, KernelDeterministic, (lambda: KernelLLM(LLMReasoner(client)))]
     reps = run_memory_eval(locked, factories, k=3)
 
     lines = [

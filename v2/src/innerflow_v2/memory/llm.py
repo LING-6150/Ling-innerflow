@@ -24,6 +24,24 @@ from innerflow_v2.memory.types import ObservationInput, ProfileClaim
 _VALID_RESOLUTIONS = {"supersede", "keep_both", "mark_uncertain", "reject_new"}
 
 
+def _safe_json(text: str | None) -> dict:
+    """Parse model output to a dict, never raising. A non-JSON or non-object
+    response degrades to {} (scored as empty/failed output, not a crash)."""
+    try:
+        obj = json.loads(text or "{}")
+    except (ValueError, TypeError):
+        return {}
+    return obj if isinstance(obj, dict) else {}
+
+
+def _rows(value: object) -> list[dict]:
+    """Coerce a JSON field to a list of dict rows; tolerate junk (a string, a
+    dict, non-dict rows) by skipping it."""
+    if not isinstance(value, list):
+        return []
+    return [r for r in value if isinstance(r, dict)]
+
+
 class MemoryReasoner(Protocol):
     def consolidate(
         self, observations: list[ObservationInput]
@@ -62,7 +80,7 @@ class OpenAIClient:
             response_format={"type": "json_object"},
             temperature=0,
         )
-        return json.loads(resp.choices[0].message.content or "{}")
+        return _safe_json(resp.choices[0].message.content)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         resp = self._client.embeddings.create(model=self._embed_model, input=texts)
@@ -99,23 +117,28 @@ class LLMReasoner:
         data = self._client.complete_json(_SYSTEM, json.dumps(payload, ensure_ascii=False))
 
         claims: list[ProfileClaim] = []
-        for c in data.get("claims", []):
+        for c in _rows(data.get("claims")):
             key = c.get("semantic_key", "")
-            srcs = [i for i in c.get("source_observation_ids", []) if i in obs_ids]
-            if not key or not srcs:
+            srcs = c.get("source_observation_ids")
+            if not key or not isinstance(srcs, list) or not srcs:
+                continue
+            # Drop the WHOLE claim if it cites any unknown id — a hallucinated ref
+            # must not be silently cleaned into a partially-correct claim (it then
+            # surfaces as a missing claim => contradiction, which is the point).
+            if any(i not in obs_ids for i in srcs):
                 continue
             # keep out-of-vocab keys too so the extra_claim guard can see them
             claims.append(
                 ProfileClaim(
                     semantic_key=key if is_valid_semantic_key(key) else f"__invalid__:{key}",
                     content=str(c.get("content", "")),
-                    source_observation_ids=srcs,
+                    source_observation_ids=list(srcs),
                     kind="fact",
                 )
             )
 
         conflicts: list[MemoryConflict] = []
-        for c in data.get("conflicts", []):
+        for c in _rows(data.get("conflicts")):
             old, new = c.get("old_observation_id"), c.get("new_observation_id")
             res = c.get("resolution")
             if old in obs_ids and new in obs_ids and res in _VALID_RESOLUTIONS:
