@@ -132,6 +132,35 @@ def conflict_resolution_counts(
     return correct, len(gold_conflicts)
 
 
+def extra_claim_counts(
+    claims: Sequence[ProfileClaim], gold_facts: Sequence[GoldCurrentFact]
+) -> tuple[int, int]:
+    """(extra, total_claims). An extra claim asserts a semantic_key that has no
+    gold fact — i.e. a hallucinated/unwarranted claim. Precision guard: gold-only
+    metrics (contradiction/conflict) don't penalize over-emission, so an LLM in
+    PR-2 could pad output to lift recall/coverage; this catches that. Lower better."""
+    gold_keys = {f.semantic_key for f in gold_facts}
+    extra = sum(1 for c in claims if c.semantic_key not in gold_keys)
+    return extra, len(claims)
+
+
+def false_conflict_counts(
+    system_conflicts: Sequence[MemoryConflict], gold_conflicts: Sequence[GoldConflict]
+) -> tuple[int, int]:
+    """(false, total_predicted). A false conflict is a predicted conflict whose
+    observation-id pair matches no gold conflict — a hallucinated conflict.
+    Precision guard for conflict resolution. Lower better."""
+    gold_pairs = {
+        frozenset((g.old_observation_id, g.new_observation_id)) for g in gold_conflicts
+    }
+    false = sum(
+        1
+        for c in system_conflicts
+        if frozenset((c.old_observation_id, c.new_observation_id)) not in gold_pairs
+    )
+    return false, len(system_conflicts)
+
+
 def recall_at_k(retrieved_ids: Sequence[str], relevant_ids: Sequence[str], k: int) -> float:
     gold = set(relevant_ids)
     if not gold:

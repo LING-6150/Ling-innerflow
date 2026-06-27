@@ -14,6 +14,8 @@ from innerflow_v2.eval.memory_eval import (
     conflict_resolution_counts,
     contradiction_counts,
     coverage_counts,
+    extra_claim_counts,
+    false_conflict_counts,
     recall_at_k,
 )
 
@@ -28,6 +30,10 @@ class SystemReport:
     gold_conflicts: int = 0
     recall_current: list[float] = field(default_factory=list)
     recall_historical: list[float] = field(default_factory=list)
+    # precision guards (catch over-emission once an LLM is wired in PR-2)
+    extra_claims: int = 0
+    total_claims: int = 0
+    false_conflicts: int = 0
 
     @property
     def contradiction_rate(self) -> float:
@@ -53,6 +59,14 @@ class SystemReport:
     def recall_historical_at_k(self) -> float:
         return self._avg(self.recall_historical)
 
+    @property
+    def extra_claim_rate(self) -> float:
+        return self.extra_claims / self.total_claims if self.total_claims else 0.0
+
+    @property
+    def false_conflict_count(self) -> int:
+        return self.false_conflicts
+
 
 def run_memory_eval(
     cases: Sequence[MemoryEvalCase], system_classes: Sequence[type], k: int = 3
@@ -70,11 +84,16 @@ def run_memory_eval(
             c_bad, c_eval = contradiction_counts(claims, case.gold_current_facts)
             cov, _ = coverage_counts(claims, case.gold_current_facts)
             cr_ok, cr_total = conflict_resolution_counts(cons, case.gold_conflicts)
+            extra, n_claims = extra_claim_counts(claims, case.gold_current_facts)
+            false_c, _ = false_conflict_counts(cons, case.gold_conflicts)
             rep.contradictory += c_bad
             rep.evaluated_facts += c_eval
             rep.covered += cov
             rep.correct_conflicts += cr_ok
             rep.gold_conflicts += cr_total
+            rep.extra_claims += extra
+            rep.total_claims += n_claims
+            rep.false_conflicts += false_c
 
             for q in case.retrieval_queries:
                 r = recall_at_k(system.retrieve(q.query, k), q.relevant_observation_ids, k)
@@ -91,21 +110,24 @@ def render_markdown(reports: dict[str, SystemReport], k: int, split: str) -> str
         "Systems receive only the observation stream; gold is held by the evaluator. "
         "Deterministic floor — NOT a proof; the real (LLM/embedding) result is PR-2.",
         "",
-        "| system | contradiction_rate ↓ | coverage ↑ | conflict_acc ↑ | recall@k current ↑ | recall@k historical ↑ |",
-        "|---|---:|---:|---:|---:|---:|",
+        "| system | contradiction_rate ↓ | coverage ↑ | conflict_acc ↑ | recall@k current ↑ | recall@k historical ↑ | extra_claim_rate ↓ | false_conflicts ↓ |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for r in reports.values():
         md.append(
             f"| {r.name} | {r.contradiction_rate:.3f} | {r.coverage_rate:.3f} | "
             f"{r.conflict_resolution_accuracy:.3f} | {r.recall_current_at_k:.3f} | "
-            f"{r.recall_historical_at_k:.3f} |"
+            f"{r.recall_historical_at_k:.3f} | {r.extra_claim_rate:.3f} | "
+            f"{r.false_conflict_count} |"
         )
     md += [
         "",
         "Reading: B-latest-by-key is strong on current facts but loses keep_both "
         "(context-specific exceptions) and historical recall; B-full/B-extract keep "
         "stale facts as current; B-rag builds no profile. The kernel should be the "
-        "only system strong on all columns.",
+        "only system strong on all columns. The precision guards "
+        "(extra_claim_rate / false_conflicts) read 0 for these deterministic "
+        "systems — they exist to catch an LLM over-emitting in PR-2.",
         "",
     ]
     return "\n".join(md)
