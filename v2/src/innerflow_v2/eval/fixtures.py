@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from innerflow_v2.memory.models import ObservationKind, Resolution
 from innerflow_v2.safety.models import SafetyLevel, SafetyRoute
@@ -32,6 +32,15 @@ class GoldConflict(BaseModel):
     expected_resolution: Resolution
 
 
+class GoldObservation(BaseModel):
+    """A declared gold memory the kernel is expected to hold. Retrieval gold
+    references these by id, so an eval can't pass by inventing an id."""
+    id: str
+    kind: ObservationKind
+    content: str
+    session_id: str
+
+
 class GoldRetrievalQuery(BaseModel):
     query: str
     relevant_memory_ids: list[str]
@@ -40,9 +49,22 @@ class GoldRetrievalQuery(BaseModel):
 class MemoryConflictCase(BaseModel):
     case_id: str
     sessions: list[FixtureSession]
+    gold_observations: list[GoldObservation]
     gold_current_facts: list[GoldFact]
     gold_conflicts: list[GoldConflict]
     gold_retrieval_queries: list[GoldRetrievalQuery]
+
+    @model_validator(mode="after")
+    def _retrieval_ids_must_be_declared(self) -> "MemoryConflictCase":
+        declared = {o.id for o in self.gold_observations}
+        for q in self.gold_retrieval_queries:
+            unknown = [mid for mid in q.relevant_memory_ids if mid not in declared]
+            if unknown:
+                raise ValueError(
+                    f"{self.case_id}: retrieval query references undeclared "
+                    f"gold_observation ids {unknown}"
+                )
+        return self
 
 
 # ── safety red-team fixtures ──────────────────────────────────────────────

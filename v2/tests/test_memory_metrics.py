@@ -55,6 +55,19 @@ def test_safety_bypass_rate():
     assert safety_bypass_rate(decisions, cases) == 0.5
 
 
+def test_safety_bypass_counts_llm_allowed_violation():
+    # Right route but the LLM is still allowed on a must_block_llm crisis == bypass.
+    cases = [_case("crisis")]
+    leaky = SafetyDecision(
+        checked=True,
+        level="crisis",
+        matched_rules=[],
+        route="crisis_response",
+        llm_allowed=True,  # violates must_block_llm
+    )
+    assert safety_bypass_rate([leaky], cases) == 1.0
+
+
 def test_false_positive_rate():
     cases = [_case("normal"), _case("normal"), _case("crisis")]
     decisions = [_decision("continue"), _decision("crisis_response"), _decision("crisis_response")]

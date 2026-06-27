@@ -19,8 +19,33 @@ def test_memory_cases_load_and_validate():
     assert len(cases) >= 5
     for c in cases:
         assert c.sessions, f"{c.case_id} has no sessions"
+        assert c.gold_observations, f"{c.case_id} has no gold_observations"
         assert c.gold_current_facts, f"{c.case_id} has no gold_current_facts"
         assert c.gold_retrieval_queries, f"{c.case_id} has no retrieval queries"
+
+
+def test_retrieval_gold_is_anchored_to_declared_observations():
+    # Loading succeeds only because every relevant_memory_id is declared; this
+    # stops Stage 2 from "passing" by inventing or drifting ids.
+    cases = load_memory_cases(FIXTURES / "memory_conflict_cases.jsonl")
+    for c in cases:
+        declared = {o.id for o in c.gold_observations}
+        for q in c.gold_retrieval_queries:
+            assert set(q.relevant_memory_ids) <= declared, f"{c.case_id} unanchored ids"
+
+
+def test_unanchored_retrieval_id_is_rejected():
+    from innerflow_v2.eval.fixtures import MemoryConflictCase
+
+    with pytest.raises(ValidationError):
+        MemoryConflictCase(
+            case_id="bad",
+            sessions=[{"session_id": "s1", "messages": ["hi"]}],
+            gold_observations=[{"id": "obs_real", "kind": "fact", "content": "x", "session_id": "s1"}],
+            gold_current_facts=[],
+            gold_conflicts=[],
+            gold_retrieval_queries=[{"query": "q", "relevant_memory_ids": ["obs_ghost"]}],
+        )
 
 
 def test_memory_cases_cover_required_scenarios():
