@@ -1,0 +1,22 @@
+[project]
+name = "innerflow-v2"
+version = "0.1.0"
+description = "InnerFlow v2 — Memory/Safety Kernel (eval-first). Not an agent framework; not a Java rewrite."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+# This is an eval/kernel project, not a distributable package — don't build it.
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
