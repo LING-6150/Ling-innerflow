@@ -159,7 +159,8 @@ public class CheckInConsumer {
                     Map<String, Object> input = new HashMap<>();
                     input.put("userInput", event.getContent());
                     try {
-                        AgentState finalState = emotionGraph.buildGraph().invoke(input).get();
+                        AgentState finalState = emotionGraph.buildGraph().invoke(input)
+                                .orElseThrow(() -> new IllegalStateException("emotion graph returned no state"));
                         int level = (int) finalState.data().getOrDefault("emotionLevel", 1);
                         String resp = (String) finalState.data().getOrDefault("response", "");
                         return new CachedAnalysis(level, resp);

@@ -32,4 +32,22 @@ public class AppConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * Dedicated, bounded thread pool for async emotion-image (DALL-E) generation.
+     * Replaces unmanaged {@code new Thread(...).start()} on connection close so
+     * image generation cannot spawn unbounded threads under load and is shut
+     * down cleanly with the context.
+     */
+    @Bean(name = "emotionImageExecutor")
+    public Executor emotionImageExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(10);
+        executor.setThreadNamePrefix("emotion-image-");
+        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
 }

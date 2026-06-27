@@ -1,6 +1,7 @@
 package com.ling.linginnerflow.user;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,6 +25,13 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+
+    /**
+     * 允许的前端域名，逗号分隔。生产环境通过 APP_CORS_ALLOWED_ORIGINS / 配置覆盖，
+     * 默认仅本地开发端口，避免把 localhost 带到生产。
+     */
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:8080,http://localhost:5173,http://localhost:5174,http://localhost:5175}")
+    private String allowedOrigins;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http)
@@ -68,14 +76,12 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // 允许的前端域名，生产环境改成你的真实域名
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000",  // Vue开发服务器
-                "http://localhost:8080",  // 本地测试
-                "http://localhost:5173",  // Vite开发服务器
-                "http://localhost:5174",// 加这行
-                "http://localhost:5175"
-        ));
+        // 允许的前端域名，从配置注入（app.cors.allowed-origins），生产环境用 env 覆盖
+        config.setAllowedOrigins(
+                java.util.Arrays.stream(allowedOrigins.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .toList());
 
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "OPTIONS"));
