@@ -481,7 +481,10 @@ public class MemoryService {
             try {
                 long days = ChronoUnit.DAYS.between(LocalDate.parse(lastSeen), LocalDate.now());
                 recencyScore = Math.exp(-days / 90.0);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.debug("[Wiki] computeScore: unparseable lastSeen='{}', using recencyScore=1.0: {}",
+                        lastSeen, e.getMessage());
+            }
         }
         return Math.round(countScore * recencyScore * 100.0) / 100.0;
     }
@@ -590,7 +593,9 @@ public class MemoryService {
                 List<Map<String, String>> conflicts = objectMapper.readValue(
                         mem.getConflicts(), new TypeReference<>() {});
                 dto.setConflicts(conflicts);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("[Wiki] failed to parse conflicts JSON, skipping: {}", e.getMessage());
+            }
         }
 
         // P1-4: structured changeLog (most recent 10 entries)

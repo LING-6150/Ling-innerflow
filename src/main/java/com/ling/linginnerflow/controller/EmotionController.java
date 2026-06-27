@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -49,9 +50,20 @@ public class EmotionController {
         input.put("userInput", userInput);
         input.put("userId", userId);
 
-        // 第三步：调用EmotionGraph
-        AgentState finalState = emotionGraph.buildGraph()
-                .invoke(input).get();
+        // 第三步：调用EmotionGraph；空结果优雅降级，避免 NoSuchElementException 直接抛 500
+        Optional<AgentState> result = emotionGraph.buildGraph().invoke(input);
+        if (result.isEmpty()) {
+            log.warn("Emotion graph returned no state, userId={}", userId);
+            // 优雅降级：不返回不透明的500；保守地附上危机资源
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("emotionLevel", 1);
+            fallback.put("response",
+                    "Sorry, I'm having trouble responding right now — please try again in a moment. "
+                  + "If you're in crisis or thinking about harming yourself, please call or text 988 right away.");
+            fallback.put("degraded", true);
+            return fallback;
+        }
+        AgentState finalState = result.get();
 
         // 第四步：把AI回复存入短期记忆
         String aiResponse = (String) finalState.data()

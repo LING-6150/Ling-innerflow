@@ -4,6 +4,7 @@ package com.ling.linginnerflow.image;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -38,7 +39,8 @@ public class EmotionImageService {
                 ", no people, no text, no faces, painterly style, high quality";
     }
 
-    // 生成情绪画像（对话结束时调用）
+    // 生成情绪画像（对话结束时调用，在受管线程池上异步执行）
+    @Async("emotionImageExecutor")
     public EmotionImage generateImage(String userId, int emotionLevel,
                                       String userInput) {
         try {
@@ -93,8 +95,11 @@ public class EmotionImageService {
     // 下载图片并转Base64
     private String downloadAndEncode(String imageUrl) throws Exception {
         URL url = new URL(imageUrl);
-        byte[] imageBytes = url.openStream().readAllBytes();
-        return Base64.getEncoder().encodeToString(imageBytes);
+        // try-with-resources 确保 InputStream 关闭，避免连接池泄漏
+        try (java.io.InputStream in = url.openStream()) {
+            byte[] imageBytes = in.readAllBytes();
+            return Base64.getEncoder().encodeToString(imageBytes);
+        }
     }
 
     // 查询最新画像

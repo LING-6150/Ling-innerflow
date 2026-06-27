@@ -323,10 +323,9 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
             Integer lastLevel = (Integer) session.getAttributes().get("lastEmotionLevel");
             String lastInput = (String) session.getAttributes().get("lastUserInput");
             if (lastLevel != null) {
-                // 异步生成，不阻塞关闭流程
-                new Thread(() ->
-                        emotionImageService.generateImage(userId, lastLevel, lastInput)
-                ).start();
+                // 异步生成，不阻塞关闭流程（运行在受管的 emotionImageExecutor 线程池上，
+                // 异常与生命周期由 Spring @Async 托管，避免裸线程无限增长）
+                emotionImageService.generateImage(userId, lastLevel, lastInput);
             }
         }
 
