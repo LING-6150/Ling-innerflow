@@ -5,6 +5,7 @@ description = "InnerFlow v2 — Memory/Safety Kernel (eval-first). Not an agent 
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "openai>=2.44.0",
     "pydantic>=2.7",
 ]
 
