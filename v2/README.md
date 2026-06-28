@@ -34,8 +34,10 @@ LLM integration exists.
 ## What's deliberately NOT here
 
 LangGraph, multi-agent orchestration, MCP/A2A/FHIR, multimodal, FastAPI app, UI,
-LLM provider integration, vector DB, real embeddings, OpenTelemetry, full product
-conversation flow, Java feature migration. (See `docs/adr/0001-kernel-not-framework.md`.)
+vector DB, OpenTelemetry, full product conversation flow, Java feature migration.
+(See `docs/adr/0001-kernel-not-framework.md`.) An LLM provider + embeddings ARE
+used by the Stage 2 PR-2b memory kernel only (offline tests use a deterministic
+fake; the live run is opt-in and key-gated).
 
 ## Metrics (pre-registered, see `eval/README.md`)
 
@@ -63,6 +65,26 @@ and `docs/notes/memory-prior-art.md` (Letta/MemGPT contrast).
   is the only system strong on every column; last-write-wins loses keep_both +
   historical recall, B-full keeps stale facts, B-rag builds no profile. PR-2 must
   reproduce this with real LLM extraction/judgment + embeddings.
+
+## Stage 2 PR-2b — LLM/embedding memory kernel (the real result)
+
+`KernelLLM` (`memory/systems_llm.py`) infers `semantic_key` + context **from the
+text** (constrained to the closed vocabulary), judges conflicts via an LLM, and
+retrieves via embeddings — scored against the SAME locked gold + precision guards
++ baselines. Offline tests use a deterministic `FakeReasoner` (no tokens); the
+live run is opt-in:
+
+```bash
+MY_OPENAI_KEY="$(cat ~/.innerflow_openai_key)" uv run python scripts/run_llm_eval.py
+```
+
+Live result (`eval/RESULTS_MEMORY_LLM.md`, gpt-4o-mini + text-embedding-3-small):
+embedding retrieval is strong (recall ≈ 1.0 current & historical), but **inferring
+key/context from free text is genuinely harder** than PR-1 (which was handed those
+fields): the LLM kernel's contradiction_rate and conflict accuracy degrade versus
+the deterministic kernel, and the **`extra_claim_rate` guard catches the LLM
+over-emitting** (vindicating the PR-2a precision guards). That inference gap is
+the spec for further work.
 
 ## Run
 

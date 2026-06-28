@@ -72,11 +72,12 @@ def run_memory_eval(
     cases: Sequence[MemoryEvalCase], system_classes: Sequence[type], k: int = 3
 ) -> dict[str, SystemReport]:
     reports: dict[str, SystemReport] = {}
-    for cls in system_classes:
-        system = cls()
-        rep = SystemReport(name=getattr(cls, "name", cls.__name__))
+    for factory in system_classes:
+        rep: SystemReport | None = None
         for case in cases:
-            system = cls()
+            system = factory()  # a class, or a zero-arg factory (e.g. KernelLLM wrapper)
+            if rep is None:
+                rep = SystemReport(name=getattr(system, "name", type(system).__name__))
             system.ingest(case.observations)  # ONLY observations — no gold
             claims = system.profile()
             cons = system.resolved_conflicts()
