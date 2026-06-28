@@ -30,6 +30,9 @@ public class PetGreetingService {
     private final MemoryService memoryService;
     private final ChatClient.Builder chatClientBuilder;
 
+    // 反依赖后置守卫：prompt 约束之外的一道确定性 fail-safe
+    private final PetGreetingGuard guard = new PetGreetingGuard();
+
     public String greet(String userId) {
         UserMemory mem = memoryService.getLongMemory(userId);
 
@@ -50,7 +53,16 @@ public class PetGreetingService {
                 return fallback(mem);
             }
             // 去掉模型偶尔加的引号
-            return greeting.trim().replaceAll("^[\"“]|[\"”]$", "").trim();
+            String cleaned = greeting.trim().replaceAll("^[\"“]|[\"”]$", "").trim();
+
+            // 反依赖守卫:LLM 仍可能违反"绝不制造依赖"的硬规则 → fail-safe 回退
+            PetGreetingGuard.Verdict verdict = guard.check(cleaned);
+            if (!verdict.ok()) {
+                log.warn("[PetGreeting] 反依赖守卫拦截,回退模板。violations={} greeting={}",
+                        verdict.violations(), cleaned);
+                return fallback(mem);
+            }
+            return cleaned;
         } catch (Exception e) {
             log.warn("[PetGreeting] LLM 生成失败，回退模板: {}", e.getMessage());
             return fallback(mem);
