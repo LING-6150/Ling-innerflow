@@ -102,9 +102,30 @@ _SYSTEM = (
 )
 
 
+_SYSTEM_V2 = (
+    _SYSTEM
+    + "\n\nFurther guidance (PR-2c):\n"
+    "- Infer `context` from situational phrases ('generally'/'usually' = general; "
+    "'before interviews', 'during incidents', 'on hard days', 'before a deadline' "
+    "= that specific situation). Same key + DIFFERENT situation => keep_both, not "
+    "supersede.\n"
+    "- Emit a claim ONLY for keys an observation actually supports; do NOT invent "
+    "claims for keys with no backing observation (avoid over-emitting).\n"
+    "- Output EXACTLY ONE consolidated claim per (semantic_key, situation).\n"
+    "Examples:\n"
+    "  [{id:a,'I usually like blunt feedback'},{id:b,'but during reviews be gentle'}] "
+    "-> two claims (general=a, reviews=b); conflict keep_both(a,b).\n"
+    "  [{id:a,'I jog at dawn'},{id:b,'switched to evening jogs'}] -> one claim citing "
+    "b; conflict supersede(a,b).\n"
+    "  [{id:a,'crowds stress me'},{id:b,'busy stations make me tense'}] -> one "
+    "consolidated claim citing a and b (recurring); no conflict."
+)
+
+
 class LLMReasoner:
-    def __init__(self, client: OpenAIClient) -> None:
+    def __init__(self, client: OpenAIClient, system_prompt: str = _SYSTEM) -> None:
         self._client = client
+        self._system = system_prompt
 
     def consolidate(
         self, observations: list[ObservationInput]
@@ -114,7 +135,7 @@ class LLMReasoner:
             "allowed_semantic_keys": sorted(SEMANTIC_KEYS),
             "observations": [{"id": o.id, "content": o.content} for o in observations],
         }
-        data = self._client.complete_json(_SYSTEM, json.dumps(payload, ensure_ascii=False))
+        data = self._client.complete_json(self._system, json.dumps(payload, ensure_ascii=False))
 
         claims: list[ProfileClaim] = []
         for c in _rows(data.get("claims")):
