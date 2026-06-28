@@ -51,7 +51,7 @@ class RetrievalQuery(BaseModel):
 class MemoryEvalCase(BaseModel):
     case_id: str
     category: str
-    split: Literal["dev", "locked"]
+    split: Literal["dev", "locked", "challenge"]
     observations: list[ObservationInput]
     gold_current_facts: list[GoldCurrentFact]
     gold_conflicts: list[GoldConflict]

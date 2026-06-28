@@ -16,8 +16,9 @@ from innerflow_v2.memory.types import ObservationInput, ProfileClaim
 class KernelLLM:
     name = "Kernel-llm"
 
-    def __init__(self, reasoner: MemoryReasoner) -> None:
+    def __init__(self, reasoner: MemoryReasoner, name: str = "Kernel-llm") -> None:
         self._reasoner = reasoner
+        self.name = name
         self._obs: list[ObservationInput] = []
         self._cache: tuple[list[ProfileClaim], list[MemoryConflict]] | None = None
 
