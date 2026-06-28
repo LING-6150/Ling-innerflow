@@ -13,11 +13,18 @@ import java.util.Map;
 public class PetController {
 
     private final PetService petService;
+    private final PetGreetingService petGreetingService;
 
     // 查询宠物状态
     @GetMapping
     public PetStatus getPet() {
         return petService.getOrCreate(getUserId());
+    }
+
+    // 记忆感问候（镜子模型）—— 进入宠物页时获取
+    @GetMapping("/greeting")
+    public Map<String, String> greeting() {
+        return Map.of("greeting", petGreetingService.greet(getUserId()));
     }
 
     // Tap增加生命力

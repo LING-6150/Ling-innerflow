@@ -13,6 +13,11 @@
 
     <!-- 精灵主体 -->
     <div class="sprite-area">
+      <!-- 记忆感问候（镜子模型）：反射用户自己的成长，淡入出现 -->
+      <transition name="bubble-fade">
+        <div v-if="greeting" class="greeting-bubble">{{ greeting }}</div>
+      </transition>
+
       <!-- 外层光环（level 4-5才显示） -->
       <div v-if="pet.level >= 4" class="aura-ring"></div>
 
@@ -20,7 +25,16 @@
       <div class="sprite-wrapper"
            :class="`emotion-${pet.currentEmotion}`"
            :style="spriteStyle">
-        <svg class="sprite-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- 卡通动物（Lottie）。加载失败时自动回退到下方抽象 SVG，不会留白 -->
+        <LottiePet
+          v-if="lottieOk"
+          class="sprite-lottie"
+          :animation-data="petAnim.data"
+          :speed="petAnim.speed"
+          :loop="petAnim.loop"
+          @error="lottieOk = false"
+        />
+        <svg v-else class="sprite-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <filter id="glow">
               <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
@@ -162,6 +176,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '@/api/request'
+import LottiePet from '@/components/LottiePet.vue'
+import { getPetAnimation } from '@/assets/pet/petAnimations'
 
 const router = useRouter()
 
@@ -186,6 +202,15 @@ const pet = ref<Pet>({
   primaryColor: '#b8f0e0',
   currentEmotion: 1
 })
+
+// 记忆感问候（镜子模型）
+const greeting = ref('')
+
+// Lottie 加载失败则回退到抽象 SVG
+const lottieOk = ref(true)
+
+// 当前情绪/等级对应的卡通动物动画
+const petAnim = computed(() => getPetAnimation(pet.value.currentEmotion, pet.value.level))
 
 const spriteStyle = computed(() => {
   const v = Number(pet.value.vitality) || 0
@@ -274,8 +299,18 @@ async function loadPet() {
   }
 }
 
+async function loadGreeting() {
+  try {
+    const res = await request.get('/api/pet/greeting') as any
+    greeting.value = res.greeting || ''
+  } catch (e) {
+    console.error('Failed to load greeting', e)
+  }
+}
+
 onMounted(() => {
   loadPet()
+  loadGreeting()  // 非阻塞，问候到达后淡入
 })
 </script>
 
@@ -340,6 +375,30 @@ onMounted(() => {
   position: relative;
 }
 
+/* 记忆感问候气泡 */
+.greeting-bubble {
+  max-width: 300px;
+  margin: 0 auto 14px;
+  padding: 12px 16px;
+  background: var(--glass-strong, rgba(255, 255, 255, 0.7));
+  border: 1px solid var(--pet-color, #b8f0e0);
+  border-radius: 18px 18px 18px 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  text-align: center;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(100, 80, 150, 0.12);
+}
+
+.bubble-fade-enter-active {
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.bubble-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
 .aura-ring {
   position: absolute;
   width: 220px; height: 220px;
@@ -397,6 +456,13 @@ onMounted(() => {
 .sprite-svg {
   width: 100%; height: 100%;
   filter: drop-shadow(0 0 20px var(--pet-color, #b8f0e0));
+  transition: filter 1s ease;
+}
+
+/* 卡通动物：情绪色由光晕承载，角色本身保持原色 */
+.sprite-lottie {
+  width: 100%; height: 100%;
+  filter: drop-shadow(0 0 18px var(--pet-color, #b8f0e0));
   transition: filter 1s ease;
 }
 
