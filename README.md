@@ -1,125 +1,39 @@
-# 🌊 InnerFlow — AI Emotional Support & Clinical Assistant Platform
+# 🌊 InnerFlow — An Eval-First Clinical Mental-Health Agent Platform
 
-> **North America Healthcare AI Hackathon — Agents Assemble 2026**
-> Built on MCP · A2A · FHIR · LangGraph4j
+A full-stack agentic platform for mental-health support and clinician hand-off — multimodal emotion sensing, LangGraph4j stateful routing, a ReAct agent over 6 clinical tools, three-layer memory, hybrid RAG, and HL7 FHIR / MCP interop.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-35.170.192.217-blue?style=for-the-badge)](http://35.170.192.217)
-[![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=java)](https://openjdk.org/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-green?style=for-the-badge&logo=springboot)](https://spring.io/)
-[![Vue](https://img.shields.io/badge/Vue-3-4FC08D?style=for-the-badge&logo=vue.js)](https://vuejs.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+What makes it different is **how it's built**: every core capability is backed by a **frozen-test-set evaluation, measured against baselines, and reported honestly** — including the negative results. The numbers below are real and reproducible from this repo; none are estimated.
 
----
-
-## 📖 Overview
-
-**InnerFlow** is a full-stack AI emotional support and clinical assistance platform targeting the North American mental health market. It fuses multimodal emotion sensing, LangGraph4j stateful graph scheduling, a Planning Agent for intelligent routing, MCP tool protocol, and HL7 FHIR clinical standards into a complete closed loop — from user conversation to clinician dashboard.
-
-🔗 **Live:** http://35.170.192.217  
-📦 **GitHub:** https://github.com/LING-6150/Ling-innerflow
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-online-blue?style=flat-square)](http://35.170.192.217)
+[![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=java)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-green?style=flat-square&logo=springboot)](https://spring.io/)
+[![Vue](https://img.shields.io/badge/Vue-3-4FC08D?style=flat-square&logo=vue.js)](https://vuejs.org/)
+[![Tests](https://img.shields.io/badge/tests-260%2B-success?style=flat-square)](#-reliability--evaluation)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 ---
 
-## 🎬 Demo
+## 📊 Results at a glance
 
-> 📹 **[Watch Demo Video]** *(insert your video link here)*
+> Methodology note: every result has a fixed/frozen test set declared *before* iterating, and is compared against baselines. "Deterministic" means no live LLM (reproducible in CI); "real-LLM" results are a small-sample live check. Caveats are stated, not hidden.
 
-<!-- Add screenshots below -->
-<!--
-### User Chat Interface
-![Chat](./docs/screenshots/chat.png)
-
-### Doctor Dashboard
-![Dashboard](./docs/screenshots/dashboard.png)
-
-### Emotion Wall
-![Wall](./docs/screenshots/wall.png)
-
-### PHQ-9 Screening
-![PHQ9](./docs/screenshots/phq9.png)
--->
-
----
-
-## ✨ Key Features
-
-### 🧠 Planning Agent + LangGraph4j Emotion Routing
-Every message triggers a full reasoning pipeline:
-
-```
-EmotionAnalyzerNode → MultimodalFusion → PlannerNode → ReActAgent
-     (raw level)                              ↑
-                               levelHistory + UserMemory
-                          (coreStruggles, emotionPattern)
-```
-
-PlannerNode synthesizes raw emotion level + session trajectory + long-term user memory to output one of four routing strategies:
-
-| Strategy | Trigger | Effect |
+| Capability | Result | How it's measured |
 |---|---|---|
-| `pure` | No history or first session | Standard response for current level |
-| `escalate` | Trajectory trending upward | More serious, engaged response |
-| `de-escalate` | Trajectory improving | Softer tone, avoid jarring transitions |
-| `blend` | Boundary ambiguous | Blend adjacent level response styles |
-
-LangGraph4j conditional edges route to: **L1** Companionship → **L2** Guided → **L3** CBT Intervention → **L4** Professional Referral → **L5** Crisis Immediate Response
-
----
-
-### 🎙️ Multimodal Emotion Sensing
-
-- **Text**: Real-time emotion analysis of conversation content (L1–L5 quantification)
-- **Voice**: Whisper API transcription + emotion scoring fusion
-- **Image**: EmotionImage multimodal visual analysis
-- **EmotionFusionService**: Weighted fusion of three signal streams into unified emotion level
+| **Deterministic memory kernel** | **Only design strong on all 3 metrics** vs 4 baselines — **0 contradictions · 1.0 conflict-resolution · 1.0 historical recall**; prompt iteration lifted conflict-resolution **0.40 → 0.80, holding on a held-out split** | 22 pre-registered cases; baselines: full-history / RAG / last-write-wins / extract-only; dev/locked/challenge splits |
+| **Result-driven ReAct loop** (reliability) | Correct failure-handling **20% / 60% → 100%**; **crashes → 0**, raw-error-as-data **→ 0**; retry turns failure prob `p` into ~`p²` (**tool success 69.7% → 91.2%**, run-to-run variance 0.016 → 0.012) | Deterministic A/B harness with fault injection ([`LoopAbEvalTest`](src/test/java/com/ling/linginnerflow/agent/LoopAbEvalTest.java)), 2 model profiles |
+| ↳ validated on **real LLMs** | `gpt-4o-mini` **100% / 100%** (no regression); `gpt-3.5-turbo` **80% → 100%** (weaker model, bigger gain) | live small-sample check ([`eval/live-llm/`](eval/live-llm/RESULTS.md)) |
+| **Companion-safety guard** (anti-dependency) | **0 red-team bypass** on a "mirror, not pacifier" invariant; honest finding: prompt was already stable, guard is defense-in-depth | red-team unit tests + a live adversarial eval |
+| **Latency** | time-to-first-token **2.8s → ~0.9s** | speculative tool dispatch (parse-while-streaming → async kickoff) |
+| **Engineering** | **260+ automated tests** (211 JUnit + 50 pytest), delivered across **50+ reviewed PRs** | CI on every PR |
 
 ---
 
-### 🔧 ReAct Agent + 6 Clinical Tools
+## 🧭 How this project is built (the part I care about)
 
-| Tool | Function |
-|---|---|
-| `PHQ9ScreeningTool` | Automated PHQ-9 depression scale assessment |
-| `CBTSkillLibrary` | CBT technique knowledge base retrieval |
-| `EmotionTrendAnalyzer` | Historical emotion trend analysis report |
-| `HistoryContextRetriever` | Conversation history context recall |
-| `WellnessResourceSearch` | Mental health resource recommendations |
-| `FHIR Summary (MCP)` | Generate HL7 R4 Observation → push to EHR |
-
----
-
-### 🗄️ Three-Layer Memory Architecture
-
-| Layer | Technology | Spec |
-|---|---|---|
-| Short-term context | Redis | TTL 30 min · auto LLM summarization at 10+ turns (≤100 words) |
-| Long-term UserMemory | MySQL | 9 dimensions: emotion pattern / core struggles / coping strategies / session summary / clinical reflection / persona preference |
-| Clinical reflection | LLM-generated | Async write after session ends · doctor can one-click Regenerate |
-
----
-
-### 🏥 Clinician Dashboard
-
-| Feature | Description |
-|---|---|
-| Stats Cards | Total patients / High-risk count (L4+) / Average emotion level |
-| Emotion Trend Chart | Daily average visualization, 7d / 30d / 90d toggle |
-| **Planner Routing Panel** | **Real-time AI routing result: detected level → routed level + strategy badge (escalate / de-escalate / blend / pure)** |
-| PHQ-9 Report | LLM auto-generated score range, severity, key indicators |
-| Crisis Heatmap | 7×4 time-slot grid, highlights L3+ high-risk patterns |
-| CBT Evidence Panel | Real-time clinical knowledge base retrieval based on patient profile |
-| FHIR Round-trip | One-click HL7 R4 Observation generation + Sync to EHR |
-| A2A Workflow Visualization | Collapsible end-to-end AI Agent workflow diagram |
-
----
-
-### 🌟 User-Side Features
-
-- **Virtual Pet**: Emotion score drives pet state with scheduled decay tasks (PetDecayTask)
-- **Emotion Check-in Wall**: Kafka async CheckIn event consumption with Redis idempotent deduplication
-- **Proactive Care Push**: ProactiveMessageService detects prolonged low emotional state and initiates conversation
-- **Distributed Rate Limiting**: Bucket4j + Redisson token bucket, prevents API abuse
-- **Persona System**: Three companionship styles — WARM / QUIET / RATIONAL, persisted to UserMemory
+- **Eval-first, not demo-first.** A capability isn't "done" until there's a test set and a number. I freeze the test set *before* iterating to avoid overfitting to it.
+- **Held-out & anti-gaming splits.** dev / locked / challenge splits; metrics designed so you can't game them by over-emitting.
+- **Honest negative results.** When an LLM variant was *worse* than the deterministic one, that's reported, not buried. No fabricated or "reasonable-estimate" metrics anywhere.
+- **Fail-safe by default.** In a clinical setting, an uncaught tool error or a crisis signal must never be silently treated as success — the system degrades safely, and a test pins that behavior.
 
 ---
 
@@ -127,82 +41,75 @@ LangGraph4j conditional edges route to: **L1** Companionship → **L2** Guided �
 
 ```
 User Browser
-     ↓
-  Nginx (port 80, reverse proxy)
-  ├── /api/*  → Spring Boot :8080
-  └── /       → Vue 3 static files
-
+     │
+  Nginx (:80 reverse proxy) ── /api/* → Spring Boot :8080
+     │                         /      → Vue 3 static
 Spring Boot (Java 21)
-  ├── LangGraph4j Emotion Graph
-  │   └── Analyzer → Planner → [L1~L5 Nodes]
-  ├── ReAct Agent (6 tools)
-  ├── MCP Server (6 endpoints)
-  ├── Hybrid RAG (Pinecone + Elasticsearch)
-  └── Three-Layer Memory (Redis + MySQL + LLM)
-
+  ├── LangGraph4j emotion graph:  Analyzer → MultimodalFusion → Planner → [L1–L5 nodes]
+  ├── ReAct agent (6 clinical tools) with a typed, result-driven loop
+  ├── MCP server (6 endpoints) — tools callable by external agents
+  ├── Hybrid RAG (BM25/Elasticsearch + vector/Pinecone + HyDE + LLM reranker)
+  └── Three-layer memory (Redis short-term · MySQL long-term · LLM clinical reflection)
 Infrastructure
-  ├── MySQL 8  (persistent data)
-  ├── Redis    (short-term context + rate limiting)
-  ├── Kafka    (async check-in events, 3 partitions)
-  └── Elasticsearch (keyword retrieval)
+  └── MySQL 8 · Redis · Kafka (3 partitions × 3 idempotent consumers, DLQ) · Elasticsearch · Prometheus/Grafana · Docker/AWS
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## ⚙️ Core capabilities
+
+**Planner + LangGraph4j emotion routing.** Each message runs `EmotionAnalyzer → MultimodalFusion → Planner → ReActAgent`. The Planner fuses the raw emotion level + session trajectory + long-term user memory into one of four strategies — `pure` / `escalate` / `de-escalate` / `blend` — then routes across **L1 companionship → L2 guided → L3 CBT → L4 referral → L5 crisis**. L5 bypasses the Planner for a zero-delay, fail-safe crisis response.
+
+**Typed, result-driven ReAct loop.** The loop decides on a **typed** tool result (`SUCCESS / PARTIAL / FAILURE`) rather than feeding raw text back and assuming success: on failure the model gets a recovery instruction (never the raw error as data), with retry-once and fail-safe handling of exceptions. Six clinical tools: `PHQ9ScreeningTool`, `CBTSkillLibrary`, `EmotionTrendAnalyzer`, `HistoryContextRetriever`, `WellnessResourceSearch`, `FHIR Summary (MCP)`. See the [reliability section](#-reliability--evaluation).
+
+**Three-layer memory.** Redis short-term context (TTL + auto-summarization past 10 turns) · MySQL long-term `UserMemory` (emotion pattern / core struggles / coping strategies / persona, etc.) · async LLM-generated clinical reflection.
+
+**Hybrid RAG.** BM25 (Elasticsearch) + vector (Pinecone) + HyDE query expansion + LLM reranker.
+
+**Companion-safety guard (anti-dependency).** A deterministic post-guard enforcing a "mirror, not pacifier" rule — rejects dependency-inducing output and falls back safely (EN/ZH), backed by red-team tests and a live adversarial eval.
+
+**Clinician dashboard.** Stats cards, emotion-trend charts, a real-time Planner-routing panel, LLM-generated PHQ-9 reports, a crisis heatmap, a CBT-evidence panel, and one-click FHIR R4 round-trip to an EHR.
+
+**Distributed reliability.** Three-tier Redis cache defense (penetration / avalanche / breakdown) + idempotent Kafka consumer (distributed lock + exponential backoff + dead-letter queue) + Bucket4j/Redisson rate limiting — all with concurrency tests.
+
+---
+
+## 🔬 Reliability & evaluation
+
+The loop's reliability work is the clearest example of the eval-first approach, shipped across three reviewed PRs:
+
+- **[#66](https://github.com/LING-6150/Ling-innerflow/pull/66)** — re-architected the tool loop to be typed-result-driven (`SUCCESS/PARTIAL/FAILURE`), with retry-once and fail-safe exception handling, **without changing any of the 6 existing tools** (default-method extension).
+- **[#67](https://github.com/LING-6150/Ling-innerflow/pull/67)** — a **deterministic, no-live-LLM A/B harness with fault injection** ([`LoopAbEvalTest`](src/test/java/com/ling/linginnerflow/agent/LoopAbEvalTest.java)) comparing assume-success vs result-driven across two model profiles. Correct failure-handling **20%/60% → 100%**, zero crashes / error-as-data, retry turning `p` into ~`p²` (variance 0.016 → 0.012), happy-path byte-identical (no regression). All claims asserted in CI.
+- **[#68](https://github.com/LING-6150/Ling-innerflow/pull/68)** — a **real-LLM** small-sample check ([`eval/live-llm/RESULTS.md`](eval/live-llm/RESULTS.md)): a capable model already behaves like the optimistic profile (100%/100%, no regression), while a weaker model degrades on the baseline (80%) but holds at 100% with the typed loop. **Conclusion: typed results buy robustness across model quality, not a smarter strong model.**
+
+---
+
+## 🛠️ Tech stack
 
 | Layer | Technology |
 |---|---|
-| Language | Java 21 / TypeScript |
+| Language | Java 21 · TypeScript · Python |
 | Framework | Spring Boot 3.2.5 · Vue 3 · LangGraph4j 1.6.0 |
-| AI | Spring AI · OpenAI GPT-4o · Whisper |
-| Vector DB | Pinecone |
-| Search | Elasticsearch 8.13 |
-| Database | MySQL 8 · Redis |
-| Message Queue | Apache Kafka (3 partitions × 3 consumers) |
+| AI | Spring AI · OpenAI GPT-4o · Whisper · Embeddings |
+| Retrieval | Pinecone (vector) · Elasticsearch 8.13 (BM25) · HyDE + reranker |
+| Data | MySQL 8 · Redis |
+| Messaging | Apache Kafka (3 partitions × 3 consumers, idempotent, DLQ) |
 | Security | Spring Security · JWT · Bucket4j · Redisson |
-| Medical Standards | HL7 FHIR R4 · MCP Protocol · A2A |
-| Frontend | Vue 3 · Tailwind CSS · Chart.js |
-| Deployment | AWS EC2 (t3.small) · Docker Compose · Nginx |
+| Standards | HL7 FHIR R4 · MCP · A2A |
+| Eval/Test | JUnit · pytest · deterministic A/B + fault injection |
+| Ops | Prometheus/Grafana · Docker Compose · Nginx · AWS EC2 |
 
 ---
 
-## 🚀 Quick Start
-
-### Prerequisites
-- Docker & Docker Compose
-- Java 21+
-- Node.js 22+
-
-### Environment Setup
+## 🚀 Quick start
 
 ```bash
-# Clone the repository
 git clone https://github.com/LING-6150/Ling-innerflow.git
 cd Ling-innerflow
-
-# Create environment file
-cp .env.example .env
-# Fill in your API keys:
-# OPENAI_API_KEY=your_key
-# PINECONE_API_KEY=your_key
-# DB_PASSWORD=your_password
-```
-
-### Run with Docker Compose
-
-```bash
-# Start all services
-docker compose up -d
-
-# Check status
+cp .env.example .env          # fill in OPENAI_API_KEY, PINECONE_API_KEY, DB_PASSWORD
+docker compose up -d          # start all services
 docker compose ps
-
-# View Spring Boot logs
-docker compose logs -f app
 ```
-
-### Access
 
 | Service | URL |
 |---|---|
@@ -210,44 +117,25 @@ docker compose logs -f app
 | API | http://localhost:8080/api |
 | WebSocket | ws://localhost:8080/ws |
 
----
-
-## 📡 MCP Server Endpoints
-
-InnerFlow exposes 6 MCP-compliant tool endpoints for external agent invocation:
-
-```
-POST /mcp/phq9-screening
-POST /mcp/cbt-skill-library
-POST /mcp/emotion-trend-analyzer
-POST /mcp/history-context-retriever
-POST /mcp/wellness-resource-search
-POST /mcp/fhir-summary
-```
+**MCP endpoints** (callable by external agents): `POST /mcp/{phq9-screening, cbt-skill-library, emotion-trend-analyzer, history-context-retriever, wellness-resource-search, fhir-summary}`
 
 ---
 
-## 🏆 Hackathon Highlights
+## 🗺️ Where to look (for reviewers)
 
-This project was built for the **Agents Assemble: Healthcare AI Endgame Challenge** by Prompt Opinion.
-
-**Why InnerFlow stands out:**
-
-1. **Complete A2A closed loop**: User input → Multimodal fusion → LangGraph4j routing → Planning Agent decision → ReAct tool invocation → FHIR output → Clinician dashboard
-2. **Planning Agent beyond rule-based routing**: Considers emotion trajectory trends + long-term user memory across sessions, enabling escalate / de-escalate / blend / pure four-strategy intelligent dispatch — routing decisions visible in real-time on doctor dashboard
-3. **Clinical-grade data standards**: HL7 FHIR R4 format output, ready for real EHR integration
-4. **Precision mental health triage**: L1–L5 five-level quantification, L5 crisis bypasses Planner to directly trigger safety response with zero delay
-5. **Enterprise-grade engineering**: JWT auth, Kafka async decoupling (3 partitions × 3 consumers, idempotent deduplication, dead letter queue), three-layer memory (Redis + MySQL + LLM reflection), Hybrid RAG dual-path retrieval
+| Interest | Start here |
+|---|---|
+| The typed result-driven loop | [`agent/ReActAgent.java`](src/main/java/com/ling/linginnerflow/agent/ReActAgent.java) · [`agent/tool/ActionResult.java`](src/main/java/com/ling/linginnerflow/agent/tool/ActionResult.java) |
+| Reliability A/B + fault injection | [`agent/LoopAbEvalTest.java`](src/test/java/com/ling/linginnerflow/agent/LoopAbEvalTest.java) · [`agent/LoopEvalHarness.java`](src/test/java/com/ling/linginnerflow/agent/LoopEvalHarness.java) |
+| Real-LLM validation | [`eval/live-llm/`](eval/live-llm/RESULTS.md) |
+| Emotion routing graph | `agent/` LangGraph4j nodes (Analyzer / Planner / L1–L5) |
+| Safety routing & crisis fail-safe | L5 crisis short-circuit + companion-safety guard |
 
 ---
 
 ## 👩‍💻 Author
 
-**Ling Duan**
-- Graduate Student, Northeastern University (Information Systems, AI Backend)
-- GitHub: [@LING-6150](https://github.com/LING-6150)
-- Email: duan.lin@northeastern.edu
+**Ling Duan** — Graduate Student, Northeastern University (Information Systems).
+GitHub [@LING-6150](https://github.com/LING-6150)
 
----
-
-*Built with ❤️ for the North America Healthcare AI Hackathon — Agents Assemble 2026*
+<sub>InnerFlow began at the North America Healthcare AI Hackathon (Agents Assemble 2026) and has since been developed into the eval-first platform described above.</sub>
