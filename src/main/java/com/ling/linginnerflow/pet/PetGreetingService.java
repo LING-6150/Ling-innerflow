@@ -77,7 +77,8 @@ public class PetGreetingService {
                 || StringUtils.hasText(m.getConversationSummary());
     }
 
-    private String buildMirrorPrompt(UserMemory m) {
+    // package-private: 让同包的 greeting-eval 复用与生产完全一致的 prompt
+    String buildMirrorPrompt(UserMemory m) {
         return """
         You are Flowy, a gentle companion in a CBT-based emotional support app.
         The user just opened your page. Greet them in their own emotional context.
