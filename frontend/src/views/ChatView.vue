@@ -3,6 +3,14 @@
     <div class="bg-orb bg-orb-1"></div>
     <div class="bg-orb bg-orb-2"></div>
 
+    <!-- 角落"见证者"宠物:随情绪实时反应,仅聊天中出现,停顿后自动淡出。
+         非语言、不挡输入(pointer-events:none);L5 时自行变静变淡退场。 -->
+    <transition name="pet-fade">
+      <div v-if="petVisible" class="chat-pet-corner">
+        <PetAvatar :emotion="petEmotion" />
+      </div>
+    </transition>
+
     <!-- 顶部导航 -->
     <div class="top-bar glass-card">
       <div class="top-left">
@@ -142,6 +150,7 @@ import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import request from '@/api/request'
+import PetAvatar from '@/components/PetAvatar.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -162,6 +171,10 @@ const isTyping = ref(false)
 const messagesRef = ref<HTMLElement>()
 const textareaRef = ref<HTMLTextAreaElement>()
 const currentMood = ref('calm')
+// 角落见证者宠物的实时 UI 状态(live 事件驱动,与 DB 里的 currentEmotion 互不冲突)
+const petEmotion = ref(1)
+const petVisible = ref(false)
+let petFadeTimer: number | undefined
 const showPersonaMenu = ref(false)
 const currentPersona = ref('WARM')
 const latestImage = ref<string | null>(null)
@@ -469,6 +482,12 @@ function connectWS() {
       }
       isTyping.value = true
 
+      // 角落见证者:随这条情绪事件实时反应,并重置"停顿淡出"计时
+      petEmotion.value = level
+      petVisible.value = true
+      if (petFadeTimer) clearTimeout(petFadeTimer)
+      petFadeTimer = window.setTimeout(() => { petVisible.value = false }, 45000)
+
     } else if (data.type === 'chunk') {
       isTyping.value = false
       const lastMsg = messages.value[messages.value.length - 1]
@@ -541,6 +560,7 @@ onMounted(async () => {
 onUnmounted(() => {
   ws?.close()
   if (pollTimer) clearTimeout(pollTimer)
+  if (petFadeTimer) clearTimeout(petFadeTimer)
 })
 </script>
 
@@ -881,4 +901,17 @@ onUnmounted(() => {
 
 .send-btn:hover:not(:disabled) { transform: scale(1.1); }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 角落见证者宠物:固定在输入栏上方右侧,小而不挡,绝不拦截点击 */
+.chat-pet-corner {
+  position: fixed;
+  right: 18px;
+  bottom: 96px;
+  width: 72px;
+  height: 72px;
+  z-index: 50;
+  pointer-events: none;
+}
+.pet-fade-enter-active, .pet-fade-leave-active { transition: opacity 0.8s ease; }
+.pet-fade-enter-from, .pet-fade-leave-to { opacity: 0; }
 </style>
