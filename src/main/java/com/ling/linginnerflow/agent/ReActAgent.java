@@ -1,6 +1,8 @@
 package com.ling.linginnerflow.agent;
 
+import com.ling.linginnerflow.agent.tool.ActionResult;
 import com.ling.linginnerflow.agent.tool.AgentTool;
+import com.ling.linginnerflow.agent.tool.ToolStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
@@ -179,11 +181,13 @@ public class ReActAgent {
                     } else {
                         toolFuture = CompletableFuture.supplyAsync(() -> {
                             AgentTool tool = tools.get(action);
-                            String result = tool != null
-                                    ? tool.execute(toolInput)
-                                    : "Tool not found: " + action;
-                            log.info("[ReAct-Speculative] Tool {} finished", action);
-                            return result;
+                            ActionResult ar = (tool != null)
+                                    ? actWithRetry(tool, toolInput)
+                                    : ActionResult.failure("tool_not_found", "Tool not found: " + action);
+                            log.info("[ReAct-Speculative] Tool {} finished status={}", action, ar.status());
+                            // Decide by typed status; feed the model a status-aware observation,
+                            // never a raw error string it might mistake for data.
+                            return observationForModel(ar);
                         });
                         log.info("[ReAct-Speculative] Tool {} dispatched async", action);
                     }
@@ -263,7 +267,7 @@ public class ReActAgent {
 
     // ── Shared tool execution ────────────────────────────────────────────
 
-    /** Returns the tool observation, or null when L5 safety protection triggered. */
+    /** Returns the status-aware observation for the model, or null when L5 safety triggered. */
     private String executeAction(String response, String userId, int emotionLevel) {
         String action = extractBetween(
                 response, "Action:",
@@ -277,12 +281,35 @@ public class ReActAgent {
 
         String toolInput = "HistoryContextRetriever".equals(action) ? userId : actionInput;
         AgentTool tool = tools.get(action);
-        String observation = (tool != null)
-                ? tool.execute(toolInput)
-                : "Tool not found: " + action;
+        ActionResult ar = (tool != null)
+                ? actWithRetry(tool, toolInput)
+                : ActionResult.failure("tool_not_found", "Tool not found: " + action);
 
-        log.info("[ReAct] Action={}, Observation={}", action, observation);
-        return observation;
+        log.info("[ReAct] Action={}, status={}", action, ar.status());
+        return observationForModel(ar);
+    }
+
+    /** One retry on FAILURE — the typed status lets us recover instead of blindly
+     *  feeding an error string back to the model. */
+    private ActionResult actWithRetry(AgentTool tool, String input) {
+        ActionResult ar = tool.act(input);
+        if (ar.status() == ToolStatus.FAILURE) {
+            log.warn("[ReAct] tool {} FAILURE ({}); retrying once", tool.getName(), ar.errorType());
+            ar = tool.act(input);
+        }
+        return ar;
+    }
+
+    /** Status-aware observation: the loop decides on the typed status and never
+     *  hands a raw error string to the model as if it were a successful result. */
+    static String observationForModel(ActionResult ar) {
+        return switch (ar.status()) {
+            case SUCCESS -> ar.observation();
+            case PARTIAL -> "[partial result — information is incomplete; do NOT treat this as a "
+                    + "confident answer] " + (ar.observation() == null ? "" : ar.observation());
+            case FAILURE -> "[tool failed (" + ar.errorType() + ") — do NOT assume it succeeded; "
+                    + "answer from what you already know, or try a different approach]";
+        };
     }
 
     // ── Prompt builders ──────────────────────────────────────────────────
