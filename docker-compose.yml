@@ -173,6 +173,21 @@ services:
     ports:
       - "9090:9090"
 
+  # ── Grafana Tempo (distributed tracing backend, OTLP receiver) ─
+  tempo:
+    image: grafana/tempo:2.5.0
+    container_name: innerflow-tempo
+    restart: unless-stopped
+    command: [ "-config.file=/etc/tempo/tempo.yml" ]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    mem_limit: 384m
+    ports:
+      - "3200:3200"   # Tempo query API (Grafana datasource)
+      - "4318:4318"   # OTLP/HTTP receiver (app exports here)
+      - "4317:4317"   # OTLP/gRPC receiver
+
   # ── Grafana ────────────────────────────────────────────────────
   grafana:
     image: grafana/grafana:10.4.0
@@ -180,6 +195,7 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus
+      - tempo
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
@@ -220,6 +236,8 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       PINECONE_API_KEY: ${PINECONE_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      OTLP_TRACING_ENDPOINT: http://tempo:4318/v1/traces
+      TRACING_SAMPLE_RATE: ${TRACING_SAMPLE_RATE:-0.1}
     mem_limit: 512m
     ports:
       - "8080:8080"
@@ -245,3 +263,4 @@ volumes:
   es_data:
   prometheus_data:
   grafana_data:
+  tempo_data:
