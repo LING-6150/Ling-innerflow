@@ -180,6 +180,12 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
+        <!-- AOP：启用 @Observed 注解切面 (ObservedAspect) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- 分布式追踪：Micrometer Observation → OpenTelemetry → OTLP (Tempo) -->
         <dependency>
             <groupId>io.micrometer</groupId>
