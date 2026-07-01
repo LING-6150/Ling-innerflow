@@ -1,5 +1,6 @@
 package com.ling.linginnerflow.rag;
 
+import com.ling.linginnerflow.config.Observations;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.embedding.EmbeddingModel;
@@ -27,11 +28,14 @@ public class HyDEService {
 
     private final ChatClient.Builder chatClientBuilder;
     private final EmbeddingModel embeddingModel;
+    private final Observations observations;
 
     public HyDEService(ChatClient.Builder chatClientBuilder,
-                       EmbeddingModel embeddingModel) {
+                       EmbeddingModel embeddingModel,
+                       Observations observations) {
         this.chatClientBuilder = chatClientBuilder;
         this.embeddingModel = embeddingModel;
+        this.observations = observations;
     }
 
     /**
@@ -65,6 +69,7 @@ public class HyDEService {
                 Output ONLY the entry text, no prefix or label.
                 """.formatted(userQuery);
 
+        observations.tagPrompt("rag.hyde", "v1");
         return chatClientBuilder.build().prompt().user(prompt).call().content();
     }
 

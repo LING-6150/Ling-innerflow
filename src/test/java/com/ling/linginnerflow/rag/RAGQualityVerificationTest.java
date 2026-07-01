@@ -1,5 +1,6 @@
 package com.ling.linginnerflow.rag;
 
+import com.ling.linginnerflow.config.Observations;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.embedding.EmbeddingModel;
+import io.micrometer.observation.ObservationRegistry;
 
 import java.util.List;
 
@@ -38,8 +40,9 @@ class RAGQualityVerificationTest {
 
     @BeforeEach
     void setUp() {
-        hydeService = new HyDEService(mockChatBuilder, mockEmbeddingModel);
-        reranker = new LLMRerankerService(mockChatBuilder);
+        Observations observations = new Observations(ObservationRegistry.NOOP);
+        hydeService = new HyDEService(mockChatBuilder, mockEmbeddingModel, observations);
+        reranker = new LLMRerankerService(mockChatBuilder, observations);
     }
 
     // ── Q1: HyDE embeds the hypothetical doc, not the raw query ─────────────
@@ -150,7 +153,10 @@ class RAGQualityVerificationTest {
     @Test
     @DisplayName("parseRankedIds: out-of-range index is silently ignored")
     void parseRankedIds_outOfRangeIndex_ignored() {
-        LLMRerankerService svc = new LLMRerankerService(mockChatBuilder);
+        LLMRerankerService svc = new LLMRerankerService(
+                mockChatBuilder,
+                new Observations(ObservationRegistry.NOOP)
+        );
         List<String> ids = List.of("D1", "D2");
 
         // Index 5 is out of range for a 2-element list
@@ -163,7 +169,10 @@ class RAGQualityVerificationTest {
     @Test
     @DisplayName("parseRankedIds: duplicate indices produce no duplicates in output")
     void parseRankedIds_duplicateIndex_deduped() {
-        LLMRerankerService svc = new LLMRerankerService(mockChatBuilder);
+        LLMRerankerService svc = new LLMRerankerService(
+                mockChatBuilder,
+                new Observations(ObservationRegistry.NOOP)
+        );
         List<String> ids = List.of("D1", "D2", "D3");
 
         List<String> result = svc.parseRankedIds("1,1,2", ids, 3);
