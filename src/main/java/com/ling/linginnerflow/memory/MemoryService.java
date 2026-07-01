@@ -140,11 +140,11 @@ public class MemoryService {
      * 清除短期记忆（会话结束时调用）
      */
     public void clearShortMemory(String userId) {
-        observeVoid("memory.clear_short", "clear_short", "redis", observation -> {
+        observeVoidOrThrow("memory.clear_short", "clear_short", "redis", observation -> {
             Boolean deleted = redisTemplate.delete(SHORT_MEMORY_PREFIX + userId);
             observation.lowCardinalityKeyValue("memory.hit", String.valueOf(Boolean.TRUE.equals(deleted)));
             log.info("短期记忆已清除: userId={}", userId);
-        }, "短期记忆清除失败");
+        });
     }
 
     // ==================== 长期记忆 ====================
@@ -153,12 +153,12 @@ public class MemoryService {
      * 读取长期记忆
      */
     public UserMemory getLongMemory(String userId) {
-        return observe("memory.get_long", "get_long", "repository", observation -> {
+        return observeOrThrow("memory.get_long", "get_long", "repository", observation -> {
             UserMemory memory = userMemoryRepository.findByUserId(userId)
                     .orElse(null);
             observation.lowCardinalityKeyValue("memory.hit", String.valueOf(memory != null));
             return memory;
-        }, "长期记忆读取失败", null);
+        });
     }
 
     /**
@@ -317,7 +317,7 @@ public class MemoryService {
      * 供各节点调用，把记忆注入Prompt
      */
     public String buildContextPrompt(String userId) {
-        return observe("memory.build_context", "build_context", "mixed", observation -> {
+        return observeOrThrow("memory.build_context", "build_context", "mixed", observation -> {
             StringBuilder context = new StringBuilder();
 
             UserMemory longMemory = getLongMemory(userId);
@@ -382,7 +382,7 @@ public class MemoryService {
             }
 
             return context.toString();
-        }, "记忆上下文构建失败", "");
+        });
     }
 
     /** P0-2: 首次对话专用 — 纯提取，无旧档案干扰，格式与 WikiMergeResult 一致 */
@@ -842,6 +842,34 @@ public class MemoryService {
             runnable.run(observation);
             return null;
         }, errorMessage, null);
+    }
+
+    private <T> T observeOrThrow(String name, String operation, String store,
+                                 ObservedSupplier<T> supplier) {
+        Observation observation = Observation.createNotStarted(name, observationRegistry)
+                .lowCardinalityKeyValue("memory.operation", operation)
+                .lowCardinalityKeyValue("memory.store", store)
+                .start();
+
+        try (Observation.Scope ignored = observation.openScope()) {
+            return supplier.get(observation);
+        } catch (RuntimeException e) {
+            observation.error(e);
+            throw e;
+        } catch (Exception e) {
+            observation.error(e);
+            throw new IllegalStateException(e);
+        } finally {
+            observation.stop();
+        }
+    }
+
+    private void observeVoidOrThrow(String name, String operation, String store,
+                                    ObservedRunnable runnable) {
+        observeOrThrow(name, operation, store, observation -> {
+            runnable.run(observation);
+            return null;
+        });
     }
 
     private void tagSizeBucket(Observation observation, int size) {
