@@ -3,7 +3,7 @@
 **Phase:** 1 · **Est:** ~1 day · **Risk:** Low · **Labels:** observability, infra
 
 ## Why
-We have `micrometer-registry-prometheus` but **no tracing**. Spring AI 1.0 auto-emits `gen_ai.*` spans (model, tokens, finish reason) as soon as a `Tracer` bean exists — so this issue unlocks most of the cost/model gap with no call-site changes.
+We have `micrometer-registry-prometheus` but **no tracing**. Spring AI 1.0 can emit `gen_ai.*` observations/spans once a `Tracer` bean exists, so this issue should unlock model metadata and much of the token/cost gap with minimal call-site changes.
 
 ## Scope
 - `pom.xml`: add `io.micrometer:micrometer-tracing-bridge-otel`, `io.opentelemetry:opentelemetry-exporter-otlp`, `io.micrometer:context-propagation`.
@@ -12,6 +12,7 @@ We have `micrometer-registry-prometheus` but **no tracing**. Spring AI 1.0 auto-
 
 ## Acceptance
 - App boots with a `Tracer` bean present; a sample HTTP request produces a trace visible in the backend.
+- A sample blocking LLM call is checked for `gen_ai.*` model and usage attributes; if token usage is absent, document the exact gap for P1-02/P1-06 instead of assuming cost metrics are complete.
 - No behavior change to request handling.
 
 ## Notes

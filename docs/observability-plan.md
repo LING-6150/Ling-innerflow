@@ -1,6 +1,7 @@
 # InnerFlow → AI Runtime Platform: Observability & Benchmark Plan
 
 > **Status:** Audit + planning only. No code changed yet.
+> **Implementation note:** File names and call-site names below are design anchors from the audited codebase, not hard-coded line-number contracts. Before implementing each issue, re-check the current GitHub `main` branch and adapt to the live method names and module shape.
 > **Goal:** Reposition InnerFlow from "emotional-support app" to a **production-grade AI runtime platform**, with the resume narrative aimed at **Applied AI / AI Infra**.
 > **Thesis:** The product already has a non-trivial, *dual* agent runtime (a custom streaming ReAct loop **and** a LangGraph4j state graph), a multi-stage hybrid RAG pipeline, a 3-tier memory system, and layered safety. What it lacks is the thing infra teams are actually graded on: **you cannot currently see, per step, how long it took, what it cost, which model/prompt ran, whether it retried, and why it failed.** This plan adds that, then turns it into a defensible benchmark.
 
@@ -11,7 +12,7 @@
 | | Today | After Phase 1 | After Phase 2 |
 |---|---|---|---|
 | Per-step latency | ❌ ad-hoc `log.info` only | ✅ OTEL span per node/tool/RAG-stage | ✅ + p50/p95 dashboards |
-| Token / cost | ❌ discarded (`.content()` drops usage) | ✅ captured via Spring AI gen-ai spans | ✅ cost-per-conversation, per-runtime |
+| Token / cost | ❌ discarded (`.content()` drops usage) | ✅ captured or explicitly recorded from Spring AI observations | ✅ cost-per-conversation, per-runtime |
 | Model / prompt version | ❌ not attributed | ✅ span attributes | ✅ compared across versions |
 | Retry / failure reason | ❌ swallowed by fallbacks | ✅ span status + events | ✅ failure-rate SLOs |
 | End-to-end trace | ❌ none | ✅ one trace covers WS→analyzer→planner→Lx / RAG / memory | ✅ |
@@ -51,7 +52,7 @@ Phase 2: stream the user-facing reply
 | Agent runtime (custom) | `agent/ReActAgent.java` (565 LOC) | **Mature / novel** | 2-phase streaming, speculative tool dispatch, L3 prefetch, crisis short-circuit. Reactive (`Flux` on `boundedElastic`). |
 | Agent runtime (graph) | `agent/EmotionGraph.java` + `agent/node/*` | **Mature** | LangGraph4j state graph, planner-driven conditional routing. Blocking. |
 | Planner / routing | `agent/node/PlannerNode.java` | **Mature** | LLM emits structured JSON routing (targetLevel/strategy/toneHint) with trajectory awareness + fallback. |
-| RAG | `rag/HybridSearchService.java` + HyDE/Reranker/CBTKnowledge | **Mature** | HyDE → Pinecone (k=10) + ES BM25 (k=5) → RRF → LLM rerank → top-3. Redis 12h cache. Pinecone warmup scheduler. Graceful degradation. |
+| RAG | `rag/HybridSearchService.java` + HyDE/Reranker/CBTKnowledge | **Mature** | HyDE → Pinecone (k=10) + ES BM25 (k=5) → RRF → LLM rerank → top-3. Pinecone warmup scheduler. Graceful degradation. Cache visibility should be instrumented only if the current implementation still has a cache layer. |
 | Memory | `memory/MemoryService.java` (833 LOC) + Compression | **Mature** | 3-tier: Redis short-term, MySQL long-term wiki, async compression. Embedding-based trigger dedup (cos>0.88), score decay (90-day half-life), daily archive sweep, user-correction audit trail. |
 | Safety / guardrails | `cache/RedisDefenseService`, `config/Sentinel*`, `exception/RateLimitInterceptor` | **Mature (HTTP) / partial (WS)** | Sentinel flow+degrade, Bucket4j per-IP, Redis cache-defense. L5 crisis short-circuit. **WS path has no rate limit / no stream timeout.** |
 | Streaming | `websocket/EmotionWebSocketHandler` + `ReActAgent` | **Mature** | WS + Spring AI `Flux`, chunk protocol `{type:chunk|done}`. |
@@ -76,7 +77,7 @@ Every place latency and cost are incurred — i.e. every span we will create.
 | 10 | `CBTKnowledgeService.retrieveIdsByVector` / `retrieveRelevantCBT` | embed + Pinecone | vector search |
 | 11 | `HybridSearchService.esKeywordSearch` :132 | Elasticsearch | BM25 |
 | 12 | `LLMRerankerService.rerank` :47 | LLM | single-call rerank |
-| 13 | `HybridSearchService` cache :80,:88 | Redis | 12h cache get/set |
+| 13 | `HybridSearchService` cache path, if present in current `main` | Redis | Mark hit/miss only where a cache layer exists |
 | 14 | `MemoryService.updateLongMemory` :172 | LLM | wiki merge (blocking) |
 | 15 | `MemoryService.generateReflection` :780 | LLM | insight synthesis |
 | 16 | `MemoryService.findSimilarTrigger` :502 | embed (batch) | dedup |
@@ -116,7 +117,7 @@ Every place latency and cost are incurred — i.e. every span we will create.
 
 The cheapest high-leverage move: this repo is **Spring Boot 3.3.6 + Spring AI 1.0.0**. Spring AI 1.0 instruments `ChatClient`, `ChatModel`, and `EmbeddingModel` against the **Micrometer Observation API** and emits OTEL `gen_ai.*` spans (model, input/output tokens, finish reason) **automatically** whenever a `Tracer` bean is present. So:
 
-- Adding `micrometer-tracing-bridge-otel` + `opentelemetry-exporter-otlp` makes **call-sites #1–#20 in §1.3 that go through `ChatClient`/`EmbeddingModel` produce spans with token usage — with zero changes to those call sites.** That single dependency change covers most of the "cost + model" gap.
+- Adding `micrometer-tracing-bridge-otel` + `opentelemetry-exporter-otlp` should make **call-sites in §1.3 that go through Spring AI `ChatClient`/`EmbeddingModel` produce `gen_ai.*` observations/spans with model metadata and, where the provider exposes it, token usage.** Treat streaming token usage as a must-verify item; if it is missing on `.stream().content()`, record usage explicitly at the call boundary or defer exact cost for that path until a reliable response-usage source is available.
 - We then add **manual parent/child spans** only at the orchestration boundaries that Spring can't see (graph nodes, RAG stages, tools, the WS handler), so the auto LLM spans nest correctly under a per-conversation root.
 
 ### 2.2 Span tree design
@@ -161,7 +162,7 @@ async (on connection close):
 | `application*.properties` | `management.tracing.sampling.probability`, OTLP endpoint, enable management in local profile | **Low** (config) |
 | new `config/ObservabilityConfig.java` | `ObservedAspect` bean, `Hooks.enableAutomaticContextPropagation()`, custom `ObservationHandler` to copy `gen_ai` token attrs → a cost `Counter` | **Low** (new file) |
 | graph nodes (`EmotionAnalyzer`, `Planner`, `L1–L5`) | `@Observed(name=…)` or manual `Observation` wrap of `process()` | **Low–Med** (1 annotation + AOP) |
-| `HybridSearchService.doHybridSearch` + stages, `HyDEService`, `CBTKnowledgeService`, `LLMRerankerService` | manual span per stage | **Med** |
+| `HybridSearchService.hybridSearch` (or the current equivalent entrypoint) + stages, `HyDEService`, `CBTKnowledgeService`, `LLMRerankerService` | manual span per stage | **Med** |
 | `MemoryService` (#14/#15/#16), `MemoryCompressionService` (#17) | manual spans; async ops need context capture | **Med** |
 | `ReActAgent` (#6/#7/#8) | manual spans **+ reactive context propagation** across `boundedElastic` and the tool `CompletableFuture` | **High** ← main risk |
 | `EmotionWebSocketHandler.handleTextMessage` | manual **root** span (WS not auto-traced) + propagate into the `Flux` subscribe | **High** ← main risk |
@@ -172,7 +173,7 @@ async (on connection close):
 
 1. **Reactive context propagation (highest risk).** `ReActAgent.runStreaming` does `Flux.create` + `Schedulers.boundedElastic().schedule(...)`, then subscribes the Phase-2 `Flux` on yet another thread, and dispatches tools as `CompletableFuture.supplyAsync`. A span opened on the request thread will **not** be the current span inside those callbacks unless we (a) call `Hooks.enableAutomaticContextPropagation()` and (b) explicitly capture/restore the `Observation`/`Context` across the `boundedElastic` hop and the `CompletableFuture`. Get this wrong and Path-B spans become orphans. **Mitigation:** spike this on `ReActAgent` first, before instrumenting anything else; it is the canary.
 2. **WS root span.** No servlet filter wraps a WebSocket text frame, so there is no ambient trace. We must open the root manually in `handleTextMessage` and close it in the stream's `doFinally`, not at method return (the method returns while the `Flux` is still streaming).
-3. **Cost capture.** Spring AI records `gen_ai.usage.input_tokens` / `output_tokens` on its spans even though our code calls `.content()`. We derive $ from a static pricing map (`gpt-4o-mini`) in a custom `ObservationHandler`. **No need** to rewrite call sites to `.chatResponse()` — but verify the token attributes actually populate for the **streaming** path (streaming usage is sometimes only emitted on the final chunk).
+3. **Cost capture.** Spring AI may record `gen_ai.usage.input_tokens` / `output_tokens` on observations even though our code calls `.content()`. Derive $ from a static pricing map (`gpt-4o-mini`) only after verifying those attributes are present for blocking and streaming paths. If `.stream().content()` does not expose final usage reliably, keep model/prompt/latency spans intact and add an explicit usage-capture follow-up instead of guessing exact cost.
 4. **Prompt version is a new convention.** There is no versioning today. Minimal approach: add a `prompt.version` + `prompt.id` constant next to each prompt builder and stamp it as a span attribute. Low effort but must be applied consistently or comparisons in Phase 2 are meaningless.
 5. **Sampling vs completeness.** For a benchmark we want 100% sampling on the eval profile but 5–10% in prod. Drive via `management.tracing.sampling.probability` per profile.
 6. **Failure visibility.** Graceful fallbacks must set span status = error + an event (e.g. `rag.fallback.reason`) *before* degrading, otherwise the trace still looks green. This is a behavior change inside existing catch blocks (additive, low risk).
@@ -189,14 +190,16 @@ async (on connection close):
 1. **Deps + collector** — `pom.xml`, `application*.properties`, `docker-compose.yml`, new Grafana/Tempo (or Jaeger) wiring. *(~1 day)*
 2. **Observability config** — new `config/ObservabilityConfig.java`: `ObservedAspect`, reactor context propagation, cost `ObservationHandler` (tokens→$), `prompt.version` attribute helper. *(~1 day)*
 3. **Graph path spans** — `@Observed` on `EmotionAnalyzerNode`, `PlannerNode`, `L1–L5` nodes; manual `emotion.graph.invoke` wrapper in `EmotionGraph` / `EmotionController`. *(~1 day)*
-4. **RAG spans** — stage spans in `HybridSearchService.doHybridSearch`, `HyDEService`, `CBTKnowledgeService`, `LLMRerankerService`; mark cache hit/miss + fallback events. *(~1–1.5 days)*
+4. **RAG spans** — stage spans in `HybridSearchService.hybridSearch` (or current equivalent), `HyDEService`, `CBTKnowledgeService`, `LLMRerankerService`; mark cache hit/miss only if the current implementation has cache, and always mark fallback events. *(~1–1.5 days)*
 5. **Memory spans** — `MemoryService` (updateLongMemory / generateReflection / findSimilarTrigger), `MemoryCompressionService` (async, with context capture). *(~1 day)*
 6. **ReAct + WS spans (the risky bit)** — manual root in `EmotionWebSocketHandler.handleTextMessage` closed in `doFinally`; `ReActAgent` phase1/phase2/tool spans with context propagation across `boundedElastic` + `CompletableFuture`. **Spike this first.** *(~1.5–2.5 days)*
 7. **Dashboards + verification** — commit a Grafana dashboard JSON (per-step p50/p95, cost-per-conversation, fallback rate); add a trace-presence assertion to the verification tests. *(~1 day)*
 
+**Execution order:** implement P1-01 and P1-02 first, then immediately run the P1-06 canary before fanning out P1-03/P1-04/P1-05. If WebSocket/ReAct context propagation fails, fix that foundation before adding broad instrumentation.
+
 **Risks:** reactive context propagation (Path B), streaming token-usage emission, prompt-version discipline. **Mitigation:** canary on `ReActAgent` before fanning out; keep all changes additive (no behavior change except adding error status to existing catch blocks).
 
-**Done when:** a single conversation (both HTTP and WS) renders as one connected trace in Jaeger/Tempo with cost + model + prompt.version on each LLM span, and a fallback path shows as a red span with a reason event.
+**Done when:** a single conversation (both HTTP and WS) renders as one connected trace in Jaeger/Tempo with model + prompt.version on each LLM span, token/cost where usage is reliably available, and a fallback path shows as a red span with a reason event.
 
 ### Phase 2 — Runtime benchmark: my ReAct runtime vs LangGraph  (≈ 5–8 dev-days)
 

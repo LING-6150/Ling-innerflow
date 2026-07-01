@@ -75,7 +75,7 @@ Reposition InnerFlow from "emotional-support app" to a **production-grade AI run
 - [ ] P1-01 OTEL deps + OTLP collector + Grafana/Tempo
 - [ ] P1-02 ObservabilityConfig (ObservedAspect, reactive context propagation, cost handler, prompt-version)
 - [ ] P1-03 Graph node spans (analyzer / planner / L1–L5)
-- [ ] P1-04 RAG pipeline spans + cache/fallback visibility
+- [ ] P1-04 RAG pipeline spans + fallback visibility (cache hit/miss only if present on current `main`)
 - [ ] P1-05 Memory spans (long-memory / reflection / dedup / compression)
 - [ ] P1-06 ReAct + WebSocket spans, reactive context propagation **(spike first — highest risk)**
 - [ ] P1-07 Grafana dashboards + trace-presence verification (also fix CI `-DskipTests`)
@@ -87,7 +87,7 @@ Reposition InnerFlow from "emotional-support app" to a **production-grade AI run
 - [ ] P2-04 Benchmark report + comparison dashboard
 - [ ] P2-05 (stretch) External LangGraph (Python) reference target
 
-**Key lever:** Spring AI 1.0 auto-emits `gen_ai.*` spans (model + token usage) once a Tracer bean exists → most of the cost/model gap closes with no call-site changes. **Key risk:** reactive context propagation on the WS/ReAct path (P1-06) — do it first as the canary.
+**Key lever:** Spring AI 1.0 can emit `gen_ai.*` observations/spans once a Tracer bean exists → model metadata and much of the cost/model gap should close with minimal call-site changes, while streaming token usage must be verified. **Key risk:** reactive context propagation on the WS/ReAct path (P1-06) — do it first as the canary.
 EOF
 )
 run gh issue create --repo "$REPO" --title "[EPIC] Observability + runtime benchmark — reposition as AI runtime platform" \
