@@ -1,6 +1,9 @@
 package com.ling.linginnerflow.memory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ling.linginnerflow.config.Observations;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -44,6 +47,8 @@ public class MemoryCompressionService {
     private final UserMemoryRepository userMemoryRepository;
     private final ChatClient.Builder chatClientBuilder;
     private final ObjectMapper objectMapper;
+    private final ObservationRegistry observationRegistry;
+    private final Observations observations;
 
     private static final String SHORT_MEMORY_PREFIX = "memory:short:";
     private static final String COMPRESS_LOCK_PREFIX = "memory:compressing:";
@@ -62,11 +67,18 @@ public class MemoryCompressionService {
      */
     @Async("memoryCompressionExecutor")
     public void compressAsync(String userId, List<ConversationMessage> history) {
-        String lockKey = COMPRESS_LOCK_PREFIX + userId;
-        try {
+        Observation observation = Observation.createNotStarted("memory.compress", observationRegistry)
+                .lowCardinalityKeyValue("memory.operation", "compress")
+                .lowCardinalityKeyValue("memory.store", "mixed")
+                .lowCardinalityKeyValue("memory.size_bucket", sizeBucket(history.size()))
+                .start();
+
+        try (Observation.Scope ignored = observation.openScope()) {
+            String lockKey = COMPRESS_LOCK_PREFIX + userId;
             // Acquire lock — if another compression is already in flight, skip
             Boolean locked = redisTemplate.opsForValue()
                     .setIfAbsent(lockKey, "1", COMPRESS_LOCK_TTL_MINUTES, TimeUnit.MINUTES);
+            observation.lowCardinalityKeyValue("memory.lock_acquired", String.valueOf(Boolean.TRUE.equals(locked)));
             if (!Boolean.TRUE.equals(locked)) {
                 log.info("[Compression] Already in progress for userId={}, skipping", userId);
                 return;
@@ -77,9 +89,11 @@ public class MemoryCompressionService {
             int keepMessages = keepRecentRounds * 2;  // each round = user + assistant
 
             if (history.size() <= keepMessages) {
+                observation.lowCardinalityKeyValue("memory.skipped", "true");
                 log.info("[Compression] History shorter than keep window, nothing to compress");
                 return;
             }
+            observation.lowCardinalityKeyValue("memory.skipped", "false");
 
             // ── Sliding window split ───────────────────────────────────────
             List<ConversationMessage> toSummarize =
@@ -123,9 +137,11 @@ public class MemoryCompressionService {
                     userId, summary.length(), toKeep.size(), memory.getCompressionCount());
 
         } catch (Exception e) {
+            observation.error(e);
             log.error("[Compression] Failed: userId={}, error={}", userId, e.getMessage());
         } finally {
-            redisTemplate.delete(lockKey);
+            redisTemplate.delete(COMPRESS_LOCK_PREFIX + userId);
+            observation.stop();
         }
     }
 
@@ -135,6 +151,7 @@ public class MemoryCompressionService {
      */
     String generateSummary(List<ConversationMessage> messages) {
         String prompt = buildSummaryPrompt(messages);
+        observations.tagPrompt("memory.compression.summary", "v1");
         return chatClientBuilder.build().prompt().user(prompt).call().content();
     }
 
@@ -168,5 +185,13 @@ public class MemoryCompressionService {
                 - Be specific, not generic ("mentioned feeling trapped at work" not "had work stress")
                 - Output ONLY the summary text, no headers or bullet points
                 """.formatted(dialogue);
+    }
+
+    private String sizeBucket(int size) {
+        if (size == 0) return "0";
+        if (size <= 2) return "1-2";
+        if (size <= 10) return "3-10";
+        if (size <= 20) return "11-20";
+        return "21+";
     }
 }

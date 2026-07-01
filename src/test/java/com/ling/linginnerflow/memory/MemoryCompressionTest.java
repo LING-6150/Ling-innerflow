@@ -2,6 +2,8 @@ package com.ling.linginnerflow.memory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ling.linginnerflow.config.Observations;
+import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,7 +57,13 @@ class MemoryCompressionTest {
     void setUp() {
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         service = new MemoryCompressionService(
-                redisTemplate, memoryRepository, mockChatBuilder, objectMapper);
+                redisTemplate,
+                memoryRepository,
+                mockChatBuilder,
+                objectMapper,
+                ObservationRegistry.NOOP,
+                new Observations(ObservationRegistry.NOOP)
+        );
         ReflectionTestUtils.setField(service, "keepRecentRounds", KEEP_RECENT_ROUNDS);
     }
 
