@@ -72,7 +72,6 @@ public class HybridSearchService {
                 // ── Stage 2: Pinecone vector search (candidate pool) ──────────
                 List<String> pineconeIds = observeStage("rag.vector_search", "vector_search", "pinecone", () ->
                         cbtKnowledgeService.retrieveIdsByVector(hydeVector, candidateK));
-                tagHitBucket(observation, pineconeIds.size());
                 log.info("[HybridSearch] Pinecone hits: {}", pineconeIds);
 
                 // ── Stage 3: ES BM25 keyword search ───────────────────────────
@@ -83,7 +82,6 @@ public class HybridSearchService {
                 // ── Stage 4: RRF fusion ────────────────────────────────────────
                 List<String> candidateIds = observeStage("rag.rrf_merge", "rrf_merge", "rrf", () ->
                         rrfMerge(pineconeIds, esIds));
-                tagHitBucket(observation, candidateIds.size());
                 log.info("[HybridSearch] RRF candidate pool ({}): {}", candidateIds.size(), candidateIds);
 
                 if (candidateIds.isEmpty()) {
@@ -92,14 +90,14 @@ public class HybridSearchService {
                 }
 
                 // ── Stage 5: LLM re-ranking ────────────────────────────────────
-                List<String> candidateDocs = observeStage("rag.context_build", "context_build", "repository", () ->
+                List<String> candidateDocs = observeStage("rag.candidate_fetch", "candidate_fetch", "repository", () ->
                         fetchDocumentContents(candidateIds));
                 List<String> rerankedIds = observeStage("rag.rerank", "rerank", "llm", () ->
                         reranker.rerank(userInput, candidateDocs, candidateIds, TOP_N));
                 log.info("[HybridSearch] After re-rank top-{}: {}", TOP_N, rerankedIds);
 
                 // ── Stage 6: Assemble final result ─────────────────────────────
-                String content = observeStage("rag.context_build", "context_build", "repository", () ->
+                String content = observeStage("rag.final_context", "final_context", "repository", () ->
                         fetchContent(rerankedIds));
                 observation.lowCardinalityKeyValue("rag.fallback", "false");
                 return content;
