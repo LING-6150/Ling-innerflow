@@ -13,6 +13,8 @@ import com.ling.linginnerflow.memory.UserMemory;
 import com.ling.linginnerflow.multimodal.EmotionFusionService;
 import com.ling.linginnerflow.pet.PetService;
 import com.ling.linginnerflow.user.JwtService;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -21,6 +23,9 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import reactor.core.publisher.SignalType;
+
+import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
@@ -44,6 +49,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
     private final EmotionFusionService emotionFusionService;
     private final ReActAgent reActAgent;
     private final PlannerNode plannerNode;
+    private final ObservationRegistry observationRegistry;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session)
@@ -75,6 +81,10 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
         String userId = (String) session.getAttributes().get("userId");
         if (userId == null) return;
 
+        Observation wsObservation = Observation.start("ws.message.handle", observationRegistry)
+                .lowCardinalityKeyValue("ws.handler", "emotion");
+
+        try (Observation.Scope ignored = wsObservation.openScope()) {
 // 解析消息（支持纯文字和JSON两种格式）
         String payload = message.getPayload();
         String userInput;
@@ -96,6 +106,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
 
         log.info("收到消息: userId={}, input={}, voiceLevel={}",
                 userId, userInput, voiceEmotionLevel);
+        wsObservation.lowCardinalityKeyValue("ws.payload.kind", payload.startsWith("{") ? "json" : "text");
 
 // 存短期记忆
         memoryService.addMessage(userId, "user", userInput);
@@ -112,6 +123,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
                 textLevel, voiceEmotionLevel, voiceConfidence,
                 imageEmotionLevel, imageConfidence);
         state.setEmotionLevel(level);
+        wsObservation.lowCardinalityKeyValue("emotion.level", String.valueOf(level));
         Persona persona = memoryService.getPersona(userId);  // 加这行
 
 
@@ -179,6 +191,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
         if (level == 5) {
             state = l5CrisisNode.process(state);
             String crisisResponse = state.getResponse();
+            wsObservation.lowCardinalityKeyValue("route.level", "5");
 
             // 持久化AI回复
             ChatMessage aiMsg = new ChatMessage();
@@ -192,11 +205,13 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
                     "content", crisisResponse
             ));
             sendMessage(session, Map.of("type", "done"));
+            wsObservation.stop();
             return;
         }
 
         if (level >= 1 && level <= 4) {
             int routeLevel = state.getTargetLevel() > 0 ? state.getTargetLevel() : level;
+            wsObservation.lowCardinalityKeyValue("route.level", String.valueOf(routeLevel));
 
             String personaHint = switch (persona) {
                 case QUIET -> "Respond with few words, restrained, non-intrusive. Under 40 words.";
@@ -223,6 +238,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
                         }
                     })
                     .doOnError(e -> {
+                        wsObservation.error(e);
                         log.error("流式回复出错 userId={}: {}", userId, e.getMessage());
                         try {
                             sendMessage(session, Map.of("type", "done"));
@@ -251,6 +267,10 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
                             log.error("ReAct完成回复失败 userId={}: {}", userId, e.getMessage());
                         }
                     })
+                    .doFinally(signalType -> {
+                        wsObservation.lowCardinalityKeyValue("ws.signal", signalName(signalType));
+                        wsObservation.stop();
+                    })
                     .subscribe();
             return;
         }
@@ -258,6 +278,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
         // 构建带记忆的Prompt
         String context = memoryService.buildContextPrompt(userId);
         String prompt = buildPrompt(level, persona, context, userInput); // 改这行
+        wsObservation.lowCardinalityKeyValue("route.level", String.valueOf(level));
 
         // 流式输出
         StringBuilder fullResponse = new StringBuilder();
@@ -303,7 +324,17 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
                         log.error("发送done失败: {}", e.getMessage());
                     }
                 })
+                .doOnError(wsObservation::error)
+                .doFinally(signalType -> {
+                    wsObservation.lowCardinalityKeyValue("ws.signal", signalName(signalType));
+                    wsObservation.stop();
+                })
                 .subscribe();
+        } catch (Exception e) {
+            wsObservation.error(e);
+            wsObservation.stop();
+            throw e;
+        }
     }
 
 
@@ -494,6 +525,15 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
             }
         }
         return null;
+    }
+
+    private static String signalName(SignalType signalType) {
+        return switch (signalType) {
+            case ON_COMPLETE -> "complete";
+            case ON_ERROR -> "error";
+            case CANCEL -> "cancel";
+            default -> signalType.name().toLowerCase(Locale.ROOT);
+        };
     }
 
 
