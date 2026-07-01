@@ -103,7 +103,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
 
         log.info("收到消息: userId={}, input={}, voiceLevel={}",
                 userId, userInput, voiceEmotionLevel);
-        wsObservation.lowCardinalityKeyValue("ws.payload", payload.startsWith("{") ? "json" : "text");
+        wsObservation.lowCardinalityKeyValue("ws.payload.kind", payload.startsWith("{") ? "json" : "text");
 
 // 存短期记忆
         memoryService.addMessage(userId, "user", userInput);

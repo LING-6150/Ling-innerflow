@@ -164,17 +164,20 @@ public class ReActAgent {
                 chatClientBuilder.build()
                         .prompt().user(finalPrompt)
                         .stream().content()
-                        .doOnNext(sink::next)
-                        .doOnComplete(sink::complete)
-                        .doOnError(e -> {
-                            phase2Observation.error(e);
-                            sink.error(e);
-                        })
-                        .doFinally(signalType -> {
-                            phase2Observation.lowCardinalityKeyValue("react.signal", signalType.name());
-                            phase2Observation.stop();
-                        })
-                        .subscribe();
+                        .subscribe(
+                                sink::next,
+                                e -> {
+                                    phase2Observation.error(e);
+                                    phase2Observation.lowCardinalityKeyValue("react.signal", "ON_ERROR");
+                                    phase2Observation.stop();
+                                    sink.error(e);
+                                },
+                                () -> {
+                                    phase2Observation.lowCardinalityKeyValue("react.signal", "ON_COMPLETE");
+                                    phase2Observation.stop();
+                                    sink.complete();
+                                }
+                        );
             }
 
         } catch (Exception e) {
@@ -255,7 +258,7 @@ public class ReActAgent {
             long joinStart = System.currentTimeMillis();
             String observation = toolFuture.join();
             long joinMs = System.currentTimeMillis() - joinStart;
-            phase1Observation.lowCardinalityKeyValue("tool.join_wait_ms", String.valueOf(joinMs));
+            phase1Observation.highCardinalityKeyValue("tool.join_wait_ms", String.valueOf(joinMs));
             log.info("[ReAct-Speculative] toolFuture.join() waited {}ms (0=already done)", joinMs);
 
             return observation == null
@@ -271,7 +274,7 @@ public class ReActAgent {
 
     private CompletableFuture<String> executeToolAsync(String action, String toolInput,
                                                        Observation phase1Observation) {
-        Observation toolObservation = Observation.createNotStarted("tool." + action, observationRegistry)
+        Observation toolObservation = Observation.createNotStarted("tool.execute", observationRegistry)
                 .parentObservation(phase1Observation)
                 .lowCardinalityKeyValue("tool.name", action)
                 .start();
