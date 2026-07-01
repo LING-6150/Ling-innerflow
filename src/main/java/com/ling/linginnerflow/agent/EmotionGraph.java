@@ -188,6 +188,7 @@ public class EmotionGraph {
     }
 
     private Map<String, Object> observeNode(String nodeName, Supplier<Map<String, Object>> supplier) {
+        // LangGraph node spans rely on the current synchronous, same-thread invoke path for scope inheritance.
         Observation observation = Observation.createNotStarted("node." + nodeName, observationRegistry)
                 .lowCardinalityKeyValue("node.name", nodeName)
                 .start();
