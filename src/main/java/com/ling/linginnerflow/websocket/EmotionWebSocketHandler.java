@@ -23,6 +23,9 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import reactor.core.publisher.SignalType;
+
+import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
@@ -265,7 +268,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
                         }
                     })
                     .doFinally(signalType -> {
-                        wsObservation.lowCardinalityKeyValue("ws.signal", signalType.name());
+                        wsObservation.lowCardinalityKeyValue("ws.signal", signalName(signalType));
                         wsObservation.stop();
                     })
                     .subscribe();
@@ -323,7 +326,7 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
                 })
                 .doOnError(wsObservation::error)
                 .doFinally(signalType -> {
-                    wsObservation.lowCardinalityKeyValue("ws.signal", signalType.name());
+                    wsObservation.lowCardinalityKeyValue("ws.signal", signalName(signalType));
                     wsObservation.stop();
                 })
                 .subscribe();
@@ -522,6 +525,15 @@ public class EmotionWebSocketHandler extends TextWebSocketHandler {
             }
         }
         return null;
+    }
+
+    private static String signalName(SignalType signalType) {
+        return switch (signalType) {
+            case ON_COMPLETE -> "complete";
+            case ON_ERROR -> "error";
+            case CANCEL -> "cancel";
+            default -> signalType.name().toLowerCase(Locale.ROOT);
+        };
     }
 
 

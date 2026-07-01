@@ -10,11 +10,13 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -115,7 +117,7 @@ public class ReActAgent {
                     }))
                     .doOnError(runObservation::error)
                     .doFinally(signalType -> {
-                        runObservation.lowCardinalityKeyValue("react.signal", signalType.name());
+                        runObservation.lowCardinalityKeyValue("react.signal", signalName(signalType));
                         runObservation.stop();
                     });
         });
@@ -160,21 +162,26 @@ public class ReActAgent {
                     .parentObservation(runObservation)
                     .lowCardinalityKeyValue("emotion.level", String.valueOf(emotionLevel))
                     .start();
+            AtomicBoolean phase2Stopped = new AtomicBoolean(false);
             try (Observation.Scope ignored = phase2Observation.openScope()) {
                 chatClientBuilder.build()
                         .prompt().user(finalPrompt)
                         .stream().content()
+                        .doOnError(phase2Observation::error)
+                        .doFinally(signalType -> {
+                            if (signalType == SignalType.CANCEL) {
+                                stopOnce(phase2Observation, "react.signal",
+                                        signalName(signalType), phase2Stopped);
+                            }
+                        })
                         .subscribe(
                                 sink::next,
                                 e -> {
-                                    phase2Observation.error(e);
-                                    phase2Observation.lowCardinalityKeyValue("react.signal", "ON_ERROR");
-                                    phase2Observation.stop();
+                                    stopOnce(phase2Observation, "react.signal", "error", phase2Stopped);
                                     sink.error(e);
                                 },
                                 () -> {
-                                    phase2Observation.lowCardinalityKeyValue("react.signal", "ON_COMPLETE");
-                                    phase2Observation.stop();
+                                    stopOnce(phase2Observation, "react.signal", "complete", phase2Stopped);
                                     sink.complete();
                                 }
                         );
@@ -274,9 +281,10 @@ public class ReActAgent {
 
     private CompletableFuture<String> executeToolAsync(String action, String toolInput,
                                                        Observation phase1Observation) {
+        String observedToolName = tools.containsKey(action) ? action : "unknown";
         Observation toolObservation = Observation.createNotStarted("tool.execute", observationRegistry)
                 .parentObservation(phase1Observation)
-                .lowCardinalityKeyValue("tool.name", action)
+                .lowCardinalityKeyValue("tool.name", observedToolName)
                 .start();
         return CompletableFuture.supplyAsync(() -> {
             try (Observation.Scope ignored = toolObservation.openScope()) {
@@ -299,6 +307,23 @@ public class ReActAgent {
                 toolObservation.stop();
             }
         });
+    }
+
+    private static String signalName(SignalType signalType) {
+        return switch (signalType) {
+            case ON_COMPLETE -> "complete";
+            case ON_ERROR -> "error";
+            case CANCEL -> "cancel";
+            default -> signalType.name().toLowerCase(java.util.Locale.ROOT);
+        };
+    }
+
+    private static void stopOnce(Observation observation, String signalKey,
+                                 String signal, AtomicBoolean stopped) {
+        if (stopped.compareAndSet(false, true)) {
+            observation.lowCardinalityKeyValue(signalKey, signal);
+            observation.stop();
+        }
     }
 
     /** Extract the tool name from "Action: ToolName" as soon as it's in the buffer.
