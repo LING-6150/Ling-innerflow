@@ -3,6 +3,7 @@ package com.ling.linginnerflow.agent.node;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ling.linginnerflow.agent.state.EmotionState;
+import com.ling.linginnerflow.config.Observations;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class PlannerNode {
 
     private final ChatClient.Builder chatClientBuilder;
     private final ObjectMapper objectMapper;
+    private final Observations observations;
 
     public EmotionState plan(EmotionState state) {
         int current = state.getEmotionLevel();
@@ -93,6 +95,7 @@ public class PlannerNode {
         );
 
         try {
+            observations.tagPrompt("emotion.planner", "v1");
             String raw = chatClientBuilder.build()
                     .prompt().user(prompt).call().content();
 

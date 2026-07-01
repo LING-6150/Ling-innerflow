@@ -2,6 +2,8 @@ package com.ling.linginnerflow.agent;
 
 import com.ling.linginnerflow.agent.node.*;
 import com.ling.linginnerflow.agent.state.EmotionState;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompiledGraph;
@@ -12,6 +14,8 @@ import org.bsc.langgraph4j.state.AgentState;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.bsc.langgraph4j.StateGraph.END;
 import static org.bsc.langgraph4j.StateGraph.START;
@@ -29,70 +33,102 @@ public class EmotionGraph {
     private final L3CBTNode l3Node;
     private final L4ProfessionalNode l4Node;
     private final L5CrisisNode l5Node;
+    private final ObservationRegistry observationRegistry;
+
+    public Optional<AgentState> invoke(Map<String, Object> input) throws GraphStateException {
+        Observation observation = Observation.createNotStarted("emotion.graph.invoke", observationRegistry)
+                .lowCardinalityKeyValue("runtime", "langgraph")
+                .start();
+
+        try (Observation.Scope ignored = observation.openScope()) {
+            Optional<AgentState> result = buildGraph().invoke(input);
+            result.ifPresent(state -> tagLevels(observation, state.data()));
+            return result;
+        } catch (GraphStateException | RuntimeException e) {
+            observation.error(e);
+            throw e;
+        } finally {
+            observation.stop();
+        }
+    }
 
     public CompiledGraph<AgentState> buildGraph() throws GraphStateException {
 
         var graph = new StateGraph<>(AgentState::new);
 
         graph.addNode("analyzer", node_async(state -> {
-            String input = state.value("userInput", "");
-            String userId = state.value("userId", "anonymous");
-            EmotionState es = new EmotionState();
-            es.setUserInput(input);
-            es.setUserId(userId);
-            es = analyzerNode.analyze(es);
-            return Map.of(
-                    "emotionLevel", es.getEmotionLevel(),
-                    "emotionDescription", es.getEmotionDescription(),
-                    "crisisMode", es.isCrisisMode(),
-                    "userId", userId
-            );
+            return observeNode("analyzer", () -> {
+                String input = state.value("userInput", "");
+                String userId = state.value("userId", "anonymous");
+                EmotionState es = new EmotionState();
+                es.setUserInput(input);
+                es.setUserId(userId);
+                es = analyzerNode.analyze(es);
+                return Map.of(
+                        "emotionLevel", es.getEmotionLevel(),
+                        "emotionDescription", es.getEmotionDescription(),
+                        "crisisMode", es.isCrisisMode(),
+                        "userId", userId
+                );
+            });
         }));
 
         // Planner 节点：读取 analyzer 输出 + 历史，决定 targetLevel
         graph.addNode("planner", node_async(state -> {
-            EmotionState es = extractState(state);
-            es = plannerNode.plan(es);
-            return Map.of(
-                    "targetLevel", es.getTargetLevel(),
-                    "strategy",    es.getStrategy(),
-                    "toneHint",    es.getToneHint()
-            );
+            return observeNode("planner", () -> {
+                EmotionState es = extractState(state);
+                es = plannerNode.plan(es);
+                return Map.of(
+                        "targetLevel", es.getTargetLevel(),
+                        "strategy",    es.getStrategy(),
+                        "toneHint",    es.getToneHint()
+                );
+            });
         }));
 
         // L1节点
         graph.addNode("l1", node_async(state -> {
-            EmotionState es = extractState(state);
-            es = l1Node.process(es);
-            return Map.of("response", es.getResponse());
+            return observeNode("l1", () -> {
+                EmotionState es = extractState(state);
+                es = l1Node.process(es);
+                return Map.of("response", es.getResponse());
+            });
         }));
 
         // L2节点
         graph.addNode("l2", node_async(state -> {
-            EmotionState es = extractState(state);
-            es = l2Node.process(es);
-            return Map.of("response", es.getResponse());
+            return observeNode("l2", () -> {
+                EmotionState es = extractState(state);
+                es = l2Node.process(es);
+                return Map.of("response", es.getResponse());
+            });
         }));
 
         // L3节点
         graph.addNode("l3", node_async(state -> {
-            EmotionState es = extractState(state);
-            es = l3Node.process(es);
-            return Map.of("response", es.getResponse());
+            return observeNode("l3", () -> {
+                EmotionState es = extractState(state);
+                es = l3Node.process(es);
+                return Map.of("response", es.getResponse());
+            });
         }));
 
         // L4节点
         graph.addNode("l4", node_async(state -> {
-            EmotionState es = extractState(state);
-            es = l4Node.process(es);
-            return Map.of("response", es.getResponse());
+            return observeNode("l4", () -> {
+                EmotionState es = extractState(state);
+                es = l4Node.process(es);
+                return Map.of("response", es.getResponse());
+            });
         }));
 
         // L5节点
         graph.addNode("l5", node_async(state -> {
-            EmotionState es = extractState(state);
-            es = l5Node.process(es);
-            return Map.of("response", es.getResponse());
+            return observeNode("l5", () -> {
+                EmotionState es = extractState(state);
+                es = l5Node.process(es);
+                return Map.of("response", es.getResponse());
+            });
         }));
 
         // START → analyzer → planner → conditional route
@@ -149,5 +185,35 @@ public class EmotionGraph {
         es.setStrategy(state.value("strategy", "pure"));
         es.setToneHint(state.value("toneHint", ""));
         return es;
+    }
+
+    private Map<String, Object> observeNode(String nodeName, Supplier<Map<String, Object>> supplier) {
+        // LangGraph node spans rely on the current synchronous, same-thread invoke path for scope inheritance.
+        Observation observation = Observation.createNotStarted("node." + nodeName, observationRegistry)
+                .lowCardinalityKeyValue("node.name", nodeName)
+                .start();
+
+        try (Observation.Scope ignored = observation.openScope()) {
+            Map<String, Object> result = supplier.get();
+            tagLevels(observation, result);
+            return result;
+        } catch (RuntimeException e) {
+            observation.error(e);
+            throw e;
+        } finally {
+            observation.stop();
+        }
+    }
+
+    private void tagLevels(Observation observation, Map<String, Object> values) {
+        Object emotionLevel = values.get("emotionLevel");
+        if (emotionLevel != null) {
+            observation.lowCardinalityKeyValue("emotion.level", String.valueOf(emotionLevel));
+        }
+
+        Object routeLevel = values.get("targetLevel");
+        if (routeLevel != null) {
+            observation.lowCardinalityKeyValue("route.level", String.valueOf(routeLevel));
+        }
     }
 }

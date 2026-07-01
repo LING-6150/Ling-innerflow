@@ -1,5 +1,7 @@
 package com.ling.linginnerflow.agent.node;
 
+import com.ling.linginnerflow.config.Observations;
+import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -8,8 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for EmotionAnalyzerNode crisis fail-safe logic.
  *
- * These target the pure resolution logic (no LLM call), so they construct the
- * node with a null ChatClient.Builder — the builder is only used by analyze().
+ * These target the pure resolution logic (no LLM call), so the ChatClient
+ * collaborator is null because it is only used by analyze().
  *
  * Core safety invariant: a crisis MUST NOT be downgraded to L1 just because the
  * LLM returned a non-numeric / malformed response. Crisis detection is defense
@@ -18,7 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class EmotionAnalyzerNodeTest {
 
-    private final EmotionAnalyzerNode node = new EmotionAnalyzerNode(null);
+    private final EmotionAnalyzerNode node = new EmotionAnalyzerNode(
+            null,
+            new Observations(ObservationRegistry.NOOP)
+    );
 
     @Test
     @DisplayName("clean numeric LLM response is parsed as-is")

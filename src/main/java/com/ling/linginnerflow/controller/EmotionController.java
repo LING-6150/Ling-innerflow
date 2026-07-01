@@ -51,7 +51,7 @@ public class EmotionController {
         input.put("userId", userId);
 
         // 第三步：调用EmotionGraph；空结果优雅降级，避免 NoSuchElementException 直接抛 500
-        Optional<AgentState> result = emotionGraph.buildGraph().invoke(input);
+        Optional<AgentState> result = emotionGraph.invoke(input);
         if (result.isEmpty()) {
             log.warn("Emotion graph returned no state, userId={}", userId);
             // 优雅降级：不返回不透明的500；保守地附上危机资源
