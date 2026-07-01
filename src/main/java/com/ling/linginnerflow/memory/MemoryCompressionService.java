@@ -73,13 +73,15 @@ public class MemoryCompressionService {
                 .lowCardinalityKeyValue("memory.size_bucket", sizeBucket(history.size()))
                 .start();
 
+        boolean lockAcquired = false;
         try (Observation.Scope ignored = observation.openScope()) {
             String lockKey = COMPRESS_LOCK_PREFIX + userId;
             // Acquire lock — if another compression is already in flight, skip
             Boolean locked = redisTemplate.opsForValue()
                     .setIfAbsent(lockKey, "1", COMPRESS_LOCK_TTL_MINUTES, TimeUnit.MINUTES);
-            observation.lowCardinalityKeyValue("memory.lock_acquired", String.valueOf(Boolean.TRUE.equals(locked)));
-            if (!Boolean.TRUE.equals(locked)) {
+            lockAcquired = Boolean.TRUE.equals(locked);
+            observation.lowCardinalityKeyValue("memory.lock_acquired", String.valueOf(lockAcquired));
+            if (!lockAcquired) {
                 log.info("[Compression] Already in progress for userId={}, skipping", userId);
                 return;
             }
@@ -140,7 +142,9 @@ public class MemoryCompressionService {
             observation.error(e);
             log.error("[Compression] Failed: userId={}, error={}", userId, e.getMessage());
         } finally {
-            redisTemplate.delete(COMPRESS_LOCK_PREFIX + userId);
+            if (lockAcquired) {
+                redisTemplate.delete(COMPRESS_LOCK_PREFIX + userId);
+            }
             observation.stop();
         }
     }
