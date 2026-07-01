@@ -1,5 +1,6 @@
 package com.ling.linginnerflow.rag;
 
+import com.ling.linginnerflow.config.Observations;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
@@ -25,13 +26,16 @@ import java.util.*;
 public class LLMRerankerService {
 
     private final ChatClient.Builder chatClientBuilder;
+    private final Observations observations;
 
     // Maximum characters from each document included in the ranking prompt.
     // Keeps the prompt short while giving the LLM enough signal to rank.
     private static final int DOC_SNIPPET_LENGTH = 300;
 
-    public LLMRerankerService(ChatClient.Builder chatClientBuilder) {
+    public LLMRerankerService(ChatClient.Builder chatClientBuilder,
+                              Observations observations) {
         this.chatClientBuilder = chatClientBuilder;
+        this.observations = observations;
     }
 
     /**
@@ -52,6 +56,7 @@ public class LLMRerankerService {
         if (docIds.size() <= topN) return docIds;
 
         String prompt = buildRankingPrompt(userQuery, docContents, topN);
+        observations.tagPrompt("rag.reranker", "v1");
         String llmResponse = chatClientBuilder.build().prompt().user(prompt).call().content();
         log.info("[Reranker] LLM raw response: {}", llmResponse);
 
