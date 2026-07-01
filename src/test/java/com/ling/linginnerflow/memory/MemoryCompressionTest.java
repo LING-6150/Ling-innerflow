@@ -183,6 +183,7 @@ class MemoryCompressionTest {
 
         verify(mockChatBuilder, never()).build();
         verify(valueOps, never()).set(contains("memory:short:"), anyString(), anyLong(), any());
+        verify(redisTemplate, never()).delete(startsWith("memory:compressing:"));
     }
 
     // ── Q6: summary prompt contains the actual dialogue ──────────────────────
