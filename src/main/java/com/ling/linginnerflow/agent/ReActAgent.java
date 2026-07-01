@@ -3,6 +3,8 @@ package com.ling.linginnerflow.agent;
 import com.ling.linginnerflow.agent.tool.ActionResult;
 import com.ling.linginnerflow.agent.tool.AgentTool;
 import com.ling.linginnerflow.agent.tool.ToolStatus;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
@@ -22,11 +24,19 @@ import java.util.stream.Collectors;
 public class ReActAgent {
 
     private final ChatClient.Builder chatClientBuilder;
+    private final ObservationRegistry observationRegistry;
     private final Map<String, AgentTool> tools;
 
     public ReActAgent(ChatClient.Builder chatClientBuilder,
                       List<AgentTool> toolList) {
+        this(chatClientBuilder, ObservationRegistry.NOOP, toolList);
+    }
+
+    public ReActAgent(ChatClient.Builder chatClientBuilder,
+                      ObservationRegistry observationRegistry,
+                      List<AgentTool> toolList) {
         this.chatClientBuilder = chatClientBuilder;
+        this.observationRegistry = observationRegistry;
         this.tools = toolList.stream()
                 .collect(Collectors.toMap(AgentTool::getName,
                         Function.identity()));
@@ -85,17 +95,36 @@ public class ReActAgent {
 
     public Flux<String> runStreaming(String userId, String userInput,
                                      int emotionLevel, String toneHint) {
-        long startMs = System.currentTimeMillis();
-        // Return immediately; all blocking work is dispatched to boundedElastic
-        return Flux.create(sink ->
-                Schedulers.boundedElastic().schedule(
-                        () -> doStreamingRun(userId, userInput, emotionLevel,
-                                toneHint, sink, startMs)));
+        return Flux.defer(() -> {
+            long startMs = System.currentTimeMillis();
+            Observation parent = observationRegistry.getCurrentObservation();
+            Observation runObservation = Observation.createNotStarted("react.run", observationRegistry)
+                    .lowCardinalityKeyValue("emotion.level", String.valueOf(emotionLevel));
+            if (parent != null) {
+                runObservation.parentObservation(parent);
+            }
+            runObservation.start();
+
+            // Return immediately; all blocking work is dispatched to boundedElastic.
+            return Flux.<String>create(sink ->
+                    Schedulers.boundedElastic().schedule(() -> {
+                        try (Observation.Scope ignored = runObservation.openScope()) {
+                            doStreamingRun(userId, userInput, emotionLevel,
+                                    toneHint, sink, startMs, runObservation);
+                        }
+                    }))
+                    .doOnError(runObservation::error)
+                    .doFinally(signalType -> {
+                        runObservation.lowCardinalityKeyValue("react.signal", signalType.name());
+                        runObservation.stop();
+                    });
+        });
     }
 
     private void doStreamingRun(String userId, String userInput,
                                  int emotionLevel, String toneHint,
-                                 FluxSink<String> sink, long startMs) {
+                                 FluxSink<String> sink, long startMs,
+                                 Observation runObservation) {
         try {
             StringBuilder scratchpad = new StringBuilder();
             String toolDescriptions = buildToolDescriptions();
@@ -104,7 +133,8 @@ public class ReActAgent {
                 String prompt = buildReActPrompt(userInput, emotionLevel, toneHint,
                         toolDescriptions, scratchpad.toString());
 
-                PhaseResult p1 = streamAndParsePhase1(prompt, userId, emotionLevel);
+                PhaseResult p1 = streamAndParsePhase1(prompt, userId, emotionLevel,
+                        runObservation, i + 1);
 
                 if (p1.crisis) {
                     sink.next("I'm very concerned about you right now. " +
@@ -126,13 +156,26 @@ public class ReActAgent {
             String finalPrompt = buildStreamingResponsePrompt(
                     userInput, emotionLevel, toneHint, scratchpad.toString());
 
-            chatClientBuilder.build()
-                    .prompt().user(finalPrompt)
-                    .stream().content()
-                    .doOnNext(sink::next)
-                    .doOnComplete(sink::complete)
-                    .doOnError(sink::error)
-                    .subscribe();
+            Observation phase2Observation = Observation.createNotStarted("react.phase2", observationRegistry)
+                    .parentObservation(runObservation)
+                    .lowCardinalityKeyValue("emotion.level", String.valueOf(emotionLevel))
+                    .start();
+            try (Observation.Scope ignored = phase2Observation.openScope()) {
+                chatClientBuilder.build()
+                        .prompt().user(finalPrompt)
+                        .stream().content()
+                        .doOnNext(sink::next)
+                        .doOnComplete(sink::complete)
+                        .doOnError(e -> {
+                            phase2Observation.error(e);
+                            sink.error(e);
+                        })
+                        .doFinally(signalType -> {
+                            phase2Observation.lowCardinalityKeyValue("react.signal", signalType.name());
+                            phase2Observation.stop();
+                        })
+                        .subscribe();
+            }
 
         } catch (Exception e) {
             log.error("[ReAct-Speculative] Unexpected error: {}", e.getMessage(), e);
@@ -147,78 +190,112 @@ public class ReActAgent {
      * the model finishes generating the rest of its output.
      * By the time we call toolFuture.join() the tool is typically already done.
      */
-    private PhaseResult streamAndParsePhase1(String prompt, String userId, int emotionLevel) {
-        StringBuilder buffer = new StringBuilder();
-        CompletableFuture<String> toolFuture = null;
-        String detectedAction = null;
-        boolean dispatched = false;
+    private PhaseResult streamAndParsePhase1(String prompt, String userId, int emotionLevel,
+                                             Observation runObservation, int round) {
+        Observation phase1Observation = Observation.createNotStarted("react.phase1", observationRegistry)
+                .parentObservation(runObservation)
+                .lowCardinalityKeyValue("react.round", String.valueOf(round))
+                .lowCardinalityKeyValue("emotion.level", String.valueOf(emotionLevel))
+                .start();
+        try (Observation.Scope ignored = phase1Observation.openScope()) {
+            StringBuilder buffer = new StringBuilder();
+            CompletableFuture<String> toolFuture = null;
+            String detectedAction = null;
+            boolean dispatched = false;
 
-        Iterable<String> tokens = chatClientBuilder.build()
-                .prompt().user(prompt)
-                .stream().content()
-                .toIterable();      // safe: we're on boundedElastic
+            Iterable<String> tokens = chatClientBuilder.build()
+                    .prompt().user(prompt)
+                    .stream().content()
+                    .toIterable();      // safe: we're on boundedElastic
 
-        for (String token : tokens) {
-            buffer.append(token);
-            String text = buffer.toString();
+            for (String token : tokens) {
+                buffer.append(token);
+                String text = buffer.toString();
 
-            // Step 1: lock in the tool name as soon as "Action: XYZ" is visible
-            if (detectedAction == null) {
-                detectedAction = tryExtractAction(text);
-            }
+                // Step 1: lock in the tool name as soon as "Action: XYZ" is visible
+                if (detectedAction == null) {
+                    detectedAction = tryExtractAction(text);
+                }
 
-            // Step 2: dispatch async the moment the input line is complete
-            if (detectedAction != null && !dispatched) {
-                String input = tryExtractActionInput(text);
-                if (input != null) {
-                    dispatched = true;
-                    final String action = detectedAction;
-                    final String toolInput = "HistoryContextRetriever".equals(action)
-                            ? userId : input;
+                // Step 2: dispatch async the moment the input line is complete
+                if (detectedAction != null && !dispatched) {
+                    String input = tryExtractActionInput(text);
+                    if (input != null) {
+                        dispatched = true;
+                        final String action = detectedAction;
+                        final String toolInput = "HistoryContextRetriever".equals(action)
+                                ? userId : input;
 
-                    if (emotionLevel == 5) {
-                        toolFuture = CompletableFuture.completedFuture(null); // signals L5
-                    } else {
-                        toolFuture = CompletableFuture.supplyAsync(() -> {
-                            AgentTool tool = tools.get(action);
-                            ActionResult ar = (tool != null)
-                                    ? actWithRetry(tool, toolInput)
-                                    : ActionResult.failure("tool_not_found", "Tool not found: " + action);
-                            log.info("[ReAct-Speculative] Tool {} finished status={}", action, ar.status());
-                            // Decide by typed status; feed the model a status-aware observation,
-                            // never a raw error string it might mistake for data.
-                            return observationForModel(ar);
-                        });
-                        log.info("[ReAct-Speculative] Tool {} dispatched async", action);
+                        if (emotionLevel == 5) {
+                            toolFuture = CompletableFuture.completedFuture(null); // signals L5
+                        } else {
+                            toolFuture = executeToolAsync(action, toolInput, phase1Observation);
+                            log.info("[ReAct-Speculative] Tool {} dispatched async", action);
+                        }
                     }
                 }
             }
+
+            String fullResponse = buffer.toString();
+            log.info("[ReAct-Speculative] Phase 1 buffered ({} chars)", fullResponse.length());
+
+            // No Action in response → no tool needed
+            if (!fullResponse.contains("Action:")) {
+                return PhaseResult.noTool(fullResponse);
+            }
+
+            // Action present but couldn't parse in-stream → fall back to sync execution
+            if (toolFuture == null) {
+                log.warn("[ReAct-Speculative] Couldn't async-dispatch, falling back to sync");
+                String obs = executeAction(fullResponse, userId, emotionLevel);
+                return obs == null ? PhaseResult.crisis() : PhaseResult.withTool(fullResponse, obs);
+            }
+
+            // .join() — tool started early in parallel, typically 0 ms wait here
+            long joinStart = System.currentTimeMillis();
+            String observation = toolFuture.join();
+            long joinMs = System.currentTimeMillis() - joinStart;
+            phase1Observation.lowCardinalityKeyValue("tool.join_wait_ms", String.valueOf(joinMs));
+            log.info("[ReAct-Speculative] toolFuture.join() waited {}ms (0=already done)", joinMs);
+
+            return observation == null
+                    ? PhaseResult.crisis()
+                    : PhaseResult.withTool(fullResponse, observation);
+        } catch (RuntimeException e) {
+            phase1Observation.error(e);
+            throw e;
+        } finally {
+            phase1Observation.stop();
         }
+    }
 
-        String fullResponse = buffer.toString();
-        log.info("[ReAct-Speculative] Phase 1 buffered ({} chars)", fullResponse.length());
-
-        // No Action in response → no tool needed
-        if (!fullResponse.contains("Action:")) {
-            return PhaseResult.noTool(fullResponse);
-        }
-
-        // Action present but couldn't parse in-stream → fall back to sync execution
-        if (toolFuture == null) {
-            log.warn("[ReAct-Speculative] Couldn't async-dispatch, falling back to sync");
-            String obs = executeAction(fullResponse, userId, emotionLevel);
-            return obs == null ? PhaseResult.crisis() : PhaseResult.withTool(fullResponse, obs);
-        }
-
-        // .join() — tool started early in parallel, typically 0 ms wait here
-        long joinStart = System.currentTimeMillis();
-        String observation = toolFuture.join();
-        long joinMs = System.currentTimeMillis() - joinStart;
-        log.info("[ReAct-Speculative] toolFuture.join() waited {}ms (0=already done)", joinMs);
-
-        return observation == null
-                ? PhaseResult.crisis()
-                : PhaseResult.withTool(fullResponse, observation);
+    private CompletableFuture<String> executeToolAsync(String action, String toolInput,
+                                                       Observation phase1Observation) {
+        Observation toolObservation = Observation.createNotStarted("tool." + action, observationRegistry)
+                .parentObservation(phase1Observation)
+                .lowCardinalityKeyValue("tool.name", action)
+                .start();
+        return CompletableFuture.supplyAsync(() -> {
+            try (Observation.Scope ignored = toolObservation.openScope()) {
+                AgentTool tool = tools.get(action);
+                ActionResult ar = (tool != null)
+                        ? actWithRetry(tool, toolInput)
+                        : ActionResult.failure("tool_not_found", "Tool not found: " + action);
+                toolObservation.lowCardinalityKeyValue("tool.status", ar.status().name());
+                if (ar.errorType() != null) {
+                    toolObservation.lowCardinalityKeyValue("tool.error_type", ar.errorType());
+                }
+                log.info("[ReAct-Speculative] Tool {} finished status={}", action, ar.status());
+                // Decide by typed status; feed the model a status-aware observation,
+                // never a raw error string it might mistake for data.
+                return observationForModel(ar);
+            } catch (RuntimeException e) {
+                toolObservation.error(e);
+                throw e;
+            } finally {
+                toolObservation.stop();
+            }
+        });
     }
 
     /** Extract the tool name from "Action: ToolName" as soon as it's in the buffer.
