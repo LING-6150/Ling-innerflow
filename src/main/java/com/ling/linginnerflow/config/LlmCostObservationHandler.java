@@ -10,9 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LlmCostObservationHandler implements ObservationHandler<Observation.Context> {
 
-    private static final double GPT_4O_MINI_INPUT_PER_TOKEN = 0.15 / 1_000_000.0;
-    private static final double GPT_4O_MINI_OUTPUT_PER_TOKEN = 0.60 / 1_000_000.0;
-
     private static final String INPUT_TOKENS = "gen_ai.usage.input_tokens";
     private static final String OUTPUT_TOKENS = "gen_ai.usage.output_tokens";
     private static final String REQUEST_MODEL = "gen_ai.request.model";
@@ -39,21 +36,32 @@ public class LlmCostObservationHandler implements ObservationHandler<Observation
 
         String model = readString(context, RESPONSE_MODEL,
                 readString(context, REQUEST_MODEL, "unknown"));
-        double costUsd = inputTokens * GPT_4O_MINI_INPUT_PER_TOKEN
-                + outputTokens * GPT_4O_MINI_OUTPUT_PER_TOKEN;
 
         meterRegistry.counter("llm.tokens", "model", model, "type", "input")
                 .increment(inputTokens);
         meterRegistry.counter("llm.tokens", "model", model, "type", "output")
                 .increment(outputTokens);
-        Counter.builder("llm.cost.usd")
-                .description("Estimated LLM spend derived from gen_ai token usage")
-                .tag("model", model)
-                .register(meterRegistry)
-                .increment(costUsd);
+
+        Double costUsd = estimateCostUsd(model, inputTokens, outputTokens);
+        if (costUsd != null) {
+            Counter.builder("llm.cost.usd")
+                    .description("Estimated LLM spend derived from gen_ai token usage")
+                    .tag("model", model)
+                    .register(meterRegistry)
+                    .increment(costUsd);
+        }
 
         log.debug("[Observability] LLM usage model={} inputTokens={} outputTokens={} costUsd={}",
                 model, inputTokens, outputTokens, costUsd);
+    }
+
+    private Double estimateCostUsd(String model, long inputTokens, long outputTokens) {
+        if (!"gpt-4o-mini".equals(model)) {
+            return null;
+        }
+        double inputCost = inputTokens * (0.15 / 1_000_000.0);
+        double outputCost = outputTokens * (0.60 / 1_000_000.0);
+        return inputCost + outputCost;
     }
 
     private long readLong(Observation.Context context, String key) {

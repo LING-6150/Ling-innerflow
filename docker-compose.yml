@@ -178,6 +178,7 @@ services:
     image: grafana/tempo:2.5.0
     container_name: innerflow-tempo
     restart: unless-stopped
+    user: "0:0"
     command: [ "-config.file=/etc/tempo/tempo.yml" ]
     volumes:
       - ./tempo/tempo.yml:/etc/tempo/tempo.yml:ro
