@@ -2,6 +2,9 @@ package com.ling.linginnerflow.memory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ling.linginnerflow.config.Observations;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -41,6 +44,8 @@ public class MemoryService {
     private final ObjectMapper objectMapper;
     private final MemoryCompressionService compressionService;
     private final EmbeddingModel embeddingModel;
+    private final ObservationRegistry observationRegistry;
+    private final Observations observations;
 
     // P3-11: cosine similarity threshold for semantic trigger deduplication
     private static final double DEDUP_THRESHOLD = 0.88;
@@ -83,7 +88,8 @@ public class MemoryService {
      * 添加一条消息到短期记忆
      */
     public void addMessage(String userId, String role, String content) {
-        try {
+        observeVoid("memory.add_message", "add_message", "redis", observation -> {
+            observation.lowCardinalityKeyValue("memory.role", normalizeRole(role));
             String key = SHORT_MEMORY_PREFIX + userId;
             List<ConversationMessage> history = getShortMemory(userId);
 
@@ -100,40 +106,45 @@ public class MemoryService {
 
             log.info("短期记忆更新: userId={}, 当前轮数={}",
                     userId, history.size() / 2);
+            tagSizeBucket(observation, history.size());
 
             // When history exceeds the threshold, trigger async sliding-window compression.
             // Pass a snapshot so the async task works on stable data.
             if (history.size() >= compressionThreshold * 2) {
                 compressionService.compressAsync(userId, new ArrayList<>(history));
             }
-
-        } catch (Exception e) {
-            log.error("短期记忆写入失败: {}", e.getMessage());
-        }
+        }, "短期记忆写入失败");
     }
 
     /**
      * 读取短期记忆
      */
     public List<ConversationMessage> getShortMemory(String userId) {
-        try {
+        return observe("memory.get_short", "get_short", "redis", observation -> {
             String key = SHORT_MEMORY_PREFIX + userId;
             String json = redisTemplate.opsForValue().get(key);
-            if (json == null) return new ArrayList<>();
-            return objectMapper.readValue(json,
+            if (json == null) {
+                observation.lowCardinalityKeyValue("memory.hit", "false");
+                tagSizeBucket(observation, 0);
+                return new ArrayList<>();
+            }
+            List<ConversationMessage> history = objectMapper.readValue(json,
                     new TypeReference<List<ConversationMessage>>() {});
-        } catch (Exception e) {
-            log.error("短期记忆读取失败: {}", e.getMessage());
-            return new ArrayList<>();
-        }
+            observation.lowCardinalityKeyValue("memory.hit", "true");
+            tagSizeBucket(observation, history.size());
+            return history;
+        }, "短期记忆读取失败", new ArrayList<>());
     }
 
     /**
      * 清除短期记忆（会话结束时调用）
      */
     public void clearShortMemory(String userId) {
-        redisTemplate.delete(SHORT_MEMORY_PREFIX + userId);
-        log.info("短期记忆已清除: userId={}", userId);
+        observeVoid("memory.clear_short", "clear_short", "redis", observation -> {
+            Boolean deleted = redisTemplate.delete(SHORT_MEMORY_PREFIX + userId);
+            observation.lowCardinalityKeyValue("memory.hit", String.valueOf(Boolean.TRUE.equals(deleted)));
+            log.info("短期记忆已清除: userId={}", userId);
+        }, "短期记忆清除失败");
     }
 
     // ==================== 长期记忆 ====================
@@ -142,8 +153,12 @@ public class MemoryService {
      * 读取长期记忆
      */
     public UserMemory getLongMemory(String userId) {
-        return userMemoryRepository.findByUserId(userId)
-                .orElse(null);
+        return observe("memory.get_long", "get_long", "repository", observation -> {
+            UserMemory memory = userMemoryRepository.findByUserId(userId)
+                    .orElse(null);
+            observation.lowCardinalityKeyValue("memory.hit", String.valueOf(memory != null));
+            return memory;
+        }, "长期记忆读取失败", null);
     }
 
     /**
@@ -153,9 +168,10 @@ public class MemoryService {
      */
     public void updateLongMemory(String userId,
                                  List<ConversationMessage> history) {
-        if (history.isEmpty()) return;
+        observeVoid("memory.update_long", "update_long", "repository", observation -> {
+            tagSizeBucket(observation, history.size());
+            if (history.isEmpty()) return;
 
-        try {
             UserMemory memory = userMemoryRepository
                     .findByUserId(userId)
                     .orElse(new UserMemory());
@@ -168,7 +184,10 @@ public class MemoryService {
             String prompt = isFirstSession
                     ? buildFirstExtractPrompt(history)
                     : buildMergePrompt(memory, history);
+            observation.lowCardinalityKeyValue("memory.profile_state",
+                    isFirstSession ? "first_session" : "merge");
 
+            observations.tagPrompt(isFirstSession ? "memory.wiki.first_extract" : "memory.wiki.merge", "v1");
             String raw = chatClientBuilder.build()
                     .prompt().user(prompt).call().content();
             raw = raw.replaceAll("(?s)```json\\s*|```\\s*", "").trim();
@@ -184,10 +203,7 @@ public class MemoryService {
             log.info("[Wiki] 编译完成: userId={}", userId);
 
             generateReflection(userId);
-
-        } catch (Exception e) {
-            log.error("[Wiki] 编译失败: {}", e.getMessage());
-        }
+        }, "[Wiki] 编译失败");
     }
 
     private void applyMergeResult(UserMemory memory, WikiMergeResult result) {
@@ -301,68 +317,72 @@ public class MemoryService {
      * 供各节点调用，把记忆注入Prompt
      */
     public String buildContextPrompt(String userId) {
-        StringBuilder context = new StringBuilder();
+        return observe("memory.build_context", "build_context", "mixed", observation -> {
+            StringBuilder context = new StringBuilder();
 
-        UserMemory longMemory = getLongMemory(userId);
-        if (longMemory != null) {
-            context.append("=== USER WIKI ===\n");
+            UserMemory longMemory = getLongMemory(userId);
+            observation.lowCardinalityKeyValue("memory.hit", String.valueOf(longMemory != null));
+            if (longMemory != null) {
+                context.append("=== USER WIKI ===\n");
 
-            if (longMemory.getCoreStruggles() != null)
-                context.append("Core struggles: ").append(longMemory.getCoreStruggles()).append("\n");
+                if (longMemory.getCoreStruggles() != null)
+                    context.append("Core struggles: ").append(longMemory.getCoreStruggles()).append("\n");
 
-            if (longMemory.getEmotionPattern() != null)
-                context.append("Emotion pattern: ").append(longMemory.getEmotionPattern()).append("\n");
+                if (longMemory.getEmotionPattern() != null)
+                    context.append("Emotion pattern: ").append(longMemory.getEmotionPattern()).append("\n");
 
-            // triggers：score 降序，过滤低于 0.3 的陈旧/低置信观察（P1-5）
-            List<WikiObservation> triggers = parseTriggers(longMemory.getTriggers());
-            List<WikiObservation> activeTriggers = triggers.stream()
-                    .filter(t -> t.getScore() >= 0.3)
-                    .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
-                    .toList();
-            if (!activeTriggers.isEmpty()) {
-                String triggerText = activeTriggers.stream()
-                        .map(t -> t.getObservation() + " (×" + t.getCount() + ", score=" + t.getScore() + ")")
-                        .collect(Collectors.joining(", "));
-                context.append("Known triggers: ").append(triggerText).append("\n");
+                // triggers：score 降序，过滤低于 0.3 的陈旧/低置信观察（P1-5）
+                List<WikiObservation> triggers = parseTriggers(longMemory.getTriggers());
+                List<WikiObservation> activeTriggers = triggers.stream()
+                        .filter(t -> t.getScore() >= 0.3)
+                        .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                        .toList();
+                if (!activeTriggers.isEmpty()) {
+                    String triggerText = activeTriggers.stream()
+                            .map(t -> t.getObservation() + " (×" + t.getCount() + ", score=" + t.getScore() + ")")
+                            .collect(Collectors.joining(", "));
+                    context.append("Known triggers: ").append(triggerText).append("\n");
+                }
+
+                if (longMemory.getEffectiveCoping() != null)
+                    context.append("What helps: ").append(longMemory.getEffectiveCoping()).append("\n");
+
+                // progressNotes：只显示最近3条，避免context过长
+                List<Map<String, String>> notes = parseProgressNotes(longMemory.getProgressNotes());
+                if (!notes.isEmpty()) {
+                    int start = Math.max(0, notes.size() - 3);
+                    String notesText = notes.subList(start, notes.size()).stream()
+                            .map(n -> n.get("date") + ": " + n.get("note"))
+                            .collect(Collectors.joining(" | "));
+                    context.append("Progress: ").append(notesText).append("\n");
+                }
+
+                if (longMemory.getLanguageStyle() != null)
+                    context.append("How they speak: ").append(longMemory.getLanguageStyle()).append("\n");
+
+                if (longMemory.getReflection() != null)
+                    context.append("Deep insight: ").append(longMemory.getReflection()).append("\n");
+
+                context.append("=================\n\n");
             }
 
-            if (longMemory.getEffectiveCoping() != null)
-                context.append("What helps: ").append(longMemory.getEffectiveCoping()).append("\n");
-
-            // progressNotes：只显示最近3条，避免context过长
-            List<Map<String, String>> notes = parseProgressNotes(longMemory.getProgressNotes());
-            if (!notes.isEmpty()) {
-                int start = Math.max(0, notes.size() - 3);
-                String notesText = notes.subList(start, notes.size()).stream()
-                        .map(n -> n.get("date") + ": " + n.get("note"))
-                        .collect(Collectors.joining(" | "));
-                context.append("Progress: ").append(notesText).append("\n");
+            // 最近5轮对话
+            List<ConversationMessage> history = getShortMemory(userId);
+            tagSizeBucket(observation, history.size());
+            if (!history.isEmpty()) {
+                context.append("[Recent Conversation]\n");
+                int start = Math.max(0, history.size() - 10);
+                for (int i = start; i < history.size(); i++) {
+                    ConversationMessage msg = history.get(i);
+                    String roleLabel = "user".equals(msg.getRole()) ? "User" : "AI";
+                    context.append(roleLabel).append(": ")
+                            .append(msg.getContent()).append("\n");
+                }
+                context.append("\n");
             }
 
-            if (longMemory.getLanguageStyle() != null)
-                context.append("How they speak: ").append(longMemory.getLanguageStyle()).append("\n");
-
-            if (longMemory.getReflection() != null)
-                context.append("Deep insight: ").append(longMemory.getReflection()).append("\n");
-
-            context.append("=================\n\n");
-        }
-
-        // 最近5轮对话
-        List<ConversationMessage> history = getShortMemory(userId);
-        if (!history.isEmpty()) {
-            context.append("[Recent Conversation]\n");
-            int start = Math.max(0, history.size() - 10);
-            for (int i = start; i < history.size(); i++) {
-                ConversationMessage msg = history.get(i);
-                String roleLabel = "user".equals(msg.getRole()) ? "User" : "AI";
-                context.append(roleLabel).append(": ")
-                        .append(msg.getContent()).append("\n");
-            }
-            context.append("\n");
-        }
-
-        return context.toString();
+            return context.toString();
+        }, "记忆上下文构建失败", "");
     }
 
     /** P0-2: 首次对话专用 — 纯提取，无旧档案干扰，格式与 WikiMergeResult 一致 */
@@ -748,9 +768,10 @@ public class MemoryService {
     // ==================== L4 Reflection ====================
 
     public void generateReflection(String userId) {
-        try {
+        observeVoid("memory.generate_reflection", "generate_reflection", "repository", observation -> {
             UserMemory memory = userMemoryRepository
                     .findByUserId(userId).orElse(null);
+            observation.lowCardinalityKeyValue("memory.hit", String.valueOf(memory != null));
             if (memory == null) return;
 
             // 收集现有记忆内容
@@ -768,7 +789,11 @@ public class MemoryService {
                 memoryContent.append("Recent summary: ")
                         .append(memory.getConversationSummary()).append("\n");
 
-            if (memoryContent.isEmpty()) return;
+            if (memoryContent.isEmpty()) {
+                observation.lowCardinalityKeyValue("memory.empty", "true");
+                return;
+            }
+            observation.lowCardinalityKeyValue("memory.empty", "false");
 
             String prompt = """
             Based on the following user memory data, generate a 
@@ -782,6 +807,7 @@ public class MemoryService {
             Return only the insight text, no labels or formatting.
             """.formatted(memoryContent.toString());
 
+            observations.tagPrompt("memory.reflection", "v1");
             String reflection = chatClientBuilder.build()
                     .prompt().user(prompt).call().content();
 
@@ -789,11 +815,62 @@ public class MemoryService {
             userMemoryRepository.save(memory);
 
             log.info("[Memory] L4 Reflection generated: userId={}", userId);
+        }, "[Memory] Reflection generation failed");
+    }
 
+    private <T> T observe(String name, String operation, String store,
+                          ObservedSupplier<T> supplier, String errorMessage, T fallback) {
+        Observation observation = Observation.createNotStarted(name, observationRegistry)
+                .lowCardinalityKeyValue("memory.operation", operation)
+                .lowCardinalityKeyValue("memory.store", store)
+                .start();
+
+        try (Observation.Scope ignored = observation.openScope()) {
+            return supplier.get(observation);
         } catch (Exception e) {
-            log.error("[Memory] Reflection generation failed: {}",
-                    e.getMessage());
+            observation.error(e);
+            log.error("{}: {}", errorMessage, e.getMessage());
+            return fallback;
+        } finally {
+            observation.stop();
         }
+    }
+
+    private void observeVoid(String name, String operation, String store,
+                             ObservedRunnable runnable, String errorMessage) {
+        observe(name, operation, store, observation -> {
+            runnable.run(observation);
+            return null;
+        }, errorMessage, null);
+    }
+
+    private void tagSizeBucket(Observation observation, int size) {
+        observation.lowCardinalityKeyValue("memory.size_bucket", sizeBucket(size));
+    }
+
+    private String sizeBucket(int size) {
+        if (size == 0) return "0";
+        if (size <= 2) return "1-2";
+        if (size <= 10) return "3-10";
+        if (size <= 20) return "11-20";
+        return "21+";
+    }
+
+    private String normalizeRole(String role) {
+        if ("user".equals(role) || "assistant".equals(role) || "system".equals(role)) {
+            return role;
+        }
+        return "other";
+    }
+
+    @FunctionalInterface
+    private interface ObservedSupplier<T> {
+        T get(Observation observation) throws Exception;
+    }
+
+    @FunctionalInterface
+    private interface ObservedRunnable {
+        void run(Observation observation) throws Exception;
     }
 
     /** AI merge 结果结构 */

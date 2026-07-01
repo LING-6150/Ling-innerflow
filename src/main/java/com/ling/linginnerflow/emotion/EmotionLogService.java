@@ -1,5 +1,7 @@
 package com.ling.linginnerflow.emotion;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import java.util.*;
 public class EmotionLogService {
 
     private final EmotionLogRepository emotionLogRepository;
+    private final ObservationRegistry observationRegistry;
 
     /**
      * 记录一次情绪日志
@@ -24,7 +27,12 @@ public class EmotionLogService {
      */
     public void log(String userId, int emotionLevel,
                     String userInput, String aiResponse, String source) {
-        try {
+        Observation observation = Observation.createNotStarted("emotion.log", observationRegistry)
+                .lowCardinalityKeyValue("emotion.source", normalizeSource(source))
+                .lowCardinalityKeyValue("emotion.level", normalizeLevel(emotionLevel))
+                .start();
+
+        try (Observation.Scope ignored = observation.openScope()) {
             EmotionLog log = new EmotionLog();
             log.setUserId(userId);
             log.setEmotionLevel(emotionLevel);
@@ -33,8 +41,25 @@ public class EmotionLogService {
             log.setSource(source);
             emotionLogRepository.save(log);
         } catch (Exception e) {
+            observation.error(e);
             log.error("情绪日志记录失败: {}", e.getMessage());
+        } finally {
+            observation.stop();
         }
+    }
+
+    private String normalizeSource(String source) {
+        if ("chat".equals(source) || "checkin".equals(source) || "websocket".equals(source)) {
+            return source;
+        }
+        return "unknown";
+    }
+
+    private String normalizeLevel(int emotionLevel) {
+        if (emotionLevel >= 1 && emotionLevel <= 5) {
+            return String.valueOf(emotionLevel);
+        }
+        return "unknown";
     }
 
     /**
