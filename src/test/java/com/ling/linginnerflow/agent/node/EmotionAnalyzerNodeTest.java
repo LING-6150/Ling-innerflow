@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for EmotionAnalyzerNode crisis fail-safe logic.
  *
  * These target the pure resolution logic (no LLM call), so they construct the
- * node with a null ChatClient.Builder — the builder is only used by analyze().
+ * node with null collaborators — they are only used by analyze().
  *
  * Core safety invariant: a crisis MUST NOT be downgraded to L1 just because the
  * LLM returned a non-numeric / malformed response. Crisis detection is defense
@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class EmotionAnalyzerNodeTest {
 
-    private final EmotionAnalyzerNode node = new EmotionAnalyzerNode(null);
+    private final EmotionAnalyzerNode node = new EmotionAnalyzerNode(null, null);
 
     @Test
     @DisplayName("clean numeric LLM response is parsed as-is")

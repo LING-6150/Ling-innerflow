@@ -1,6 +1,7 @@
 package com.ling.linginnerflow.agent.node;
 
 import com.ling.linginnerflow.agent.state.EmotionState;
+import com.ling.linginnerflow.config.Observations;
 import com.ling.linginnerflow.rag.CBTKnowledgeService;
 import com.ling.linginnerflow.rag.HybridSearchService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class L3CBTNode {
 
     private final ChatClient.Builder chatClientBuilder;
     private final HybridSearchService hybridSearchService;
+    private final Observations observations;
 
     public EmotionState process(EmotionState state) {
 
@@ -73,6 +75,7 @@ public class L3CBTNode {
     """.formatted(state.getUserInput());
         }
 
+        observations.tagPrompt("emotion.l3.cbt", "v1");
         String response = chatClientBuilder.build()
                 .prompt()
                 .user(prompt)

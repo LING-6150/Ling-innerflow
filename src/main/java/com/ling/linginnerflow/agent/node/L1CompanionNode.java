@@ -1,6 +1,7 @@
 package com.ling.linginnerflow.agent.node;
 
 import com.ling.linginnerflow.agent.state.EmotionState;
+import com.ling.linginnerflow.config.Observations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 public class L1CompanionNode {
 
     private final ChatClient.Builder chatClientBuilder;
+    private final Observations observations;
 
     public EmotionState process(EmotionState state) {
         String prompt = """
@@ -23,6 +25,7 @@ public class L1CompanionNode {
     User said: %s
     """.formatted(state.getUserInput());
 
+        observations.tagPrompt("emotion.l1.companion", "v1");
         String response = chatClientBuilder.build()
                 .prompt()
                 .user(prompt)

@@ -1,6 +1,7 @@
 package com.ling.linginnerflow.agent.node;
 
 import com.ling.linginnerflow.agent.state.EmotionState;
+import com.ling.linginnerflow.config.Observations;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -35,6 +36,7 @@ public class EmotionAnalyzerNode {
     private static final Pattern FIRST_DIGIT_1_TO_5 = Pattern.compile("[1-5]");
 
     private final ChatClient.Builder chatClientBuilder;
+    private final Observations observations;
 
     /**
      * Returns 5 when the raw user input contains a crisis marker, else 0.
@@ -100,6 +102,7 @@ public class EmotionAnalyzerNode {
 
         ChatClient chatClient = chatClientBuilder.build();
 
+        observations.tagPrompt("emotion.analyzer", "v1");
         String result = chatClient.prompt()
                 .user(prompt)
                 .call()

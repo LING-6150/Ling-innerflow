@@ -1,6 +1,7 @@
 package com.ling.linginnerflow.agent.node;
 
 import com.ling.linginnerflow.agent.state.EmotionState;
+import com.ling.linginnerflow.config.Observations;
 import com.ling.linginnerflow.memory.MemoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ public class L2GuidanceNode {
 
     private final ChatClient.Builder chatClientBuilder;
     private final MemoryService memoryService;
+    private final Observations observations;
 
     public EmotionState process(EmotionState state) {
 
@@ -38,6 +40,7 @@ public class L2GuidanceNode {
     User said: %s
     """.formatted(context, state.getUserInput());
 
+        observations.tagPrompt("emotion.l2.guidance", "v1");
         String response = chatClientBuilder.build()
                 .prompt()
                 .user(prompt)
