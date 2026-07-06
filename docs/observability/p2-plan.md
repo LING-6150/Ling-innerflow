@@ -24,10 +24,11 @@ cp .env.example .env
 Required values:
 
 - `DB_PASSWORD`
+- `REDIS_PASSWORD`
 - `OPENAI_API_KEY`
 - `PINECONE_API_KEY`
 - `JWT_SECRET`
-- `TRACING_SAMPLE_RATE=1.0` for the validation run
+- `TRACING_SAMPLE_RATE=1.0` for the validation run. Append this to `.env`; it is not listed in `.env.example`, and compose otherwise defaults to `0.1`.
 
 2. Start the stack:
 
@@ -43,7 +44,7 @@ docker compose ps
 - Tempo: `http://localhost:3200`
 - App health: `http://localhost:8080/actuator/health`
 
-4. Register or log in through `/api/auth/**`, then trigger an L3/L4 `/api/emotion/analyze` request. Use a realistic emotional input that should route to RAG, for example stress, anxiety, or negative thinking content.
+4. Register with `/api/auth/register` or log in with `/api/auth/login`, then trigger an L3/L4 `/api/emotion/analyze` request. Use a realistic emotional input that should route to RAG, for example stress, anxiety, or negative thinking content.
 
 5. Open Grafana dashboard `InnerFlow P1 Observability` and confirm:
 
@@ -93,6 +94,7 @@ Validation:
 - Dashboard JSON parses.
 - Grafana can load the provisioned dashboard.
 - Existing panels still render after the PromQL changes.
+- Refined panels should be checked during the same local runtime run used to create the validation record.
 
 ### PR 2: Runtime Validation Record
 
