@@ -19,12 +19,14 @@ The dashboard covers:
 
 - HTTP request rate, p95 latency, and 5xx ratio
 - `emotion.graph.invoke` latency
-- `node.*` latency grouped by `node.name`
-- RAG stage latency and throughput grouped by `rag.stage`
-- memory operation latency grouped by `memory.operation`
-- prompt usage grouped by `prompt.id`
+- `node.*` latency and error rate grouped by `node.name`
+- RAG stage latency, throughput, and error rate grouped by `rag.stage`
+- memory operation latency and error rate grouped by `memory.operation`
+- prompt usage grouped by `prompt.id` from known P1 observation timer families
 
 HTTP p95 uses the existing `http.server.requests` histogram. The custom P1 observation timers currently use avg/max style panels because custom histogram buckets are not enabled for every observation family yet.
+
+Rate queries use Grafana's `$__rate_interval` so the window adapts to the selected dashboard time range. Error-rate panels count observation timer series that expose a non-`none` `error` label; verify label shape during runtime validation before turning any of these into alert rules.
 
 ## Trace Drilldown
 
