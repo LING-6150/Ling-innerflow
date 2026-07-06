@@ -54,6 +54,8 @@ Do not enable these as hard alert rules until the dashboard has a baseline windo
 - memory persistence failures or high memory operation latency
 - unexpected growth in metric series involving `prompt.id`, `rag.stage`, `node.name`, or `memory.operation`
 
+For candidate PromQL and enablement gates, see `docs/observability/p2-alert-candidates.md`.
+
 ## Acceptance
 
 Before calling the dashboard ready:
