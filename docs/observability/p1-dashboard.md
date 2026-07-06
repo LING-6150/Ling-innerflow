@@ -41,6 +41,8 @@ Use Tempo Explore for trace drilldown. Useful filters:
 
 Run trace verification with the eval profile or `TRACING_SAMPLE_RATE=1.0`; the default sample rate is `0.1`.
 
+For copyable TraceQL queries and empty-result triage, see `docs/observability/p2-trace-drilldown.md`.
+
 ## Alerting Candidates
 
 Do not enable these as hard alert rules until the dashboard has a baseline window. Use them as candidates for the next PR:
