@@ -11,6 +11,8 @@ It is intentionally a provisioning skeleton plus a small set of high-signal pane
 
 Grafana already mounts `./grafana/provisioning` into `/etc/grafana/provisioning`, so the dashboard loads automatically when the `grafana` service starts.
 
+The `application` variable is populated from Prometheus via `label_values(http_server_requests_seconds_count, application)`. The default current value remains `Ling-innerflow`, matching `spring.application.name` today, but the variable will refresh if the application label changes.
+
 ## Panels
 
 The dashboard covers:

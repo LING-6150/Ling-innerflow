@@ -550,18 +550,23 @@
           "text": "Ling-innerflow",
           "value": "Ling-innerflow"
         },
+        "datasource": "Prometheus",
+        "definition": "label_values(http_server_requests_seconds_count, application)",
         "hide": 0,
+        "includeAll": false,
         "label": "application",
+        "multi": false,
         "name": "application",
-        "options": [
-          {
-            "selected": true,
-            "text": "Ling-innerflow",
-            "value": "Ling-innerflow"
-          }
-        ],
-        "query": "Ling-innerflow",
-        "type": "constant"
+        "options": [],
+        "query": {
+          "query": "label_values(http_server_requests_seconds_count, application)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
       }
     ]
   },
