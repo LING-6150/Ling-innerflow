@@ -13,12 +13,14 @@ Use Grafana Explore with the `Tempo` datasource. The local datasource is provisi
 
 For a single local validation request, set `TRACING_SAMPLE_RATE=1.0`; otherwise a successful request may not be sampled.
 
+Custom observation spans use the observation name as the span name, for example `emotion.graph.invoke` or `rag.hybrid_search`. Spring MVC HTTP spans are different: the root span name is route/contextual, while `http.server.requests` is the metric family name. Confirm the exact HTTP root span name and route attribute key against a real trace during runtime validation.
+
 ## HTTP and Graph Entry
 
 Find emotion analyze requests:
 
 ```traceql
-{ name = "http.server.requests" && span.http.route = "/api/emotion/analyze" }
+{ span.uri = "/api/emotion/analyze" }
 ```
 
 Find graph invocations:
@@ -30,7 +32,7 @@ Find graph invocations:
 Expected parentage for an L3/L4 HTTP request:
 
 ```text
-http.server.requests
+HTTP root span, for example http get /api/emotion/analyze
   -> memory.add_message
   -> emotion.graph.invoke
     -> node.analyzer
@@ -177,7 +179,7 @@ If a query returns no traces:
 2. Confirm `TRACING_SAMPLE_RATE=1.0` reached the app container.
 3. Confirm Tempo is healthy and Grafana's `Tempo` datasource points to `http://tempo:3200`.
 4. Broaden the query to `{ }` over the last 15 minutes to check whether any traces exist.
-5. Search by span name only before adding `span.*` attribute filters.
+5. Search custom spans by span name before adding `span.*` attribute filters. For the HTTP root, search by route attributes such as `span.uri` before relying on the exact span name.
 6. If only error panels are empty, check whether there were actually failures; an empty error panel can mean zero errors.
 
 ## What to Record
