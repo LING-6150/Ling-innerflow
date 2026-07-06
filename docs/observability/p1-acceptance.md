@@ -27,6 +27,8 @@ The following local checks passed on the acceptance branch:
 
 ## Expected Trace Shape
 
+Run deployment acceptance with the eval profile or set tracing sampling to `1.0` for the verification run. The default sampling probability is `0.1`, so a single request may not appear in Tempo.
+
 Trigger an L3/L4 `/api/emotion/analyze` request in a deployed environment and verify this Tempo shape:
 
 ```text
