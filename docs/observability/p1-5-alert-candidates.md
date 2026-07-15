@@ -1,6 +1,7 @@
-# P2 Alert Candidates
+# P1.5 Alert Candidates
 
 Date: 2026-07-06
+Phase alignment: 2026-07-15
 Base: `origin/main` after PR #81
 
 ## Purpose
@@ -173,7 +174,7 @@ Before converting a candidate into a provisioned Grafana alert rule:
 - threshold is tied to a recorded baseline, not a guess
 - alert has a documented owner and response action
 - alert does not page on expected empty panels or sampling gaps
-- related Tempo drilldown query is documented in `docs/observability/p2-trace-drilldown.md`
+- related Tempo drilldown query is documented in `docs/observability/p1-5-trace-drilldown.md`
 
 ## Deferred Work
 

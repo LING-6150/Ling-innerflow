@@ -41,7 +41,7 @@ Use Tempo Explore for trace drilldown. Useful filters:
 
 Run trace verification with the eval profile or `TRACING_SAMPLE_RATE=1.0`; the default sample rate is `0.1`.
 
-For copyable TraceQL queries and empty-result triage, see `docs/observability/p2-trace-drilldown.md`.
+For copyable TraceQL queries and empty-result triage, see `docs/observability/p1-5-trace-drilldown.md`.
 
 ## Alerting Candidates
 
@@ -54,7 +54,10 @@ Do not enable these as hard alert rules until the dashboard has a baseline windo
 - memory persistence failures or high memory operation latency
 - unexpected growth in metric series involving `prompt.id`, `rag.stage`, `node.name`, or `memory.operation`
 
-For candidate PromQL and enablement gates, see `docs/observability/p2-alert-candidates.md`.
+For candidate PromQL and enablement gates, see `docs/observability/p1-5-alert-candidates.md`.
+
+Phase naming and the subsequent dual-runtime benchmark are defined in
+`docs/observability/phase-roadmap.md`.
 
 ## Acceptance
 

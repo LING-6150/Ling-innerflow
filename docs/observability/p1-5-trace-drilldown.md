@@ -1,6 +1,7 @@
-# P2 Trace Drilldown Guide
+# P1.5 Trace Drilldown Guide
 
 Date: 2026-07-06
+Phase alignment: 2026-07-15
 Base: `origin/main` after PR #80
 
 ## Purpose
