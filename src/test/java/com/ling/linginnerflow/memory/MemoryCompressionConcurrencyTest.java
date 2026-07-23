@@ -13,8 +13,10 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -64,6 +66,13 @@ class MemoryCompressionConcurrencyTest {
             return null;
         }).when(valueOperations).set(
                 eq(MEMORY_KEY), anyString(), anyLong(), eq(TimeUnit.MINUTES));
+        when(redisTemplate.execute(
+                any(RedisScript.class), eq(List.of(MEMORY_KEY)),
+                anyString(), anyString(), anyString(), anyString()))
+                .thenAnswer(invocation -> applyCompressionScript(
+                        invocation.getArgument(2),
+                        invocation.getArgument(3),
+                        invocation.getArgument(4)));
         when(memoryRepository.findByUserId(USER_ID)).thenReturn(Optional.of(new UserMemory()));
 
         Observations observations = new Observations(ObservationRegistry.NOOP);
@@ -133,5 +142,23 @@ class MemoryCompressionConcurrencyTest {
 
     private String roleFor(int index) {
         return index % 2 == 0 ? "user" : "assistant";
+    }
+
+    private synchronized Long applyCompressionScript(
+            String snapshotJson, String summaryJson, String summarizedCount) throws Exception {
+        List<ConversationMessage> current = objectMapper.readValue(
+                redisValue.get(), new TypeReference<>() {});
+        List<ConversationMessage> snapshot = objectMapper.readValue(
+                snapshotJson, new TypeReference<>() {});
+        if (current.size() < snapshot.size()
+                || !current.subList(0, snapshot.size()).equals(snapshot)) {
+            return 0L;
+        }
+
+        List<ConversationMessage> compressed = new ArrayList<>();
+        compressed.add(objectMapper.readValue(summaryJson, ConversationMessage.class));
+        compressed.addAll(current.subList(Integer.parseInt(summarizedCount), current.size()));
+        redisValue.set(objectMapper.writeValueAsString(compressed));
+        return 1L;
     }
 }
