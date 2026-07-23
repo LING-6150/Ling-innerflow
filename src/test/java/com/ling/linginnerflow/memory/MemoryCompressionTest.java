@@ -14,11 +14,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -49,6 +51,7 @@ class MemoryCompressionTest {
     @Mock private UserMemoryRepository memoryRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final AtomicReference<String> savedRedisJson = new AtomicReference<>();
     private MemoryCompressionService service;
 
     private static final int KEEP_RECENT_ROUNDS = 4; // → 8 messages kept raw
@@ -65,6 +68,23 @@ class MemoryCompressionTest {
                 new Observations(ObservationRegistry.NOOP)
         );
         ReflectionTestUtils.setField(service, "keepRecentRounds", KEEP_RECENT_ROUNDS);
+        when(redisTemplate.execute(
+                any(RedisScript.class), anyList(),
+                anyString(), anyString(), anyString(), anyString()))
+                .thenAnswer(invocation -> {
+                    List<ConversationMessage> snapshot = objectMapper.readValue(
+                            invocation.<String>getArgument(2), new TypeReference<>() {});
+                    ConversationMessage summary = objectMapper.readValue(
+                            invocation.<String>getArgument(3), ConversationMessage.class);
+                    int summarizedMessages = Integer.parseInt(
+                            invocation.<String>getArgument(4));
+
+                    List<ConversationMessage> compressed = new ArrayList<>();
+                    compressed.add(summary);
+                    compressed.addAll(snapshot.subList(summarizedMessages, snapshot.size()));
+                    savedRedisJson.set(objectMapper.writeValueAsString(compressed));
+                    return 1L;
+                });
     }
 
     // ── Q1: sliding-window split ─────────────────────────────────────────────
@@ -83,11 +103,8 @@ class MemoryCompressionTest {
 
         service.compressAsync("u1", history);
 
-        ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
-        verify(valueOps).set(contains("memory:short:"), jsonCaptor.capture(), anyLong(), any());
-
         List<ConversationMessage> saved = objectMapper.readValue(
-                jsonCaptor.getValue(), new TypeReference<>() {});
+                savedRedisJson.get(), new TypeReference<>() {});
 
         // Structure: 1 system summary + 8 most-recent raw messages
         assertThat(saved).hasSize(1 + KEEP_RECENT_ROUNDS * 2);
@@ -118,11 +135,8 @@ class MemoryCompressionTest {
 
         service.compressAsync("u2", history);
 
-        ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
-        verify(valueOps).set(anyString(), jsonCaptor.capture(), anyLong(), any());
-
         List<ConversationMessage> saved = objectMapper.readValue(
-                jsonCaptor.getValue(), new TypeReference<>() {});
+                savedRedisJson.get(), new TypeReference<>() {});
 
         assertThat(saved.get(0).getRole()).isEqualTo("system");
         assertThat(saved.get(0).getContent()).contains(expectedSummary);
@@ -165,7 +179,9 @@ class MemoryCompressionTest {
         service.compressAsync("u4", history);
 
         verify(mockChatBuilder, never()).build();
-        verify(valueOps, never()).set(contains("memory:short:"), anyString(), anyLong(), any());
+        verify(redisTemplate, never()).execute(
+                any(RedisScript.class), anyList(),
+                anyString(), anyString(), anyString(), anyString());
     }
 
     // ── Q5: concurrency lock ─────────────────────────────────────────────────
@@ -182,7 +198,9 @@ class MemoryCompressionTest {
         service.compressAsync("u5", history);
 
         verify(mockChatBuilder, never()).build();
-        verify(valueOps, never()).set(contains("memory:short:"), anyString(), anyLong(), any());
+        verify(redisTemplate, never()).execute(
+                any(RedisScript.class), anyList(),
+                anyString(), anyString(), anyString(), anyString());
         verify(redisTemplate, never()).delete(startsWith("memory:compressing:"));
     }
 

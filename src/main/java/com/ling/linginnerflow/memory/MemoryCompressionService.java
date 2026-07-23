@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -54,6 +55,36 @@ public class MemoryCompressionService {
     private static final String COMPRESS_LOCK_PREFIX = "memory:compressing:";
     private static final long SHORT_MEMORY_TTL_MINUTES = 30;
     private static final long COMPRESS_LOCK_TTL_MINUTES = 5;
+    private static final DefaultRedisScript<Long> COMPRESS_HISTORY_SCRIPT =
+            new DefaultRedisScript<>("""
+                    local currentJson = redis.call('GET', KEYS[1])
+                    if not currentJson then
+                        return 0
+                    end
+
+                    local current = cjson.decode(currentJson)
+                    local snapshot = cjson.decode(ARGV[1])
+                    if #current < #snapshot then
+                        return 0
+                    end
+
+                    for i = 1, #snapshot do
+                        if current[i]['role'] ~= snapshot[i]['role']
+                                or current[i]['content'] ~= snapshot[i]['content']
+                                or current[i]['timestamp'] ~= snapshot[i]['timestamp'] then
+                            return 0
+                        end
+                    end
+
+                    local compressed = {cjson.decode(ARGV[2])}
+                    local summarizedMessages = tonumber(ARGV[3])
+                    for i = summarizedMessages + 1, #current do
+                        table.insert(compressed, current[i])
+                    end
+
+                    redis.call('SET', KEYS[1], cjson.encode(compressed), 'EX', ARGV[4])
+                    return 1
+                    """, Long.class);
 
     @Value("${memory.compression.keep-recent:4}")
     private int keepRecentRounds;
@@ -106,23 +137,30 @@ public class MemoryCompressionService {
             // ── Generate emotion-aware summary ─────────────────────────────
             String summary = generateSummary(toSummarize);
 
-            // ── Build compressed history ───────────────────────────────────
-            List<ConversationMessage> compressed = new ArrayList<>();
-            compressed.add(new ConversationMessage(
+            // ── Build summary entry ─────────────────────────────────────────
+            ConversationMessage summaryMessage = new ConversationMessage(
                     "system",
                     "[Conversation summary] " + summary,
                     System.currentTimeMillis()
-            ));
-            compressed.addAll(toKeep);
-
-            // ── Write back to Redis ────────────────────────────────────────
-            String redisKey = SHORT_MEMORY_PREFIX + userId;
-            redisTemplate.opsForValue().set(
-                    redisKey,
-                    objectMapper.writeValueAsString(compressed),
-                    SHORT_MEMORY_TTL_MINUTES,
-                    TimeUnit.MINUTES
             );
+
+            // ── Atomically splice the summary into the current history ─────
+            String redisKey = SHORT_MEMORY_PREFIX + userId;
+            Long applied = redisTemplate.execute(
+                    COMPRESS_HISTORY_SCRIPT,
+                    List.of(redisKey),
+                    objectMapper.writeValueAsString(history),
+                    objectMapper.writeValueAsString(summaryMessage),
+                    String.valueOf(toSummarize.size()),
+                    String.valueOf(TimeUnit.MINUTES.toSeconds(SHORT_MEMORY_TTL_MINUTES))
+            );
+            if (!Long.valueOf(1L).equals(applied)) {
+                observation.lowCardinalityKeyValue("memory.write_applied", "false");
+                log.info("[Compression] History changed incompatibly; skipping write-back: userId={}",
+                        userId);
+                return;
+            }
+            observation.lowCardinalityKeyValue("memory.write_applied", "true");
 
             // ── Persist summary + increment counter ────────────────────────
             UserMemory memory = userMemoryRepository.findByUserId(userId)
@@ -135,8 +173,8 @@ public class MemoryCompressionService {
             memory.setCompressionCount(memory.getCompressionCount() + 1);
             userMemoryRepository.save(memory);
 
-            log.info("[Compression] Done: userId={}, summaryChars={}, keptMessages={}, totalCompressions={}",
-                    userId, summary.length(), toKeep.size(), memory.getCompressionCount());
+            log.info("[Compression] Done: userId={}, summaryChars={}, totalCompressions={}",
+                    userId, summary.length(), memory.getCompressionCount());
 
         } catch (Exception e) {
             observation.error(e);
