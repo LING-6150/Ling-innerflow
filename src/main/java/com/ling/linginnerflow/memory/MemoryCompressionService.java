@@ -173,8 +173,8 @@ public class MemoryCompressionService {
             memory.setCompressionCount(memory.getCompressionCount() + 1);
             userMemoryRepository.save(memory);
 
-            log.info("[Compression] Done: userId={}, summaryChars={}, keptMessages={}, totalCompressions={}",
-                    userId, summary.length(), toKeep.size(), memory.getCompressionCount());
+            log.info("[Compression] Done: userId={}, summaryChars={}, totalCompressions={}",
+                    userId, summary.length(), memory.getCompressionCount());
 
         } catch (Exception e) {
             observation.error(e);
