@@ -35,6 +35,10 @@ class RunConfig:
     retry_attempts: int = 3
     retry_backoff_seconds: float = 2.0
     order_seed: int = 6150
+    summary_max_tokens: int = 2048
+    wiki_max_tokens: int = 4096
+    reflection_max_tokens: int = 2048
+    response_max_tokens: int = 1024
 
 
 class RetryingBackend:
@@ -113,6 +117,10 @@ def build_run_freeze(
             "policy_order_seed": config.order_seed,
             "compression_threshold_rounds": 10,
             "keep_recent_rounds": 4,
+            "summary_max_tokens": config.summary_max_tokens,
+            "wiki_max_tokens": config.wiki_max_tokens,
+            "reflection_max_tokens": config.reflection_max_tokens,
+            "response_max_tokens": config.response_max_tokens,
         },
         "fixture_sha256": sha256_file(fixture_path),
         "corpus_manifest_sha256": sha256_file(corpus_manifest_path),
@@ -238,16 +246,22 @@ def _run_replicate(
                     formation_temperature=config.formation_temperature,
                     response_temperature=config.response_temperature,
                     embedding_backend=embedding_backend,
+                    summary_max_tokens=config.summary_max_tokens,
+                    wiki_max_tokens=config.wiki_max_tokens,
+                    reflection_max_tokens=config.reflection_max_tokens,
+                    response_max_tokens=config.response_max_tokens,
                 )
             elif policy_name == "B-full":
                 policy = FullHistoryPolicy(
                     backend,
                     response_temperature=config.response_temperature,
+                    response_max_tokens=config.response_max_tokens,
                 )
             else:
                 policy = NoMemoryPolicy(
                     backend,
                     response_temperature=config.response_temperature,
+                    response_max_tokens=config.response_max_tokens,
                 )
             output = policy.run(scenario, replicate=replicate)
             grade = grade_strict_choice(output.raw_answer, scenario)

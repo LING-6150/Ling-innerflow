@@ -24,7 +24,7 @@ from innerflow_v2.reliability.run import (
 
 FIXTURE = ROOT / "eval/m0/fixtures/memory_reliability_m0.json"
 CORPUS_MANIFEST = ROOT / "eval/m0/manifests/M0_CORPUS_FREEZE.json"
-RUN_MANIFEST = ROOT / "eval/m0/manifests/M0_RUN_FREEZE_V2.json"
+RUN_MANIFEST = ROOT / "eval/m0/manifests/M0_RUN_FREEZE_V3.json"
 RAW_PATH = ROOT / "eval/m0/private/M0_RAW.json"
 RAW_HASH_PATH = ROOT / "eval/m0/manifests/M0_RAW_SHA256.txt"
 RESULTS_PATH = ROOT / "eval/m0/RESULTS_M0.md"

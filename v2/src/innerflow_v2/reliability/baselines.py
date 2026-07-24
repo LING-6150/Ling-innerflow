@@ -138,6 +138,10 @@ class FaithfulSummaryPolicy:
         formation_temperature: float = 0.2,
         response_temperature: float = 0.4,
         embedding_backend: EmbeddingBackend | None = None,
+        summary_max_tokens: int = 2048,
+        wiki_max_tokens: int = 4096,
+        reflection_max_tokens: int = 2048,
+        response_max_tokens: int = 1024,
     ) -> None:
         self.backend = backend
         self.embedding_backend = embedding_backend
@@ -146,6 +150,10 @@ class FaithfulSummaryPolicy:
         self.keep_messages = keep_recent_rounds * 2
         self.formation_temperature = formation_temperature
         self.response_temperature = response_temperature
+        self.summary_max_tokens = summary_max_tokens
+        self.wiki_max_tokens = wiki_max_tokens
+        self.reflection_max_tokens = reflection_max_tokens
+        self.response_max_tokens = response_max_tokens
         self.short: list[MemoryMessage] = []
         self.wiki = WikiState()
         self.trace = PolicyTrace()
@@ -177,7 +185,7 @@ class FaithfulSummaryPolicy:
         completion = self._complete(
             "memory.compression.summary",
             summary_prompt(to_summarize),
-            300,
+            self.summary_max_tokens,
         )
         source_ids = tuple(
             source_id for message in to_summarize for source_id in message.source_ids
@@ -239,7 +247,9 @@ class FaithfulSummaryPolicy:
             else merge_prompt(self._wiki_prompt_text(), history)
         )
         operation = "memory.wiki.first_extract" if first else "memory.wiki.merge"
-        result = parse_json_object(self._complete(operation, prompt, 900).content)
+        result = parse_json_object(
+            self._complete(operation, prompt, self.wiki_max_tokens).content
+        )
         session_sources = {
             source_id for message in history for source_id in message.source_ids
         }
@@ -379,7 +389,9 @@ class FaithfulSummaryPolicy:
             return
         memory_text = "\n".join(rows) + "\n"
         completion = self._complete(
-            "memory.reflection", reflection_prompt(memory_text), 400
+            "memory.reflection",
+            reflection_prompt(memory_text),
+            self.reflection_max_tokens,
         )
         self.wiki.reflection = completion.content
         sources: set[str] = set()
@@ -487,7 +499,7 @@ class FaithfulSummaryPolicy:
             operation="memory.probe.response",
             prompt=prompt,
             temperature=self.response_temperature,
-            max_tokens=40,
+            max_tokens=self.response_max_tokens,
         )
         self.trace.calls.append(
             ModelCall(
@@ -512,9 +524,16 @@ class FaithfulSummaryPolicy:
 class FullHistoryPolicy:
     name: PolicyName = "B-full"
 
-    def __init__(self, backend: ChatBackend, *, response_temperature: float = 0.4):
+    def __init__(
+        self,
+        backend: ChatBackend,
+        *,
+        response_temperature: float = 0.4,
+        response_max_tokens: int = 1024,
+    ):
         self.backend = backend
         self.response_temperature = response_temperature
+        self.response_max_tokens = response_max_tokens
 
     def run(
         self, scenario: ReliabilityScenario, *, replicate: int
@@ -532,7 +551,7 @@ class FullHistoryPolicy:
             operation="memory.probe.response",
             prompt=prompt,
             temperature=self.response_temperature,
-            max_tokens=40,
+            max_tokens=self.response_max_tokens,
         )
         trace = PolicyTrace(
             calls=[
@@ -560,9 +579,16 @@ class FullHistoryPolicy:
 class NoMemoryPolicy:
     name: PolicyName = "B-none"
 
-    def __init__(self, backend: ChatBackend, *, response_temperature: float = 0.4):
+    def __init__(
+        self,
+        backend: ChatBackend,
+        *,
+        response_temperature: float = 0.4,
+        response_max_tokens: int = 1024,
+    ):
         self.backend = backend
         self.response_temperature = response_temperature
+        self.response_max_tokens = response_max_tokens
 
     def run(
         self, scenario: ReliabilityScenario, *, replicate: int
@@ -572,7 +598,7 @@ class NoMemoryPolicy:
             operation="memory.probe.response",
             prompt=prompt,
             temperature=self.response_temperature,
-            max_tokens=40,
+            max_tokens=self.response_max_tokens,
         )
         trace = PolicyTrace(
             calls=[

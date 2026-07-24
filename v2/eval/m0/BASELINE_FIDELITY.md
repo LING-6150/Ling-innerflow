@@ -38,6 +38,10 @@ that is already part of `main`.
   defect. Reports must not generalize failures exposed by that defect into a
   claim that summary compression is intrinsically incapable of lifecycle
   handling.
+- The production Java client does not impose the tiny stage caps used by the
+  first infrastructure run. Run 1 was retained as inconclusive after those caps
+  truncated every probe response and many Wiki JSON objects; the corrected
+  safety ceilings are frozen explicitly before the full rerun.
 
 ## Controls
 

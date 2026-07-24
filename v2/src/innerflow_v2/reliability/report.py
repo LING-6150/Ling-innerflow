@@ -46,7 +46,7 @@ def render_m0_report(
                     for record in records
                     if record["policy"] == policy
                     and record["replicate"] == replicate
-                    and record["split"] == split
+                    and scenario_by_id[record["case_id"]].split == split
                 ]
                 unavailable = sum(record["correct"] is None for record in matching)
                 wrong = sum(record["correct"] is False for record in matching)
