@@ -2,12 +2,15 @@
 
 ## Execution-Ready Evaluation Design v1.2
 
-**Status:** adversarial-review candidate; not frozen  
+**Status:** frozen
+
+**Freeze decision:** `FREEZE` — independent closure review marked F1–F9 `CLOSED`; owner confirmed
+
 **Date:** 2026-07-24  
 **Code reference:** `origin/main` at `8a8aa69380fa873a9b803802751271d7e539a8ce` (PR #84)  
 **Frozen positioning:** **InnerFlow — Memory Reliability and Failure Localization for Stateful AI Agents**
 
-This document defines M0 through M4. It is a design contract, not an implementation plan that may be freely expanded. After one adversarial review, accepted corrections are incorporated and the document, fixture distribution, gates, metric definitions, and fairness rules are frozen. Only then may M0 begin.
+This document defines M0 through M4. It is a frozen design contract, not an implementation plan that may be freely expanded. The adversarial review and closure review are complete. M0 may begin after this document is merged; changes to frozen fixtures, gates, metric definitions, or fairness rules require a new protocol version.
 
 ### v1.2 changelog
 
@@ -695,6 +698,14 @@ The reviewer should attempt to reject v1.2 by answering:
 25. Do replicate churn, failed calls, and three-to-five-run escalation produce one unambiguous gate reason code?
 
 Freeze requires a written disposition for every objection: accept and patch, reject with reason, or mark as a declared limitation. The five v1.1 findings are disposed in §11.1 and the nine independent-review findings in §11.2. After freeze, changing category counts, gates, gold, or primary metrics requires a new protocol version and invalidates comparison with v1.2.
+
+### 13.1 Closure record
+
+- Independent closure review: F1–F9 `CLOSED`.
+- Final reviewer verdict: `FREEZE`.
+- Owner confirmation: accepted.
+- Frozen version: `v1.2`.
+- Implementation boundary: merge this document first; then begin M0 only. No aware treatment is authorized before G0 returns GO.
 
 ---
 
