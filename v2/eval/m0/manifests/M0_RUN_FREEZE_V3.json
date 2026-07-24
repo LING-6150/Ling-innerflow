@@ -1,0 +1,39 @@
+{
+  "protocol_version": "v1.2",
+  "status": "frozen-before-baseline-output",
+  "generated_at": "2026-07-24T15:48:46.189257+00:00",
+  "source_commit": "5e94c45c11be010456f14a2311314b889374f7d0",
+  "provider": "ModelVerse",
+  "base_url": "https://api.modelverse.cn/v1",
+  "model": "gemini-2.5-flash",
+  "embedding_model": "text-embedding-3-large",
+  "run_date": "2026-07-24",
+  "parameters": {
+    "formation_temperature": 0.2,
+    "response_temperature": 0.4,
+    "initial_replicates": 3,
+    "retry_attempts": 3,
+    "retry_backoff_seconds": 2.0,
+    "policy_order_seed": 6150,
+    "compression_threshold_rounds": 10,
+    "keep_recent_rounds": 4,
+    "summary_max_tokens": 2048,
+    "wiki_max_tokens": 4096,
+    "reflection_max_tokens": 2048,
+    "response_max_tokens": 1024
+  },
+  "fixture_sha256": "4534de29ce7cc6607926602c4d3dd241225fe417a4d101b2da340dbf8c413dcd",
+  "corpus_manifest_sha256": "3ef1494457b4a40fa11df6c1258d5051b09984418ff32327cb014d6a0492795f",
+  "implementation_source_hashes": {
+    "baselines.py": "e32aa299d193ecf5a579c8b7d4f4d05df1535767480bfba51fc86bf8496ddc06",
+    "client.py": "ecd85e2eb11ba8d01a59b4f8485847f9c7321632eb3d2ee181ad44c4c326700d",
+    "gate.py": "2bedec11381930deca13d0ab70595ffe4b12f34619d9c1ae295b9246d119dd3c",
+    "grading.py": "f2dd4abea63f04321abd268f45c3c5f0911f1ed9a65ae86f1a455b14b3111b19",
+    "prompts.py": "08d831b726710163342a90520be515c8115b40a67198fad4e340882306305e3b",
+    "report.py": "e69bb8b5043091947eb8f758b53c28c982b7556dbff155196289888aeb8b8486",
+    "run.py": "6ef7b08a9241e93018fe1f432c43becca3a7fec2cb47ed70fe940ebfa47ee82c"
+  },
+  "dependency_lock_sha256": "66a6cfc0527003c2f95c67184984b25f24d04d75324a8b9fa739d54304958302",
+  "holdout_disclosure": "aggregate-only",
+  "raw_output_retention": "local sealed artifact; SHA-256 is published, item-level holdout is not"
+}
