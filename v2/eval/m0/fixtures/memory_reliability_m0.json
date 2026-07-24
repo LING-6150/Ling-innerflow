@@ -1,0 +1,3008 @@
+[
+  {
+    "case_id": "corr_support_style",
+    "category": "correction",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "corr_support_style_s1",
+        "events": [
+          {
+            "id": "corr_support_style_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "When I am overwhelmed, give me direct instructions immediately."
+          },
+          {
+            "id": "corr_support_style_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          },
+          {
+            "id": "corr_support_style_f1",
+            "timestamp": "2026-01-01T09:02:00Z",
+            "role": "user",
+            "content": "I took a short break before continuing."
+          },
+          {
+            "id": "corr_support_style_s1_a2",
+            "timestamp": "2026-01-01T09:03:00Z",
+            "role": "assistant",
+            "content": "Taking it one step at a time can help."
+          },
+          {
+            "id": "corr_support_style_f2",
+            "timestamp": "2026-01-01T09:04:00Z",
+            "role": "user",
+            "content": "I am organizing the rest of my week."
+          },
+          {
+            "id": "corr_support_style_s1_a3",
+            "timestamp": "2026-01-01T09:05:00Z",
+            "role": "assistant",
+            "content": "Thanks for noting that."
+          },
+          {
+            "id": "corr_support_style_f3",
+            "timestamp": "2026-01-01T09:06:00Z",
+            "role": "user",
+            "content": "Today was fairly ordinary overall."
+          },
+          {
+            "id": "corr_support_style_s1_a4",
+            "timestamp": "2026-01-01T09:07:00Z",
+            "role": "assistant",
+            "content": "It is good that you made room for a break."
+          },
+          {
+            "id": "corr_support_style_f4",
+            "timestamp": "2026-01-01T09:08:00Z",
+            "role": "user",
+            "content": "I made time for lunch before returning."
+          },
+          {
+            "id": "corr_support_style_s1_a5",
+            "timestamp": "2026-01-01T09:09:00Z",
+            "role": "assistant",
+            "content": "A short list can make the next step clearer."
+          },
+          {
+            "id": "corr_support_style_f5",
+            "timestamp": "2026-01-01T09:10:00Z",
+            "role": "user",
+            "content": "I wrote down a few tasks for tomorrow."
+          },
+          {
+            "id": "corr_support_style_s1_a6",
+            "timestamp": "2026-01-01T09:11:00Z",
+            "role": "assistant",
+            "content": "That is one thing completed."
+          },
+          {
+            "id": "corr_support_style_f6",
+            "timestamp": "2026-01-01T09:12:00Z",
+            "role": "user",
+            "content": "I finished one small errand this afternoon."
+          },
+          {
+            "id": "corr_support_style_s1_a7",
+            "timestamp": "2026-01-01T09:13:00Z",
+            "role": "assistant",
+            "content": "I am here for the check-in."
+          },
+          {
+            "id": "corr_support_style_f7",
+            "timestamp": "2026-01-01T09:14:00Z",
+            "role": "user",
+            "content": "I am checking in before I log off."
+          },
+          {
+            "id": "corr_support_style_s1_a8",
+            "timestamp": "2026-01-01T09:15:00Z",
+            "role": "assistant",
+            "content": "Understood."
+          },
+          {
+            "id": "corr_support_style_f8",
+            "timestamp": "2026-01-01T09:16:00Z",
+            "role": "user",
+            "content": "Nothing urgent happened since we last spoke."
+          },
+          {
+            "id": "corr_support_style_s1_a9",
+            "timestamp": "2026-01-01T09:17:00Z",
+            "role": "assistant",
+            "content": "We can keep it brief."
+          },
+          {
+            "id": "corr_support_style_f9",
+            "timestamp": "2026-01-01T09:18:00Z",
+            "role": "user",
+            "content": "I would like to keep this check-in brief."
+          },
+          {
+            "id": "corr_support_style_s1_a10",
+            "timestamp": "2026-01-01T09:19:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "corr_support_style_s2",
+        "events": [
+          {
+            "id": "corr_support_style_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "Correction: when I am overwhelmed, ask permission before giving any advice."
+          },
+          {
+            "id": "corr_support_style_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "I am overwhelmed right now. Which response best follows my current preference?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ask whether advice would be helpful before offering it."
+        },
+        {
+          "id": "B",
+          "text": "Immediately give a numbered action plan."
+        },
+        {
+          "id": "C",
+          "text": "Avoid responding because the preference is contradictory."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "A",
+      "forbidden_choices": [
+        "B",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "corr_support_style_m2"
+      ],
+      "historical_memory_ids": [
+        "corr_support_style_m1"
+      ],
+      "required_context_ids": [
+        "corr_support_style_m2"
+      ],
+      "harmful_context_ids": [
+        "corr_support_style_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "corr_support_style_m1",
+          "new_memory_id": "corr_support_style_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "wiki_text_field_update"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates; PersonaMem preference evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for correction, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "corr_coping_method",
+    "category": "correction",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "corr_coping_method_s1",
+        "events": [
+          {
+            "id": "corr_coping_method_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Breathing exercises are what calm me down fastest."
+          },
+          {
+            "id": "corr_coping_method_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          },
+          {
+            "id": "corr_coping_method_f1",
+            "timestamp": "2026-01-01T09:02:00Z",
+            "role": "user",
+            "content": "I took a short break before continuing."
+          },
+          {
+            "id": "corr_coping_method_s1_a2",
+            "timestamp": "2026-01-01T09:03:00Z",
+            "role": "assistant",
+            "content": "Taking it one step at a time can help."
+          },
+          {
+            "id": "corr_coping_method_f2",
+            "timestamp": "2026-01-01T09:04:00Z",
+            "role": "user",
+            "content": "I am organizing the rest of my week."
+          },
+          {
+            "id": "corr_coping_method_s1_a3",
+            "timestamp": "2026-01-01T09:05:00Z",
+            "role": "assistant",
+            "content": "Thanks for noting that."
+          },
+          {
+            "id": "corr_coping_method_f3",
+            "timestamp": "2026-01-01T09:06:00Z",
+            "role": "user",
+            "content": "Today was fairly ordinary overall."
+          },
+          {
+            "id": "corr_coping_method_s1_a4",
+            "timestamp": "2026-01-01T09:07:00Z",
+            "role": "assistant",
+            "content": "It is good that you made room for a break."
+          },
+          {
+            "id": "corr_coping_method_f4",
+            "timestamp": "2026-01-01T09:08:00Z",
+            "role": "user",
+            "content": "I made time for lunch before returning."
+          },
+          {
+            "id": "corr_coping_method_s1_a5",
+            "timestamp": "2026-01-01T09:09:00Z",
+            "role": "assistant",
+            "content": "A short list can make the next step clearer."
+          },
+          {
+            "id": "corr_coping_method_f5",
+            "timestamp": "2026-01-01T09:10:00Z",
+            "role": "user",
+            "content": "I wrote down a few tasks for tomorrow."
+          },
+          {
+            "id": "corr_coping_method_s1_a6",
+            "timestamp": "2026-01-01T09:11:00Z",
+            "role": "assistant",
+            "content": "That is one thing completed."
+          },
+          {
+            "id": "corr_coping_method_f6",
+            "timestamp": "2026-01-01T09:12:00Z",
+            "role": "user",
+            "content": "I finished one small errand this afternoon."
+          },
+          {
+            "id": "corr_coping_method_s1_a7",
+            "timestamp": "2026-01-01T09:13:00Z",
+            "role": "assistant",
+            "content": "I am here for the check-in."
+          },
+          {
+            "id": "corr_coping_method_f7",
+            "timestamp": "2026-01-01T09:14:00Z",
+            "role": "user",
+            "content": "I am checking in before I log off."
+          },
+          {
+            "id": "corr_coping_method_s1_a8",
+            "timestamp": "2026-01-01T09:15:00Z",
+            "role": "assistant",
+            "content": "Understood."
+          },
+          {
+            "id": "corr_coping_method_f8",
+            "timestamp": "2026-01-01T09:16:00Z",
+            "role": "user",
+            "content": "Nothing urgent happened since we last spoke."
+          },
+          {
+            "id": "corr_coping_method_s1_a9",
+            "timestamp": "2026-01-01T09:17:00Z",
+            "role": "assistant",
+            "content": "We can keep it brief."
+          },
+          {
+            "id": "corr_coping_method_f9",
+            "timestamp": "2026-01-01T09:18:00Z",
+            "role": "user",
+            "content": "I would like to keep this check-in brief."
+          },
+          {
+            "id": "corr_coping_method_s1_a10",
+            "timestamp": "2026-01-01T09:19:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "corr_coping_method_s2",
+        "events": [
+          {
+            "id": "corr_coping_method_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "I need to correct that: breathing exercises make me tense; a quiet walk helps instead."
+          },
+          {
+            "id": "corr_coping_method_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Which coping suggestion matches the corrected memory?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Lead a breathing exercise."
+        },
+        {
+          "id": "B",
+          "text": "Suggest a quiet walk."
+        },
+        {
+          "id": "C",
+          "text": "Recommend both equally."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "B",
+      "forbidden_choices": [
+        "A",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "corr_coping_method_m2"
+      ],
+      "historical_memory_ids": [
+        "corr_coping_method_m1"
+      ],
+      "required_context_ids": [
+        "corr_coping_method_m2"
+      ],
+      "harmful_context_ids": [
+        "corr_coping_method_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "corr_coping_method_m1",
+          "new_memory_id": "corr_coping_method_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "wiki_text_field_update"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates; PersonaMem preference evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for correction, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "corr_trigger_source",
+    "category": "correction",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "corr_trigger_source_s1",
+        "events": [
+          {
+            "id": "corr_trigger_source_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Email notifications are my main anxiety trigger at work."
+          },
+          {
+            "id": "corr_trigger_source_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "corr_trigger_source_s2",
+        "events": [
+          {
+            "id": "corr_trigger_source_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "That was inaccurate: group presentations, not email notifications, are the work trigger."
+          },
+          {
+            "id": "corr_trigger_source_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "What should the assistant recognize as the corrected work trigger?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Email notifications."
+        },
+        {
+          "id": "B",
+          "text": "All workplace communication."
+        },
+        {
+          "id": "C",
+          "text": "Group presentations."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "C",
+      "forbidden_choices": [
+        "A",
+        "B"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "corr_trigger_source_m2"
+      ],
+      "historical_memory_ids": [
+        "corr_trigger_source_m1"
+      ],
+      "required_context_ids": [
+        "corr_trigger_source_m2"
+      ],
+      "harmful_context_ids": [
+        "corr_trigger_source_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "corr_trigger_source_m1",
+          "new_memory_id": "corr_trigger_source_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "wiki_text_field_update"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates; PersonaMem preference evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for correction, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "corr_preferred_name",
+    "category": "correction",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "corr_preferred_name_s1",
+        "events": [
+          {
+            "id": "corr_preferred_name_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Please call me Alex."
+          },
+          {
+            "id": "corr_preferred_name_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "corr_preferred_name_s2",
+        "events": [
+          {
+            "id": "corr_preferred_name_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "Actually, please call me Alexander, not Alex."
+          },
+          {
+            "id": "corr_preferred_name_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Which name should the assistant use now?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Alexander."
+        },
+        {
+          "id": "B",
+          "text": "Alex."
+        },
+        {
+          "id": "C",
+          "text": "Either name without asking."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "A",
+      "forbidden_choices": [
+        "B",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "corr_preferred_name_m2"
+      ],
+      "historical_memory_ids": [
+        "corr_preferred_name_m1"
+      ],
+      "required_context_ids": [
+        "corr_preferred_name_m2"
+      ],
+      "harmful_context_ids": [
+        "corr_preferred_name_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "corr_preferred_name_m1",
+          "new_memory_id": "corr_preferred_name_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "wiki_text_field_update"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates; PersonaMem preference evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for correction, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "corr_feedback_privacy",
+    "category": "correction",
+    "split": "holdout",
+    "setup_sessions": [
+      {
+        "id": "corr_feedback_privacy_s1",
+        "events": [
+          {
+            "id": "corr_feedback_privacy_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "I prefer blunt feedback in front of the whole team."
+          },
+          {
+            "id": "corr_feedback_privacy_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "corr_feedback_privacy_s2",
+        "events": [
+          {
+            "id": "corr_feedback_privacy_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "Correction: keep feedback direct, but always give it to me privately."
+          },
+          {
+            "id": "corr_feedback_privacy_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "How should feedback be delivered now?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Bluntly in front of the team."
+        },
+        {
+          "id": "B",
+          "text": "Directly and in private."
+        },
+        {
+          "id": "C",
+          "text": "Indirectly through another coworker."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "B",
+      "forbidden_choices": [
+        "A",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "corr_feedback_privacy_m2"
+      ],
+      "historical_memory_ids": [
+        "corr_feedback_privacy_m1"
+      ],
+      "required_context_ids": [
+        "corr_feedback_privacy_m2"
+      ],
+      "harmful_context_ids": [
+        "corr_feedback_privacy_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "corr_feedback_privacy_m1",
+          "new_memory_id": "corr_feedback_privacy_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "wiki_text_field_update"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates; PersonaMem preference evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for correction, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "corr_resolved_trigger_paraphrase",
+    "category": "correction",
+    "split": "holdout",
+    "setup_sessions": [
+      {
+        "id": "corr_resolved_trigger_paraphrase_s1",
+        "events": [
+          {
+            "id": "corr_resolved_trigger_paraphrase_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Crowded trains reliably trigger my panic."
+          },
+          {
+            "id": "corr_resolved_trigger_paraphrase_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "corr_resolved_trigger_paraphrase_s2",
+        "events": [
+          {
+            "id": "corr_resolved_trigger_paraphrase_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "Busy subway cars do not set me off anymore; please remove that old trigger."
+          },
+          {
+            "id": "corr_resolved_trigger_paraphrase_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "What should the assistant assume about crowded public transit now?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Treat every crowded train as a current trigger."
+        },
+        {
+          "id": "B",
+          "text": "State that the trigger is permanently confirmed."
+        },
+        {
+          "id": "C",
+          "text": "Do not assume it is still a panic trigger."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "C",
+      "forbidden_choices": [
+        "A",
+        "B"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "corr_resolved_trigger_paraphrase_m2"
+      ],
+      "historical_memory_ids": [
+        "corr_resolved_trigger_paraphrase_m1"
+      ],
+      "required_context_ids": [
+        "corr_resolved_trigger_paraphrase_m2"
+      ],
+      "harmful_context_ids": [
+        "corr_resolved_trigger_paraphrase_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "corr_resolved_trigger_paraphrase_m1",
+          "new_memory_id": "corr_resolved_trigger_paraphrase_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "trigger_increment_remove_exact_match"
+      ],
+      "exact_match_bug_exposed": true,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates; PersonaMem preference evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for correction, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "super_stressor",
+    "category": "supersession",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "super_stressor_s1",
+        "events": [
+          {
+            "id": "super_stressor_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "The product launch is the main source of my stress."
+          },
+          {
+            "id": "super_stressor_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          },
+          {
+            "id": "super_stressor_f1",
+            "timestamp": "2026-01-01T09:02:00Z",
+            "role": "user",
+            "content": "I took a short break before continuing."
+          },
+          {
+            "id": "super_stressor_s1_a2",
+            "timestamp": "2026-01-01T09:03:00Z",
+            "role": "assistant",
+            "content": "Taking it one step at a time can help."
+          },
+          {
+            "id": "super_stressor_f2",
+            "timestamp": "2026-01-01T09:04:00Z",
+            "role": "user",
+            "content": "I am organizing the rest of my week."
+          },
+          {
+            "id": "super_stressor_s1_a3",
+            "timestamp": "2026-01-01T09:05:00Z",
+            "role": "assistant",
+            "content": "Thanks for noting that."
+          },
+          {
+            "id": "super_stressor_f3",
+            "timestamp": "2026-01-01T09:06:00Z",
+            "role": "user",
+            "content": "Today was fairly ordinary overall."
+          },
+          {
+            "id": "super_stressor_s1_a4",
+            "timestamp": "2026-01-01T09:07:00Z",
+            "role": "assistant",
+            "content": "It is good that you made room for a break."
+          },
+          {
+            "id": "super_stressor_f4",
+            "timestamp": "2026-01-01T09:08:00Z",
+            "role": "user",
+            "content": "I made time for lunch before returning."
+          },
+          {
+            "id": "super_stressor_s1_a5",
+            "timestamp": "2026-01-01T09:09:00Z",
+            "role": "assistant",
+            "content": "A short list can make the next step clearer."
+          },
+          {
+            "id": "super_stressor_f5",
+            "timestamp": "2026-01-01T09:10:00Z",
+            "role": "user",
+            "content": "I wrote down a few tasks for tomorrow."
+          },
+          {
+            "id": "super_stressor_s1_a6",
+            "timestamp": "2026-01-01T09:11:00Z",
+            "role": "assistant",
+            "content": "That is one thing completed."
+          },
+          {
+            "id": "super_stressor_f6",
+            "timestamp": "2026-01-01T09:12:00Z",
+            "role": "user",
+            "content": "I finished one small errand this afternoon."
+          },
+          {
+            "id": "super_stressor_s1_a7",
+            "timestamp": "2026-01-01T09:13:00Z",
+            "role": "assistant",
+            "content": "I am here for the check-in."
+          },
+          {
+            "id": "super_stressor_f7",
+            "timestamp": "2026-01-01T09:14:00Z",
+            "role": "user",
+            "content": "I am checking in before I log off."
+          },
+          {
+            "id": "super_stressor_s1_a8",
+            "timestamp": "2026-01-01T09:15:00Z",
+            "role": "assistant",
+            "content": "Understood."
+          },
+          {
+            "id": "super_stressor_f8",
+            "timestamp": "2026-01-01T09:16:00Z",
+            "role": "user",
+            "content": "Nothing urgent happened since we last spoke."
+          },
+          {
+            "id": "super_stressor_s1_a9",
+            "timestamp": "2026-01-01T09:17:00Z",
+            "role": "assistant",
+            "content": "We can keep it brief."
+          },
+          {
+            "id": "super_stressor_f9",
+            "timestamp": "2026-01-01T09:18:00Z",
+            "role": "user",
+            "content": "I would like to keep this check-in brief."
+          },
+          {
+            "id": "super_stressor_s1_a10",
+            "timestamp": "2026-01-01T09:19:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "super_stressor_s2",
+        "events": [
+          {
+            "id": "super_stressor_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "The launch ended last month; caregiving for my father is now my main stressor."
+          },
+          {
+            "id": "super_stressor_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Which current stressor should guide the response?",
+      "options": [
+        {
+          "id": "A",
+          "text": "The completed product launch."
+        },
+        {
+          "id": "B",
+          "text": "Caregiving for the user's father."
+        },
+        {
+          "id": "C",
+          "text": "Both are equally current."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "B",
+      "forbidden_choices": [
+        "A",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "super_stressor_m2"
+      ],
+      "historical_memory_ids": [
+        "super_stressor_m1"
+      ],
+      "required_context_ids": [
+        "super_stressor_m2"
+      ],
+      "harmful_context_ids": [
+        "super_stressor_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "super_stressor_m1",
+          "new_memory_id": "super_stressor_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "wiki_text_field_update"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates/Temporal Reasoning; PersonaMem evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for supersession, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "super_coping",
+    "category": "supersession",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "super_coping_s1",
+        "events": [
+          {
+            "id": "super_coping_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Journaling is the coping strategy I rely on most."
+          },
+          {
+            "id": "super_coping_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "super_coping_s2",
+        "events": [
+          {
+            "id": "super_coping_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "Lately journaling has stopped helping; calling my sister is what works now."
+          },
+          {
+            "id": "super_coping_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Which coping option reflects the current state?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Journaling."
+        },
+        {
+          "id": "B",
+          "text": "Avoid all coping suggestions."
+        },
+        {
+          "id": "C",
+          "text": "Calling the user's sister."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "C",
+      "forbidden_choices": [
+        "A",
+        "B"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "super_coping_m2"
+      ],
+      "historical_memory_ids": [
+        "super_coping_m1"
+      ],
+      "required_context_ids": [
+        "super_coping_m2"
+      ],
+      "harmful_context_ids": [
+        "super_coping_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "super_coping_m1",
+          "new_memory_id": "super_coping_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "wiki_text_field_update"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates/Temporal Reasoning; PersonaMem evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for supersession, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "super_goal",
+    "category": "supersession",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "super_goal_s1",
+        "events": [
+          {
+            "id": "super_goal_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "My main goal this year is earning a promotion."
+          },
+          {
+            "id": "super_goal_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "super_goal_s2",
+        "events": [
+          {
+            "id": "super_goal_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "My priorities changed: work-life balance is now more important than promotion."
+          },
+          {
+            "id": "super_goal_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Which goal is current?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Work-life balance."
+        },
+        {
+          "id": "B",
+          "text": "Earning a promotion."
+        },
+        {
+          "id": "C",
+          "text": "Maximizing work hours."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "A",
+      "forbidden_choices": [
+        "B",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "super_goal_m2"
+      ],
+      "historical_memory_ids": [
+        "super_goal_m1"
+      ],
+      "required_context_ids": [
+        "super_goal_m2"
+      ],
+      "harmful_context_ids": [
+        "super_goal_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "super_goal_m1",
+          "new_memory_id": "super_goal_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "wiki_text_field_update"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates/Temporal Reasoning; PersonaMem evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for supersession, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "super_checkin_time",
+    "category": "supersession",
+    "split": "holdout",
+    "setup_sessions": [
+      {
+        "id": "super_checkin_time_s1",
+        "events": [
+          {
+            "id": "super_checkin_time_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Morning check-ins work best for me."
+          },
+          {
+            "id": "super_checkin_time_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "super_checkin_time_s2",
+        "events": [
+          {
+            "id": "super_checkin_time_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "My schedule changed; evening check-ins work best now."
+          },
+          {
+            "id": "super_checkin_time_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "When should a check-in be suggested now?",
+      "options": [
+        {
+          "id": "A",
+          "text": "In the morning."
+        },
+        {
+          "id": "B",
+          "text": "In the evening."
+        },
+        {
+          "id": "C",
+          "text": "At both times every day."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "B",
+      "forbidden_choices": [
+        "A",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "super_checkin_time_m2"
+      ],
+      "historical_memory_ids": [
+        "super_checkin_time_m1"
+      ],
+      "required_context_ids": [
+        "super_checkin_time_m2"
+      ],
+      "harmful_context_ids": [
+        "super_checkin_time_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "super_checkin_time_m1",
+          "new_memory_id": "super_checkin_time_m2",
+          "expected": "supersede"
+        }
+      ],
+      "baseline_mechanisms": [
+        "wiki_text_field_update"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2504.14225",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Knowledge Updates/Temporal Reasoning; PersonaMem evolution",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for supersession, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "ctx_feedback_review",
+    "category": "context-exception",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "ctx_feedback_review_s1",
+        "events": [
+          {
+            "id": "ctx_feedback_review_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "I generally prefer very direct feedback."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          },
+          {
+            "id": "ctx_feedback_review_f1",
+            "timestamp": "2026-01-01T09:02:00Z",
+            "role": "user",
+            "content": "I took a short break before continuing."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a2",
+            "timestamp": "2026-01-01T09:03:00Z",
+            "role": "assistant",
+            "content": "Taking it one step at a time can help."
+          },
+          {
+            "id": "ctx_feedback_review_f2",
+            "timestamp": "2026-01-01T09:04:00Z",
+            "role": "user",
+            "content": "I am organizing the rest of my week."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a3",
+            "timestamp": "2026-01-01T09:05:00Z",
+            "role": "assistant",
+            "content": "Thanks for noting that."
+          },
+          {
+            "id": "ctx_feedback_review_f3",
+            "timestamp": "2026-01-01T09:06:00Z",
+            "role": "user",
+            "content": "Today was fairly ordinary overall."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a4",
+            "timestamp": "2026-01-01T09:07:00Z",
+            "role": "assistant",
+            "content": "It is good that you made room for a break."
+          },
+          {
+            "id": "ctx_feedback_review_f4",
+            "timestamp": "2026-01-01T09:08:00Z",
+            "role": "user",
+            "content": "I made time for lunch before returning."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a5",
+            "timestamp": "2026-01-01T09:09:00Z",
+            "role": "assistant",
+            "content": "A short list can make the next step clearer."
+          },
+          {
+            "id": "ctx_feedback_review_f5",
+            "timestamp": "2026-01-01T09:10:00Z",
+            "role": "user",
+            "content": "I wrote down a few tasks for tomorrow."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a6",
+            "timestamp": "2026-01-01T09:11:00Z",
+            "role": "assistant",
+            "content": "That is one thing completed."
+          },
+          {
+            "id": "ctx_feedback_review_f6",
+            "timestamp": "2026-01-01T09:12:00Z",
+            "role": "user",
+            "content": "I finished one small errand this afternoon."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a7",
+            "timestamp": "2026-01-01T09:13:00Z",
+            "role": "assistant",
+            "content": "I am here for the check-in."
+          },
+          {
+            "id": "ctx_feedback_review_f7",
+            "timestamp": "2026-01-01T09:14:00Z",
+            "role": "user",
+            "content": "I am checking in before I log off."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a8",
+            "timestamp": "2026-01-01T09:15:00Z",
+            "role": "assistant",
+            "content": "Understood."
+          },
+          {
+            "id": "ctx_feedback_review_f8",
+            "timestamp": "2026-01-01T09:16:00Z",
+            "role": "user",
+            "content": "Nothing urgent happened since we last spoke."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a9",
+            "timestamp": "2026-01-01T09:17:00Z",
+            "role": "assistant",
+            "content": "We can keep it brief."
+          },
+          {
+            "id": "ctx_feedback_review_f9",
+            "timestamp": "2026-01-01T09:18:00Z",
+            "role": "user",
+            "content": "I would like to keep this check-in brief."
+          },
+          {
+            "id": "ctx_feedback_review_s1_a10",
+            "timestamp": "2026-01-01T09:19:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "ctx_feedback_review_s2",
+        "events": [
+          {
+            "id": "ctx_feedback_review_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "During formal performance reviews, please be gentle and give feedback privately."
+          },
+          {
+            "id": "ctx_feedback_review_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "This is a formal performance review. Which style applies?",
+      "options": [
+        {
+          "id": "A",
+          "text": "The general very-direct style."
+        },
+        {
+          "id": "B",
+          "text": "No feedback at all."
+        },
+        {
+          "id": "C",
+          "text": "Gentle, private feedback."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "C",
+      "forbidden_choices": [
+        "A",
+        "B"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "ctx_feedback_review_m1",
+        "ctx_feedback_review_m2"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [
+        "ctx_feedback_review_m2"
+      ],
+      "harmful_context_ids": [
+        "ctx_feedback_review_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "ctx_feedback_review_m1",
+          "new_memory_id": "ctx_feedback_review_m2",
+          "expected": "keep_scoped"
+        }
+      ],
+      "baseline_mechanisms": [
+        "raw_history_without_scope_selection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": "ctx_feedback_review_m2",
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2603.16557; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "BenchPreS apply/suppress; RPEval rational preference utilization",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for context-exception, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "ctx_detail_crisis_plan",
+    "category": "context-exception",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "ctx_detail_crisis_plan_s1",
+        "events": [
+          {
+            "id": "ctx_detail_crisis_plan_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "I usually want concise answers."
+          },
+          {
+            "id": "ctx_detail_crisis_plan_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "ctx_detail_crisis_plan_s2",
+        "events": [
+          {
+            "id": "ctx_detail_crisis_plan_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "When we discuss my panic plan, I need detailed step-by-step explanations."
+          },
+          {
+            "id": "ctx_detail_crisis_plan_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "The user asks to review their panic plan. Which response style applies?",
+      "options": [
+        {
+          "id": "A",
+          "text": "A detailed step-by-step explanation."
+        },
+        {
+          "id": "B",
+          "text": "The usual concise answer."
+        },
+        {
+          "id": "C",
+          "text": "A vague reassurance with no steps."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "A",
+      "forbidden_choices": [
+        "B",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "ctx_detail_crisis_plan_m1",
+        "ctx_detail_crisis_plan_m2"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [
+        "ctx_detail_crisis_plan_m2"
+      ],
+      "harmful_context_ids": [
+        "ctx_detail_crisis_plan_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "ctx_detail_crisis_plan_m1",
+          "new_memory_id": "ctx_detail_crisis_plan_m2",
+          "expected": "keep_scoped"
+        }
+      ],
+      "baseline_mechanisms": [
+        "raw_history_without_scope_selection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": "ctx_detail_crisis_plan_m2",
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2603.16557; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "BenchPreS apply/suppress; RPEval rational preference utilization",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for context-exception, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "ctx_bereavement",
+    "category": "context-exception",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "ctx_bereavement_s1",
+        "events": [
+          {
+            "id": "ctx_bereavement_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Usually push me toward an action when I feel stuck."
+          },
+          {
+            "id": "ctx_bereavement_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "ctx_bereavement_s2",
+        "events": [
+          {
+            "id": "ctx_bereavement_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "When I talk about my mother's death, please listen first and do not push action steps."
+          },
+          {
+            "id": "ctx_bereavement_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "The user is talking about their mother's death. What should the assistant do?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Immediately push an action plan."
+        },
+        {
+          "id": "B",
+          "text": "Listen and acknowledge before offering action."
+        },
+        {
+          "id": "C",
+          "text": "Change the topic."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "B",
+      "forbidden_choices": [
+        "A",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "ctx_bereavement_m1",
+        "ctx_bereavement_m2"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [
+        "ctx_bereavement_m2"
+      ],
+      "harmful_context_ids": [
+        "ctx_bereavement_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "ctx_bereavement_m1",
+          "new_memory_id": "ctx_bereavement_m2",
+          "expected": "keep_scoped"
+        }
+      ],
+      "baseline_mechanisms": [
+        "raw_history_without_scope_selection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": "ctx_bereavement_m2",
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2603.16557; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "BenchPreS apply/suppress; RPEval rational preference utilization",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for context-exception, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "ctx_humor_panic",
+    "category": "context-exception",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "ctx_humor_panic_s1",
+        "events": [
+          {
+            "id": "ctx_humor_panic_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Humor usually helps me loosen up."
+          },
+          {
+            "id": "ctx_humor_panic_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "ctx_humor_panic_s2",
+        "events": [
+          {
+            "id": "ctx_humor_panic_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "During a panic episode, do not use humor; keep the tone calm and literal."
+          },
+          {
+            "id": "ctx_humor_panic_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "The user says a panic episode is happening now. Which tone applies?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Use humor because it usually helps."
+        },
+        {
+          "id": "B",
+          "text": "Use sarcasm to distract them."
+        },
+        {
+          "id": "C",
+          "text": "Calm and literal, without humor."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "C",
+      "forbidden_choices": [
+        "A",
+        "B"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "ctx_humor_panic_m1",
+        "ctx_humor_panic_m2"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [
+        "ctx_humor_panic_m2"
+      ],
+      "harmful_context_ids": [
+        "ctx_humor_panic_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "ctx_humor_panic_m1",
+          "new_memory_id": "ctx_humor_panic_m2",
+          "expected": "keep_scoped"
+        }
+      ],
+      "baseline_mechanisms": [
+        "raw_history_without_scope_selection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": "ctx_humor_panic_m2",
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2603.16557; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "BenchPreS apply/suppress; RPEval rational preference utilization",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for context-exception, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "ctx_validation_conflict",
+    "category": "context-exception",
+    "split": "holdout",
+    "setup_sessions": [
+      {
+        "id": "ctx_validation_conflict_s1",
+        "events": [
+          {
+            "id": "ctx_validation_conflict_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "I generally want you to challenge my distorted thinking."
+          },
+          {
+            "id": "ctx_validation_conflict_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "ctx_validation_conflict_s2",
+        "events": [
+          {
+            "id": "ctx_validation_conflict_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "When I have just had a family conflict, validate the feeling before challenging my interpretation."
+          },
+          {
+            "id": "ctx_validation_conflict_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "The user has just had a family conflict. What comes first?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Validate the feeling first."
+        },
+        {
+          "id": "B",
+          "text": "Immediately challenge the interpretation."
+        },
+        {
+          "id": "C",
+          "text": "Avoid acknowledging the feeling."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "A",
+      "forbidden_choices": [
+        "B",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "ctx_validation_conflict_m1",
+        "ctx_validation_conflict_m2"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [
+        "ctx_validation_conflict_m2"
+      ],
+      "harmful_context_ids": [
+        "ctx_validation_conflict_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "ctx_validation_conflict_m1",
+          "new_memory_id": "ctx_validation_conflict_m2",
+          "expected": "keep_scoped"
+        }
+      ],
+      "baseline_mechanisms": [
+        "raw_history_without_scope_selection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": "ctx_validation_conflict_m2",
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2603.16557; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "BenchPreS apply/suppress; RPEval rational preference utilization",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for context-exception, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "ctx_checkins_work",
+    "category": "context-exception",
+    "split": "holdout",
+    "setup_sessions": [
+      {
+        "id": "ctx_checkins_work_s1",
+        "events": [
+          {
+            "id": "ctx_checkins_work_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Proactive reminders usually help me."
+          },
+          {
+            "id": "ctx_checkins_work_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "ctx_checkins_work_s2",
+        "events": [
+          {
+            "id": "ctx_checkins_work_m2",
+            "timestamp": "2026-01-15T09:00:00Z",
+            "role": "user",
+            "content": "While I am at work, do not send proactive emotional check-ins."
+          },
+          {
+            "id": "ctx_checkins_work_s2_a1",
+            "timestamp": "2026-01-15T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "The user is currently at work. Should a proactive emotional reminder be sent?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Yes, because reminders generally help."
+        },
+        {
+          "id": "B",
+          "text": "No, suppress the reminder in this context."
+        },
+        {
+          "id": "C",
+          "text": "Send several reminders to be safe."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "B",
+      "forbidden_choices": [
+        "A",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "ctx_checkins_work_m1",
+        "ctx_checkins_work_m2"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [
+        "ctx_checkins_work_m2"
+      ],
+      "harmful_context_ids": [
+        "ctx_checkins_work_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "ctx_checkins_work_m1",
+          "new_memory_id": "ctx_checkins_work_m2",
+          "expected": "keep_scoped"
+        }
+      ],
+      "baseline_mechanisms": [
+        "raw_history_without_scope_selection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": "ctx_checkins_work_m2",
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2603.16557; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "BenchPreS apply/suppress; RPEval rational preference utilization",
+      "transformation_log": "Converted the cited benchmark construct into a two-session, therapy-adjacent forced-choice probe; wording and person are synthetic.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for context-exception, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "none_crowd_calendar",
+    "category": "no-memory",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "none_crowd_calendar_s1",
+        "events": [
+          {
+            "id": "none_crowd_calendar_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Crowded rooms make me anxious."
+          },
+          {
+            "id": "none_crowd_calendar_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Which answer correctly states the number of days in a leap year?",
+      "options": [
+        {
+          "id": "A",
+          "text": "366 days, and avoid crowded rooms while counting."
+        },
+        {
+          "id": "B",
+          "text": "Crowded rooms have 365 days."
+        },
+        {
+          "id": "C",
+          "text": "366 days."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "C",
+      "forbidden_choices": [
+        "A",
+        "B"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "none_crowd_calendar_m1"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [],
+      "harmful_context_ids": [
+        "none_crowd_calendar_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "none_crowd_calendar_m1",
+          "new_memory_id": null,
+          "expected": "no_conflict"
+        }
+      ],
+      "baseline_mechanisms": [
+        "unconditional_wiki_injection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Abstention; RPEval irrelevant-memory interference",
+      "transformation_log": "Paired an unrelated stored preference with a forced-choice neutral task to operationalize abstention from personalization.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for no-memory, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "none_running_grammar",
+    "category": "no-memory",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "none_running_grammar_s1",
+        "events": [
+          {
+            "id": "none_running_grammar_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Running after work helps me decompress."
+          },
+          {
+            "id": "none_running_grammar_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Choose the grammatically correct sentence.",
+      "options": [
+        {
+          "id": "A",
+          "text": "She has finished the report."
+        },
+        {
+          "id": "B",
+          "text": "She has finished the report, preferably after a run."
+        },
+        {
+          "id": "C",
+          "text": "She have finish the report."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "A",
+      "forbidden_choices": [
+        "B",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "none_running_grammar_m1"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [],
+      "harmful_context_ids": [
+        "none_running_grammar_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "none_running_grammar_m1",
+          "new_memory_id": null,
+          "expected": "no_conflict"
+        }
+      ],
+      "baseline_mechanisms": [
+        "unconditional_wiki_injection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Abstention; RPEval irrelevant-memory interference",
+      "transformation_log": "Paired an unrelated stored preference with a forced-choice neutral task to operationalize abstention from personalization.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for no-memory, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "none_music_password",
+    "category": "no-memory",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "none_music_password_s1",
+        "events": [
+          {
+            "id": "none_music_password_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Quiet jazz helps when I am stressed."
+          },
+          {
+            "id": "none_music_password_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Which password-reset instruction is appropriate?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Play jazz instead of resetting the password."
+        },
+        {
+          "id": "B",
+          "text": "Use the account's verified reset link."
+        },
+        {
+          "id": "C",
+          "text": "Send the password in public chat."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "B",
+      "forbidden_choices": [
+        "A",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "none_music_password_m1"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [],
+      "harmful_context_ids": [
+        "none_music_password_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "none_music_password_m1",
+          "new_memory_id": null,
+          "expected": "no_conflict"
+        }
+      ],
+      "baseline_mechanisms": [
+        "unconditional_wiki_injection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Abstention; RPEval irrelevant-memory interference",
+      "transformation_log": "Paired an unrelated stored preference with a forced-choice neutral task to operationalize abstention from personalization.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for no-memory, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "none_tea_arithmetic",
+    "category": "no-memory",
+    "split": "holdout",
+    "setup_sessions": [
+      {
+        "id": "none_tea_arithmetic_s1",
+        "events": [
+          {
+            "id": "none_tea_arithmetic_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "I prefer mint tea in the evening."
+          },
+          {
+            "id": "none_tea_arithmetic_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "What is 17 plus 8?",
+      "options": [
+        {
+          "id": "A",
+          "text": "25 cups of mint tea."
+        },
+        {
+          "id": "B",
+          "text": "26."
+        },
+        {
+          "id": "C",
+          "text": "25."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "C",
+      "forbidden_choices": [
+        "A",
+        "B"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [
+        "none_tea_arithmetic_m1"
+      ],
+      "historical_memory_ids": [],
+      "required_context_ids": [],
+      "harmful_context_ids": [
+        "none_tea_arithmetic_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "none_tea_arithmetic_m1",
+          "new_memory_id": null,
+          "expected": "no_conflict"
+        }
+      ],
+      "baseline_mechanisms": [
+        "unconditional_wiki_injection"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": null
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813; https://arxiv.org/abs/2601.16621",
+      "source_item_id": null,
+      "taxonomy_anchor": "LongMemEval Abstention; RPEval irrelevant-memory interference",
+      "transformation_log": "Paired an unrelated stored preference with a forced-choice neutral task to operationalize abstention from personalization.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for no-memory, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "del_nickname",
+    "category": "deletion",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "del_nickname_s1",
+        "events": [
+          {
+            "id": "del_nickname_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "My childhood nickname is Roo; you may call me that."
+          },
+          {
+            "id": "del_nickname_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "del_nickname_s2",
+        "events": [
+          {
+            "id": "del_nickname_m2",
+            "timestamp": "2026-01-22T09:00:00Z",
+            "role": "user",
+            "content": "Please forget the nickname Roo and do not use or retrieve it again."
+          },
+          {
+            "id": "del_nickname_s2_a1",
+            "timestamp": "2026-01-22T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "What name or nickname should the assistant use based on memory?",
+      "options": [
+        {
+          "id": "A",
+          "text": "No nickname is available from memory."
+        },
+        {
+          "id": "B",
+          "text": "Use Roo."
+        },
+        {
+          "id": "C",
+          "text": "Infer a similar nickname."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "A",
+      "forbidden_choices": [
+        "B",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [],
+      "historical_memory_ids": [
+        "del_nickname_m1"
+      ],
+      "required_context_ids": [],
+      "harmful_context_ids": [
+        "del_nickname_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "del_nickname_m1",
+          "new_memory_id": "del_nickname_m2",
+          "expected": "tombstone"
+        }
+      ],
+      "baseline_mechanisms": [
+        "exact_remove_without_tombstone"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": {
+        "memory_id": "del_nickname_m1",
+        "locations": [
+          "raw",
+          "wiki"
+        ],
+        "normalized_target": "nickname: Roo",
+        "forbidden_variants": [
+          "roo",
+          "childhood nickname",
+          "nickname roo"
+        ]
+      }
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813",
+      "source_item_id": null,
+      "taxonomy_anchor": "Nearest anchor: Knowledge Updates plus Abstention; product extension",
+      "transformation_log": "Extended the update/abstention pattern with an explicit forget request and deterministic forbidden value variants.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for deletion, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "del_elevator_trigger",
+    "category": "deletion",
+    "split": "visible",
+    "setup_sessions": [
+      {
+        "id": "del_elevator_trigger_s1",
+        "events": [
+          {
+            "id": "del_elevator_trigger_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Elevator rides make me panic because I once got trapped."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          },
+          {
+            "id": "del_elevator_trigger_f1",
+            "timestamp": "2026-01-01T09:02:00Z",
+            "role": "user",
+            "content": "I took a short break before continuing."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a2",
+            "timestamp": "2026-01-01T09:03:00Z",
+            "role": "assistant",
+            "content": "Taking it one step at a time can help."
+          },
+          {
+            "id": "del_elevator_trigger_f2",
+            "timestamp": "2026-01-01T09:04:00Z",
+            "role": "user",
+            "content": "I am organizing the rest of my week."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a3",
+            "timestamp": "2026-01-01T09:05:00Z",
+            "role": "assistant",
+            "content": "Thanks for noting that."
+          },
+          {
+            "id": "del_elevator_trigger_f3",
+            "timestamp": "2026-01-01T09:06:00Z",
+            "role": "user",
+            "content": "Today was fairly ordinary overall."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a4",
+            "timestamp": "2026-01-01T09:07:00Z",
+            "role": "assistant",
+            "content": "It is good that you made room for a break."
+          },
+          {
+            "id": "del_elevator_trigger_f4",
+            "timestamp": "2026-01-01T09:08:00Z",
+            "role": "user",
+            "content": "I made time for lunch before returning."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a5",
+            "timestamp": "2026-01-01T09:09:00Z",
+            "role": "assistant",
+            "content": "A short list can make the next step clearer."
+          },
+          {
+            "id": "del_elevator_trigger_f5",
+            "timestamp": "2026-01-01T09:10:00Z",
+            "role": "user",
+            "content": "I wrote down a few tasks for tomorrow."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a6",
+            "timestamp": "2026-01-01T09:11:00Z",
+            "role": "assistant",
+            "content": "That is one thing completed."
+          },
+          {
+            "id": "del_elevator_trigger_f6",
+            "timestamp": "2026-01-01T09:12:00Z",
+            "role": "user",
+            "content": "I finished one small errand this afternoon."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a7",
+            "timestamp": "2026-01-01T09:13:00Z",
+            "role": "assistant",
+            "content": "I am here for the check-in."
+          },
+          {
+            "id": "del_elevator_trigger_f7",
+            "timestamp": "2026-01-01T09:14:00Z",
+            "role": "user",
+            "content": "I am checking in before I log off."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a8",
+            "timestamp": "2026-01-01T09:15:00Z",
+            "role": "assistant",
+            "content": "Understood."
+          },
+          {
+            "id": "del_elevator_trigger_f8",
+            "timestamp": "2026-01-01T09:16:00Z",
+            "role": "user",
+            "content": "Nothing urgent happened since we last spoke."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a9",
+            "timestamp": "2026-01-01T09:17:00Z",
+            "role": "assistant",
+            "content": "We can keep it brief."
+          },
+          {
+            "id": "del_elevator_trigger_f9",
+            "timestamp": "2026-01-01T09:18:00Z",
+            "role": "user",
+            "content": "I would like to keep this check-in brief."
+          },
+          {
+            "id": "del_elevator_trigger_s1_a10",
+            "timestamp": "2026-01-01T09:19:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "del_elevator_trigger_s2",
+        "events": [
+          {
+            "id": "del_elevator_trigger_m2",
+            "timestamp": "2026-01-22T09:00:00Z",
+            "role": "user",
+            "content": "Delete and forget the elevator panic memory; do not use it in future responses."
+          },
+          {
+            "id": "del_elevator_trigger_s2_a1",
+            "timestamp": "2026-01-22T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "What should memory say about the user's elevator trigger?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Elevators are a confirmed panic trigger."
+        },
+        {
+          "id": "B",
+          "text": "No active elevator-trigger memory is available."
+        },
+        {
+          "id": "C",
+          "text": "The user should always avoid elevators."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "B",
+      "forbidden_choices": [
+        "A",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [],
+      "historical_memory_ids": [
+        "del_elevator_trigger_m1"
+      ],
+      "required_context_ids": [],
+      "harmful_context_ids": [
+        "del_elevator_trigger_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "del_elevator_trigger_m1",
+          "new_memory_id": "del_elevator_trigger_m2",
+          "expected": "tombstone"
+        }
+      ],
+      "baseline_mechanisms": [
+        "exact_remove_without_tombstone"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": {
+        "memory_id": "del_elevator_trigger_m1",
+        "locations": [
+          "raw",
+          "summary",
+          "wiki",
+          "reflection"
+        ],
+        "normalized_target": "trigger: elevator rides cause panic",
+        "forbidden_variants": [
+          "elevator",
+          "lift",
+          "trapped between floors",
+          "panic in enclosed elevator"
+        ]
+      }
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813",
+      "source_item_id": null,
+      "taxonomy_anchor": "Nearest anchor: Knowledge Updates plus Abstention; product extension",
+      "transformation_log": "Extended the update/abstention pattern with an explicit forget request and deterministic forbidden value variants.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for deletion, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "del_manager_conflict",
+    "category": "deletion",
+    "split": "holdout",
+    "setup_sessions": [
+      {
+        "id": "del_manager_conflict_s1",
+        "events": [
+          {
+            "id": "del_manager_conflict_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "Conflict with my manager Dana is my main work stressor."
+          },
+          {
+            "id": "del_manager_conflict_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "del_manager_conflict_s2",
+        "events": [
+          {
+            "id": "del_manager_conflict_m2",
+            "timestamp": "2026-01-22T09:00:00Z",
+            "role": "user",
+            "content": "Forget everything about Dana and remove that work-stressor memory."
+          },
+          {
+            "id": "del_manager_conflict_s2_a1",
+            "timestamp": "2026-01-22T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Which work stressor may the assistant retrieve now?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Conflict with Dana."
+        },
+        {
+          "id": "B",
+          "text": "Dana is still the main trigger."
+        },
+        {
+          "id": "C",
+          "text": "No Dana-related work stressor."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "C",
+      "forbidden_choices": [
+        "A",
+        "B"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [],
+      "historical_memory_ids": [
+        "del_manager_conflict_m1"
+      ],
+      "required_context_ids": [],
+      "harmful_context_ids": [
+        "del_manager_conflict_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "del_manager_conflict_m1",
+          "new_memory_id": "del_manager_conflict_m2",
+          "expected": "tombstone"
+        }
+      ],
+      "baseline_mechanisms": [
+        "exact_remove_without_tombstone"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": {
+        "memory_id": "del_manager_conflict_m1",
+        "locations": [
+          "raw",
+          "wiki",
+          "reflection"
+        ],
+        "normalized_target": "work stressor: conflict with Dana",
+        "forbidden_variants": [
+          "dana",
+          "manager conflict",
+          "main work stressor"
+        ]
+      }
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813",
+      "source_item_id": null,
+      "taxonomy_anchor": "Nearest anchor: Knowledge Updates plus Abstention; product extension",
+      "transformation_log": "Extended the update/abstention pattern with an explicit forget request and deterministic forbidden value variants.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for deletion, not an external benchmark item."
+    }
+  },
+  {
+    "case_id": "del_grounding_phrase",
+    "category": "deletion",
+    "split": "holdout",
+    "setup_sessions": [
+      {
+        "id": "del_grounding_phrase_s1",
+        "events": [
+          {
+            "id": "del_grounding_phrase_m1",
+            "timestamp": "2026-01-01T09:00:00Z",
+            "role": "user",
+            "content": "The phrase 'blue harbor' is my private grounding cue."
+          },
+          {
+            "id": "del_grounding_phrase_s1_a1",
+            "timestamp": "2026-01-01T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      },
+      {
+        "id": "del_grounding_phrase_s2",
+        "events": [
+          {
+            "id": "del_grounding_phrase_m2",
+            "timestamp": "2026-01-22T09:00:00Z",
+            "role": "user",
+            "content": "Delete the grounding phrase blue harbor from memory."
+          },
+          {
+            "id": "del_grounding_phrase_s2_a1",
+            "timestamp": "2026-01-22T09:01:00Z",
+            "role": "assistant",
+            "content": "That sounds like a reasonable pause."
+          }
+        ]
+      }
+    ],
+    "probe": {
+      "text": "Which grounding phrase is available from memory?",
+      "options": [
+        {
+          "id": "A",
+          "text": "No grounding phrase is available."
+        },
+        {
+          "id": "B",
+          "text": "Blue harbor."
+        },
+        {
+          "id": "C",
+          "text": "A paraphrase of blue harbor."
+        }
+      ]
+    },
+    "rubric": {
+      "expected_choice": "A",
+      "forbidden_choices": [
+        "B",
+        "C"
+      ],
+      "normalization": "strict_json_choice",
+      "invalid_if_multiple_choices": true
+    },
+    "gold": {
+      "effective_memory_ids": [],
+      "historical_memory_ids": [
+        "del_grounding_phrase_m1"
+      ],
+      "required_context_ids": [],
+      "harmful_context_ids": [
+        "del_grounding_phrase_m1"
+      ],
+      "resolutions": [
+        {
+          "old_memory_id": "del_grounding_phrase_m1",
+          "new_memory_id": "del_grounding_phrase_m2",
+          "expected": "tombstone"
+        }
+      ],
+      "baseline_mechanisms": [
+        "exact_remove_without_tombstone"
+      ],
+      "exact_match_bug_exposed": false,
+      "narrow_context_memory_id": null,
+      "deletion_target": {
+        "memory_id": "del_grounding_phrase_m1",
+        "locations": [
+          "raw",
+          "wiki"
+        ],
+        "normalized_target": "grounding phrase: blue harbor",
+        "forbidden_variants": [
+          "blue harbor",
+          "private grounding cue",
+          "harbor phrase"
+        ]
+      }
+    },
+    "provenance": {
+      "origin_type": "pattern_authored",
+      "source_reference": "https://arxiv.org/abs/2410.10813",
+      "source_item_id": null,
+      "taxonomy_anchor": "Nearest anchor: Knowledge Updates plus Abstention; product extension",
+      "transformation_log": "Extended the update/abstention pattern with an explicit forget request and deterministic forbidden value variants.",
+      "author": "codex-primary",
+      "reviewer": "none",
+      "unambiguous_gold_reason": "The probe is a forced choice with one current/applicable answer and mutually exclusive stale, harmful, or unsupported alternatives.",
+      "leakage_note": "Authored and sealed before B-summary implementation or any model output; construction-pattern item for deletion, not an external benchmark item."
+    }
+  }
+]
