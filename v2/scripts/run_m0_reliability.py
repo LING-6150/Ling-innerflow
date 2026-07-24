@@ -24,7 +24,7 @@ from innerflow_v2.reliability.run import (
 
 FIXTURE = ROOT / "eval/m0/fixtures/memory_reliability_m0.json"
 CORPUS_MANIFEST = ROOT / "eval/m0/manifests/M0_CORPUS_FREEZE.json"
-RUN_MANIFEST = ROOT / "eval/m0/manifests/M0_RUN_FREEZE.json"
+RUN_MANIFEST = ROOT / "eval/m0/manifests/M0_RUN_FREEZE_V2.json"
 RAW_PATH = ROOT / "eval/m0/private/M0_RAW.json"
 RAW_HASH_PATH = ROOT / "eval/m0/manifests/M0_RAW_SHA256.txt"
 RESULTS_PATH = ROOT / "eval/m0/RESULTS_M0.md"
@@ -36,7 +36,9 @@ def config_from_env() -> RunConfig:
         provider=os.environ.get("M0_PROVIDER", "ModelVerse"),
         base_url=os.environ.get("M0_BASE_URL", "https://api.modelverse.cn/v1"),
         model=os.environ.get("M0_MODEL", "gemini-2.5-flash"),
-        embedding_model=os.environ.get("M0_EMBED_MODEL", "gemini-embedding-2"),
+        embedding_model=os.environ.get(
+            "M0_EMBED_MODEL", "text-embedding-3-large"
+        ),
         run_date=date.fromisoformat(os.environ.get("M0_RUN_DATE", "2026-07-24")),
     )
 

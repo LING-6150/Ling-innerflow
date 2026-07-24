@@ -1,6 +1,8 @@
 {
   "protocol_version": "v1.2",
-  "status": "frozen-before-baseline-output",
+  "status": "superseded-before-baseline-output",
+  "superseded_by": "M0_RUN_FREEZE_V2.json",
+  "supersession_reason": "The fixture-free endpoint check returned a model-server 500/Not Found for gemini-embedding-2. No scenario baseline output had been generated.",
   "generated_at": "2026-07-24T11:23:06.127280+00:00",
   "source_commit": "ef8367b09642d899d8397080ec6b2920de6dbff3",
   "provider": "ModelVerse",
