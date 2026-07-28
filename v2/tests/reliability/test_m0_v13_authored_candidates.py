@@ -88,6 +88,11 @@ def test_authored_worlds_contain_real_compression_length_event_sequences() -> No
             == len(world.setup_memory_events) - 1
             for world in candidate.worlds
         )
+        assert all(
+            len({event.content for event in world.setup_memory_events})
+            == len(world.setup_memory_events)
+            for world in candidate.worlds
+        )
         if candidate.category == "deletion":
             pre, post = candidate.worlds
             assert len(pre.setup_memory_events) == 20
@@ -95,6 +100,75 @@ def test_authored_worlds_contain_real_compression_length_event_sequences() -> No
             assert {"summary", "wiki"} <= set(
                 candidate.deletion_storage_locations
             )
+
+
+def test_correction_and_supersession_encode_different_lifecycle_constructs() -> None:
+    candidates = load_candidate_pool(CANDIDATES_PATH)
+
+    for candidate in candidates:
+        if candidate.category not in {"correction", "supersession"}:
+            continue
+        world = candidate.worlds[0]
+        prior = world.setup_memory_events[0].content
+        effective = next(
+            event.content
+            for event in world.setup_memory_events
+            if event.operation in {"correct", "supersede"}
+        )
+        if candidate.category == "correction":
+            assert "recorded as a factual instruction" in prior
+            assert "was mistaken" in effective
+            assert "should not be treated as true" in effective
+        else:
+            assert "Through last month" in prior
+            assert "formerly valid preference" in effective
+            assert "Starting today" in effective
+
+
+def test_reviewed_probe_leaks_are_absent_and_reserve_templates_differ() -> None:
+    inventory = load_authoring_inventory(INVENTORY_PATH)
+    candidates = {
+        candidate.candidate_id: candidate
+        for candidate in load_candidate_pool(CANDIDATES_PATH)
+    }
+    reviewed = {
+        "m0v13-context-exception-tone-public-private-scope-primary",
+        "m0v13-context-exception-tone-public-private-scope-reserve",
+        "m0v13-context-exception-support-venting-planning-scope-primary",
+        "m0v13-no-memory-information-unrelated-scheduling-primary",
+    }
+    for candidate_id in reviewed:
+        probe = candidates[candidate_id].worlds[0].probe.lower()
+        assert "will be posted publicly" not in probe
+        assert "venting, not planning" not in probe
+        assert "no stored preference" not in probe
+
+    for assignment in inventory.assignments:
+        if assignment.role != "reserve":
+            continue
+        reserve = candidates[assignment.candidate_id]
+        primary = candidates[assignment.reserve_target_id]
+        assert reserve.worlds[0].probe != primary.worlds[0].probe
+        assert reserve.worlds[0].probe.startswith("For the current task")
+        assert primary.worlds[0].probe.startswith("Select the response action")
+        assert [
+            event.content for event in reserve.worlds[0].setup_memory_events
+        ] != [
+            event.content for event in primary.worlds[0].setup_memory_events
+        ]
+
+
+def test_candidate_histories_do_not_reuse_exact_filler_utterances() -> None:
+    candidates = load_candidate_pool(CANDIDATES_PATH)
+    content_owners: dict[str, set[str]] = {}
+    for candidate in candidates:
+        for event in candidate.worlds[0].setup_memory_events:
+            if "-filler-" not in event.event_id:
+                continue
+            content_owners.setdefault(event.content, set()).add(
+                candidate.candidate_id
+            )
+    assert all(len(owners) == 1 for owners in content_owners.values())
 
 
 def test_every_authored_world_executes_the_faithful_compression_path() -> None:
@@ -147,6 +221,22 @@ def test_draft_registry_binds_all_authored_content_and_audit_entries() -> None:
     for entry in audit["entries"]:
         recorded_hash = entry.pop("audit_artifact_sha256")
         assert canonical_sha256(entry) == recorded_hash
+        if entry["derived_deletion_evidence"] is not None:
+            evidence = entry["derived_deletion_evidence"]
+            assert entry["derived_deletion_target"] is True
+            assert evidence == {
+                "compression_applied": True,
+                "summary_contains_target": True,
+                "summary_sources_target_event": True,
+                "wiki_field_contains_target": True,
+                "rendered_context_contains_target": True,
+                "operations": [
+                    "memory.compression.summary",
+                    "memory.wiki.first_extract",
+                    "memory.reflection",
+                ],
+                "passed": True,
+            }
 
 
 @pytest.mark.parametrize(

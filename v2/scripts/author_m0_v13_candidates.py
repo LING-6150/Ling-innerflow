@@ -140,9 +140,9 @@ SLOT_BLUEPRINTS = {
         None,
     ),
     "public_private_scope": (
-        "feedback that will be posted publicly",
-        "Select the response action for feedback that will be posted publicly rather than sent privately.",
-        "feedback in a public hobby-group channel",
+        "feedback on a teammate's ordinary draft",
+        "Select the response action for feedback on a teammate's ordinary draft; either a shared review thread or a private note would be acceptable.",
+        "feedback on a hobby-group draft",
     ),
     "work_home_scope": (
         "a conversation at home rather than at work",
@@ -155,9 +155,9 @@ SLOT_BLUEPRINTS = {
         None,
     ),
     "venting_planning_scope": (
-        "a turn where the user is venting rather than planning",
-        "Select the response action when the user explicitly says they are venting, not planning.",
-        "a turn where the user wants to decompress rather than plan",
+        "a response to the user describing a minor setback",
+        "Select the response action after the user describes a minor setback and asks for a response.",
+        "a response to the user describing a frustrating afternoon",
     ),
     "ideation_decision_scope": (
         "an early ideation turn rather than a decision turn",
@@ -171,7 +171,7 @@ SLOT_BLUEPRINTS = {
     ),
     "unrelated_scheduling": (
         "scheduling a routine appointment",
-        "Select the response action for scheduling a routine appointment; no stored preference concerns scheduling.",
+        "Select the response action for helping schedule a routine appointment.",
         "scheduling a library-room reservation",
     ),
     "neutral_summary": (
@@ -231,6 +231,45 @@ SLOT_BLUEPRINTS = {
     ),
 }
 
+HISTORY_DETAILS = {
+    "project_update": ("the milestone list is already current", "one dependency remains under routine review"),
+    "tutorial_explanation": ("the tool is installed on a local machine", "the example uses a disposable sample project"),
+    "itinerary_briefing": ("the destinations have already been approved", "transport times are recorded separately"),
+    "peer_review": ("the draft is complete enough for ordinary feedback", "the author expects one revision round"),
+    "planning_disagreement": ("both plans satisfy the stated deadline", "the disagreement concerns sequencing only"),
+    "accountability_reminder": ("the deadline was chosen by the user", "one reminder is scheduled for this week"),
+    "routine_setback": ("the routine was missed twice", "the user has resumed it before"),
+    "decision_uncertainty": ("both options fit the available budget", "no irreversible choice is required today"),
+    "creative_block": ("a rough outline already exists", "the next draft can remain experimental"),
+    "meeting_recap": ("the agenda and attendee list are final", "two ordinary follow-up items were recorded"),
+    "technical_handoff": ("the current build passes its routine checks", "the receiving teammate has repository access"),
+    "options_comparison": ("both tools meet the minimum requirement", "pricing has already been checked"),
+    "performance_reflection": ("the task finished without an incident", "the user wants to note one lesson"),
+    "boundary_negotiation": ("the proposed time is flexible", "both people have an alternate slot"),
+    "schedule_conflict": ("the two events overlap by thirty minutes", "either event can be moved safely"),
+    "audience_scope": ("the audience knows the project goal", "specialist terminology is optional"),
+    "work_personal_scope": ("the topic appears outside office hours", "no workplace policy governs the reply"),
+    "urgency_scope": ("the response is useful today", "there is no emergency or safety deadline"),
+    "public_private_scope": ("the draft is ordinary and non-confidential", "either review channel is available"),
+    "work_home_scope": ("the conversation concerns an everyday household task", "no manager or coworker is involved"),
+    "celebration_debug_scope": ("the defect has already been fixed", "the user is marking the completed work"),
+    "venting_planning_scope": ("the setback is minor and already contained", "the user has not specified a preferred support mode"),
+    "ideation_decision_scope": ("several ideas remain viable", "no option must be chosen in this turn"),
+    "setback_next_scope": ("the immediate problem is no longer growing", "both reflection and action remain possible"),
+    "unrelated_scheduling": ("the appointment type is routine", "two ordinary time slots are available"),
+    "neutral_summary": ("the supplied paragraph is factual", "the user has not requested a personal style"),
+    "document_organization": ("the filenames are supplied in the current turn", "the files contain no sensitive material"),
+    "casual_greeting": ("the message contains only a greeting", "no advice or task request is present"),
+    "third_party_coordination": ("the third party needs one logistical update", "the delivery channel is already chosen"),
+    "neutral_checkin": ("the check-in asks for a brief status", "no support preference is stated"),
+    "saved_report_format": ("the report uses already verified figures", "the reporting period has ended"),
+    "saved_reading_format": ("the reading list is complete", "the notes concern non-sensitive material"),
+    "saved_planning_format": ("the weekly tasks are already selected", "the plan covers an ordinary week"),
+    "saved_feedback_style": ("the feedback concerns a finished draft", "no confidential issue is involved"),
+    "saved_reminder_style": ("the reminder concerns a self-chosen task", "the due date remains flexible"),
+    "saved_collaboration_style": ("the collaboration is routine", "both participants already share the same facts"),
+}
+
 
 IRRELEVANT_CLAIMS = {
     ("unrelated_scheduling", "primary"): (
@@ -285,24 +324,76 @@ def _event_semantics(events: list[SetupMemoryEventV13]) -> list[dict]:
     return semantics
 
 
-def _filler_events(candidate_id: str, *, start: int, count: int) -> list[SetupMemoryEventV13]:
-    topics = (
-        "The user confirms the task is routine and non-urgent.",
-        "The assistant acknowledges the current topic without adding a preference.",
-        "The user provides a neutral logistical detail.",
-        "The assistant restates that logistical detail.",
-        "The user adds a second neutral fact about timing.",
-        "The assistant confirms the timing.",
-        "The user notes that no safety-sensitive issue is involved.",
-        "The assistant acknowledges and waits for the next instruction.",
+PRIMARY_HISTORY_BEATS = (
+    "The assistant acknowledges the earlier note about {subject}.",
+    "The user supplies this neutral background fact: {detail_a}.",
+    "The assistant records {detail_a} without inferring a response preference.",
+    "The user adds a separate logistical fact: {detail_b}.",
+    "The assistant confirms {detail_b} and asks no leading question.",
+    "The user says {subject} has no urgent deadline.",
+    "The assistant confirms that {subject} can follow its ordinary process.",
+    "The user explains that {detail_a} identifies the relevant setting.",
+    "The assistant keeps both frozen response approaches open for {subject}.",
+    "The user notes that {detail_b} will remain unchanged.",
+    "The assistant records {detail_b} without recommending a format or tone.",
+    "The user confirms that the request concerns {subject}, not a safety decision.",
+    "The assistant acknowledges the low-stakes boundary around {subject}.",
+    "The user says {detail_a} is already settled.",
+    "The assistant marks {detail_a} settled without selecting an action.",
+    "The user confirms that {detail_b} creates no additional constraint.",
+    "The assistant records that both ordinary response approaches remain feasible for {subject}.",
+    "The user says the concrete request about {subject} will arrive later.",
+    "The assistant waits for the request about {subject} without choosing a response action.",
+)
+
+RESERVE_HISTORY_BEATS = (
+    "The assistant opens a neutral working note about {subject}.",
+    "The user describes a different workflow detail: {detail_b}.",
+    "The assistant mirrors {detail_b} without suggesting a presentation style.",
+    "The user identifies this resolved dependency: {detail_a}.",
+    "The assistant marks {detail_a} complete.",
+    "The user says {subject} may be revisited in an ordinary follow-up.",
+    "The assistant records the follow-up about {subject} without choosing a tone or detail level.",
+    "The user explains that {detail_b} is stable.",
+    "The assistant confirms that no update to {detail_b} is pending.",
+    "The user says {subject} is useful but not urgent.",
+    "The assistant acknowledges the priority of {subject} without selecting an action.",
+    "The user states that {detail_a} can stay as recorded.",
+    "The assistant preserves {detail_a} without moving the conversation.",
+    "The user says either ordinary response approach remains feasible for {subject}.",
+    "The assistant confirms that the neutral state of {subject} does not decide between them.",
+    "The user rules out confidential or safety-sensitive content in {subject}.",
+    "The assistant notes the low-stakes constraint around {subject}.",
+    "The user says the concrete request involving {detail_b} will arrive next.",
+    "The assistant waits for {detail_b} without selecting an action in advance.",
+)
+
+
+def _filler_events(
+    candidate_id: str,
+    subject: str,
+    details: tuple[str, str],
+    narrative_variant: str,
+    *,
+    start: int,
+    count: int,
+) -> list[SetupMemoryEventV13]:
+    beats = (
+        RESERVE_HISTORY_BEATS
+        if narrative_variant == "reserve"
+        else PRIMARY_HISTORY_BEATS
     )
     return [
         SetupMemoryEventV13(
             event_id=f"{candidate_id}-filler-{start + index}",
             sequence_index=start + index,
-            role="user" if index % 2 == 0 else "assistant",
+            role="assistant" if (start + index) % 2 else "user",
             operation="observe",
-            content=topics[index % len(topics)],
+            content=beats[start + index - 1].format(
+                subject=subject,
+                detail_a=details[0],
+                detail_b=details[1],
+            ),
         )
         for index in range(count)
     ]
@@ -384,10 +475,23 @@ def _required_candidate(assignment, subject: str, probe: str, variant: str) -> C
     }
     actions = row_actions[assignment.action_band]
     candidate_id = assignment.candidate_id
+    details = HISTORY_DETAILS[assignment.situation_slot]
     claim_ids = (f"{candidate_id}-claim-a", f"{candidate_id}-claim-b")
     claims = tuple(_action_claim(action, subject) for action in actions)
     old_claim_id = f"{candidate_id}-prior-claim"
-    old_claim = f"For {subject}, use a balanced default unless I specify otherwise."
+    old_claim = {
+        "correction": (
+            f"For {subject}, always use one medium-length paragraph; "
+            "this was recorded as a factual instruction."
+        ),
+        "supersession": (
+            f"Through last month, my valid preference for {subject} was "
+            "one medium-length paragraph."
+        ),
+        "context-exception": (
+            f"Across other contexts involving {subject}, use a balanced default."
+        ),
+    }[assignment.category]
     context_event = SetupMemoryEventV13(
         event_id=f"{candidate_id}-prior-event",
         sequence_index=0,
@@ -396,17 +500,37 @@ def _required_candidate(assignment, subject: str, probe: str, variant: str) -> C
         content=old_claim,
         claim_ids=[old_claim_id],
     )
-    fillers = _filler_events(candidate_id, start=1, count=8)
-    post_update_fillers = _filler_events(candidate_id, start=10, count=10)
+    fillers = _filler_events(
+        candidate_id,
+        subject,
+        details,
+        variant,
+        start=1,
+        count=8,
+    )
+    post_update_fillers = _filler_events(
+        candidate_id,
+        subject,
+        details,
+        variant,
+        start=10,
+        count=10,
+    )
     operation = {
         "correction": "correct",
         "supersession": "supersede",
         "context-exception": "scope",
     }[assignment.category]
     prefix = {
-        "correction": "I am correcting my earlier instruction:",
-        "supersession": "My current preference has changed:",
-        "context-exception": "For this specific context only:",
+        "correction": (
+            "Correction: the earlier single-paragraph instruction was mistaken "
+            "and should not be treated as true."
+        ),
+        "supersession": (
+            "Starting today, replace the formerly valid preference with this "
+            "new version."
+        ),
+        "context-exception": "For this specific context only, apply this exception.",
     }[assignment.category]
 
     worlds = []
@@ -435,7 +559,7 @@ def _required_candidate(assignment, subject: str, probe: str, variant: str) -> C
                 world_id=world_id,
                 probe=probe,
                 non_memory_state={
-                    "situation_slot": assignment.situation_slot,
+                    "task_description": subject,
                     "scenario_variant": variant,
                     "task_safety": "ordinary_non_safety_sensitive",
                 },
@@ -522,6 +646,7 @@ def _required_candidate(assignment, subject: str, probe: str, variant: str) -> C
 
 def _no_memory_candidate(assignment, subject: str, probe: str, variant: str) -> CandidateV13:
     candidate_id = assignment.candidate_id
+    details = HISTORY_DETAILS[assignment.situation_slot]
     claims = IRRELEVANT_CLAIMS[(assignment.situation_slot, variant)]
     claim_ids = (f"{candidate_id}-irrelevant-a", f"{candidate_id}-irrelevant-b")
     worlds = []
@@ -540,14 +665,21 @@ def _no_memory_candidate(assignment, subject: str, probe: str, variant: str) -> 
                 content=claim,
                 claim_ids=[claim_id],
             ),
-            *_filler_events(candidate_id, start=1, count=19),
+            *_filler_events(
+                candidate_id,
+                subject,
+                details,
+                variant,
+                start=1,
+                count=19,
+            ),
         ]
         worlds.append(
             CounterfactualWorld(
                 world_id=world_id,
                 probe=probe,
                 non_memory_state={
-                    "situation_slot": assignment.situation_slot,
+                    "task_description": subject,
                     "scenario_variant": variant,
                     "current_domain": subject,
                 },
@@ -599,6 +731,7 @@ def _no_memory_candidate(assignment, subject: str, probe: str, variant: str) -> 
 
 def _deletion_candidate(assignment, subject: str, probe: str, variant: str) -> CandidateV13:
     candidate_id = assignment.candidate_id
+    details = HISTORY_DETAILS[assignment.situation_slot]
     action_pair = (
         (
             ResponseAction.USE_CONCISE_DETAIL,
@@ -630,7 +763,17 @@ def _deletion_candidate(assignment, subject: str, probe: str, variant: str) -> C
         content=claim,
         claim_ids=[claim_id],
     )
-    pre_events = [stored_event, *_filler_events(candidate_id, start=1, count=19)]
+    pre_events = [
+        stored_event,
+        *_filler_events(
+            candidate_id,
+            subject,
+            details,
+            variant,
+            start=1,
+            count=19,
+        ),
+    ]
     post_events = [
         *pre_events,
         SetupMemoryEventV13(
@@ -671,7 +814,7 @@ def _deletion_candidate(assignment, subject: str, probe: str, variant: str) -> C
                 world_id="pre_delete",
                 probe=probe,
                 non_memory_state={
-                    "situation_slot": assignment.situation_slot,
+                    "task_description": subject,
                     "scenario_variant": variant,
                     "task_safety": "ordinary_non_safety_sensitive",
                 },
@@ -684,7 +827,7 @@ def _deletion_candidate(assignment, subject: str, probe: str, variant: str) -> C
                 world_id="post_delete",
                 probe=probe,
                 non_memory_state={
-                    "situation_slot": assignment.situation_slot,
+                    "task_description": subject,
                     "scenario_variant": variant,
                     "task_safety": "ordinary_non_safety_sensitive",
                 },
@@ -717,7 +860,11 @@ def _author_candidate(assignment) -> CandidateV13:
     subject = reserve_subject if is_reserve else primary_subject
     if subject is None:
         raise ValueError(f"{assignment.candidate_id}: missing reserve blueprint")
-    probe = f"Select the response action for {subject}." if is_reserve else primary_probe
+    probe = (
+        f"For the current task—{subject}—which frozen response action should govern the reply?"
+        if is_reserve
+        else primary_probe
+    )
     variant = "reserve" if is_reserve else "primary"
     if assignment.category in REQUIRED_MEMORY_CATEGORIES:
         return _required_candidate(assignment, subject, probe, variant)

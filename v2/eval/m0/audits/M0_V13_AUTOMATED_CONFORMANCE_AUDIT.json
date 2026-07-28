@@ -13,9 +13,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "c25756a6b94d3cc6b7529318a8c5e53f2c7dc0122d286a1256e12f82563e07f5"
+      "audit_artifact_sha256": "b5995dcf28bb0fdd8574b930ebdf065d63c8d4d4fe1d12910f5a7af9dce55fe4"
     },
     {
       "candidate_id": "m0v13-context-exception-detail-audience-scope-reserve",
@@ -26,9 +27,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "a61aee3de3b6a5af2ed762cadae0c37aa31fccc048139b268b4f01891125d165"
+      "audit_artifact_sha256": "f91b1d211a517fb4c2098adc98f64c1fa3d4062a49ada82d992b568f7a9c1759"
     },
     {
       "candidate_id": "m0v13-context-exception-detail-urgency-scope-primary",
@@ -39,9 +41,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "7ff1fd52077e52ee02e5a0f0fc9a154df519f02fddccdb3933d3ecccf718364d"
+      "audit_artifact_sha256": "ef48456cdcf55f42f645b820b293a72e809d9d53ec6fb06c36ee69aee457b7e6"
     },
     {
       "candidate_id": "m0v13-context-exception-detail-work-personal-scope-primary",
@@ -52,9 +55,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "5284709326b4560fb4c4dc717890c5ca42dbe3575bfe39d86f347f9873f97463"
+      "audit_artifact_sha256": "8346c48863e129284d2aed95f945bfd12960aa80338ff2c7e0ace0c8e159b22c"
     },
     {
       "candidate_id": "m0v13-context-exception-support-ideation-decision-scope-primary",
@@ -65,9 +69,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "e4145428c06f7465685d5e2b523d7fc089f3bd7ff1c546988bdade3a6b1234ad"
+      "audit_artifact_sha256": "0dada57777222d3b32d4f1b43cd1acf9054a56d8c0ed8aa325d591498d483b92"
     },
     {
       "candidate_id": "m0v13-context-exception-support-setback-next-scope-primary",
@@ -78,9 +83,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "c3e18a13172c2153158f31c53c7db8d2566006342757bace55622176c40c0ab0"
+      "audit_artifact_sha256": "185c6cf570b5df0866c8a7b344814a8662df4775c8bb6e3b31f834d4475dc441"
     },
     {
       "candidate_id": "m0v13-context-exception-support-venting-planning-scope-primary",
@@ -91,9 +97,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "65d914199a575487cab0de3fdc649c23e1296679cd97fb1c09f23c94a0ca1a7e"
+      "audit_artifact_sha256": "9d3ea0e7d96c6aea3b1dc366ebec88145b6ab1c0ed093c7aebc78caf631d70d6"
     },
     {
       "candidate_id": "m0v13-context-exception-support-venting-planning-scope-reserve",
@@ -104,9 +111,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "f98d943ec6494f3609c3d39bf2a9888fdada35eb152c0a2a2fc717a821959321"
+      "audit_artifact_sha256": "a896bc2ec92f4cd4831fa130ebf07fbb03998eefe9275aa04db29eaf4be78922"
     },
     {
       "candidate_id": "m0v13-context-exception-tone-celebration-debug-scope-primary",
@@ -117,9 +125,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "1e7bdb96bf0671b324e4e962a1ddd8da368ea2fb8cfa631c2e1e730cfe89ab90"
+      "audit_artifact_sha256": "c11e3a38d72c63f188da1f1a9cb7c1c2b819ddedffd836b3ca705400983d2beb"
     },
     {
       "candidate_id": "m0v13-context-exception-tone-public-private-scope-primary",
@@ -130,9 +139,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "7d033592d63567b78c8f1a14c7f225906a8c84747ec0fbded2c211dae312ea84"
+      "audit_artifact_sha256": "745cffcadd7a81a060e76f12cc906b1be5118fae3e16d1566042e9f7ff9c8ccd"
     },
     {
       "candidate_id": "m0v13-context-exception-tone-public-private-scope-reserve",
@@ -143,9 +153,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "4eae390ade7f01dfe0821f41a955a20eecd9ddf26b31348b0e7e19e71695dcee"
+      "audit_artifact_sha256": "c94a38d4756cb4d018365bf0c3565f13318fb686da500793fff8eda5445276c3"
     },
     {
       "candidate_id": "m0v13-context-exception-tone-work-home-scope-primary",
@@ -156,9 +167,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "8ed615ab6b1be2052defbbb9b7aa54d458e8c35a570dc0d9b6875818ddde4821"
+      "audit_artifact_sha256": "8400b1d226b046f2259a88230c34359167b104443d1e9344c9b1182fd7b53cf0"
     },
     {
       "candidate_id": "m0v13-correction-detail-itinerary-briefing-primary",
@@ -169,9 +181,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "0871697f1083b3675ca0bc41f89bb1521d5be65eb69d0f804ae52797c138b08b"
+      "audit_artifact_sha256": "5703f561b6204ced21deec7d8ab739735342d1e6509a45e2eda70ae1dca14de8"
     },
     {
       "candidate_id": "m0v13-correction-detail-project-update-primary",
@@ -182,9 +195,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "cac41d3665185aa6983a59b04c6599092f8c80e3201128b6714ce58d7d450ff9"
+      "audit_artifact_sha256": "3f8e7425d360c2f5b3f29c8a92f217687549475e6fe30b49e25f8e4667794751"
     },
     {
       "candidate_id": "m0v13-correction-detail-project-update-reserve",
@@ -195,9 +209,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "9bfe0ae153fec692568af3bb7352bd5036f5e4bcad065437183b551627adb1ee"
+      "audit_artifact_sha256": "642b820e64f1a68e48b988357d31a40d9facbe3a319d48d210306d3c2fd693b2"
     },
     {
       "candidate_id": "m0v13-correction-detail-tutorial-explanation-primary",
@@ -208,9 +223,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "79a8e866f691d16730b406ac76087ce3fde1db8c93ef444e1e7390c0f42c91d5"
+      "audit_artifact_sha256": "f60ab8a1bc3a5991ef28b071438a094eeaf8830630676db2a0b0eb0f2a66bf2e"
     },
     {
       "candidate_id": "m0v13-correction-support-creative-block-primary",
@@ -221,9 +237,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "e4085cc286d723d90b7c4f51be3bfd44b4820db818f6bb1e417b2832016e03d1"
+      "audit_artifact_sha256": "8bd56d4f90de9529c65e0f88f2180e95c7e5ffc4d249c4c1d7a3915c902f2227"
     },
     {
       "candidate_id": "m0v13-correction-support-decision-uncertainty-primary",
@@ -234,9 +251,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "015c7661effd7e56dd8b941e845a6770a28ac5965c7c6434829b4024de7b65bd"
+      "audit_artifact_sha256": "443fb0f7d61d5289c5144eb22ce25b363e70a173dbcaacd46273ea56745626eb"
     },
     {
       "candidate_id": "m0v13-correction-support-routine-setback-primary",
@@ -247,9 +265,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "400381d72ae62b87a479c23d8631cfe9f50b43c55b0306525dfc93b07595a29e"
+      "audit_artifact_sha256": "d34c3553da64aac0a393291f6c6e9d3210cf4e8f4c2555e68d94fca266b2c5ff"
     },
     {
       "candidate_id": "m0v13-correction-support-routine-setback-reserve",
@@ -260,9 +279,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "94d9473254bb4d616ce90c2de53124d2c1efd86633ea86a0ca96f7f95af33dbe"
+      "audit_artifact_sha256": "f8c38d8e8e3ebedf3bfe3f74a245c1494232669e38bd21c37883bc660426cfc8"
     },
     {
       "candidate_id": "m0v13-correction-tone-accountability-reminder-primary",
@@ -273,9 +293,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "bc7a94b2fbd176d7f2846d5b689af5e89a0667d607a7349eff534301a7dfa331"
+      "audit_artifact_sha256": "47affd54e7ef165a90095606482a18ff4a81cf8552f5aeaafffc3b92ee04c712"
     },
     {
       "candidate_id": "m0v13-correction-tone-peer-review-primary",
@@ -286,9 +307,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "3a120d05238336d8b7e349da5c358c3704e646b8ed5bd49e75506663b5b0abd8"
+      "audit_artifact_sha256": "4473efa75873e31f17680d1d8bef4d88462d7db241c5a52ab939a254b02073fd"
     },
     {
       "candidate_id": "m0v13-correction-tone-peer-review-reserve",
@@ -299,9 +321,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "4a552d68b50252fea0320fc03efb8876d696652259c47abf323af936ab440fa3"
+      "audit_artifact_sha256": "7986887af8526624d71ebcf7c6a95274ba60d9b7c966278d75db6c3eeb4b271d"
     },
     {
       "candidate_id": "m0v13-correction-tone-planning-disagreement-primary",
@@ -312,9 +335,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "7cba789ebe9f14d6c6c13c0a3f40df9b7a97d387e1d7311a14bf3328aecde7b0"
+      "audit_artifact_sha256": "9b72d97728249c911411f60f32c1400417617aa801aca6d0cf42d116164cfd68"
     },
     {
       "candidate_id": "m0v13-deletion-detail-saved-planning-format-primary",
@@ -325,9 +349,22 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": true,
+      "derived_deletion_evidence": {
+        "compression_applied": true,
+        "summary_contains_target": true,
+        "summary_sources_target_event": true,
+        "wiki_field_contains_target": true,
+        "rendered_context_contains_target": true,
+        "operations": [
+          "memory.compression.summary",
+          "memory.wiki.first_extract",
+          "memory.reflection"
+        ],
+        "passed": true
+      },
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "6a3c853c00690769b00fee5ea1d125550bdee56bca8fd2d50f0d9d066250b8ef"
+      "audit_artifact_sha256": "20b7e56b76b112cbc8e289387835c4914d14cf06eeee952581962edfbf678b95"
     },
     {
       "candidate_id": "m0v13-deletion-detail-saved-reading-format-primary",
@@ -338,9 +375,22 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": true,
+      "derived_deletion_evidence": {
+        "compression_applied": true,
+        "summary_contains_target": true,
+        "summary_sources_target_event": true,
+        "wiki_field_contains_target": true,
+        "rendered_context_contains_target": true,
+        "operations": [
+          "memory.compression.summary",
+          "memory.wiki.first_extract",
+          "memory.reflection"
+        ],
+        "passed": true
+      },
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "70ddbe92a601cc33f3d64c91bc18b6f0452ff353d211dca8377fa8840a50301a"
+      "audit_artifact_sha256": "a31e347534f979d4dfc33be67940a7112b2f724ae265f04417cb893e6dca45eb"
     },
     {
       "candidate_id": "m0v13-deletion-detail-saved-report-format-primary",
@@ -351,9 +401,22 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": true,
+      "derived_deletion_evidence": {
+        "compression_applied": true,
+        "summary_contains_target": true,
+        "summary_sources_target_event": true,
+        "wiki_field_contains_target": true,
+        "rendered_context_contains_target": true,
+        "operations": [
+          "memory.compression.summary",
+          "memory.wiki.first_extract",
+          "memory.reflection"
+        ],
+        "passed": true
+      },
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "4e001ba824b8e7b6f2d24ff4f3b240442dc72dd72ed8b2263cb035c9e3c25ab4"
+      "audit_artifact_sha256": "b8fe22539c92366bd5c27f9ef5a5178636d62264c311ec2de259e2a17a240cd2"
     },
     {
       "candidate_id": "m0v13-deletion-detail-saved-report-format-reserve",
@@ -364,9 +427,22 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": true,
+      "derived_deletion_evidence": {
+        "compression_applied": true,
+        "summary_contains_target": true,
+        "summary_sources_target_event": true,
+        "wiki_field_contains_target": true,
+        "rendered_context_contains_target": true,
+        "operations": [
+          "memory.compression.summary",
+          "memory.wiki.first_extract",
+          "memory.reflection"
+        ],
+        "passed": true
+      },
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "b946d488156fa95f871c990d65750dd0599672c192a93f7c14c7c17d8c5e8271"
+      "audit_artifact_sha256": "eb851f8f9e30b9126aa548cd544ebbb321b8074e537f9e2d02473e5b7a96c991"
     },
     {
       "candidate_id": "m0v13-deletion-tone-saved-collaboration-style-primary",
@@ -377,9 +453,22 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": true,
+      "derived_deletion_evidence": {
+        "compression_applied": true,
+        "summary_contains_target": true,
+        "summary_sources_target_event": true,
+        "wiki_field_contains_target": true,
+        "rendered_context_contains_target": true,
+        "operations": [
+          "memory.compression.summary",
+          "memory.wiki.first_extract",
+          "memory.reflection"
+        ],
+        "passed": true
+      },
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "2719efea4c4e4ba20b6cd7aa3db9344f71e40fd0fbd26afdcfd5b4657b52083a"
+      "audit_artifact_sha256": "6348e0afad03b0c8c629b87798429cf3debfb413e2c6aab9cd5021a906a84cac"
     },
     {
       "candidate_id": "m0v13-deletion-tone-saved-feedback-style-primary",
@@ -390,9 +479,22 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": true,
+      "derived_deletion_evidence": {
+        "compression_applied": true,
+        "summary_contains_target": true,
+        "summary_sources_target_event": true,
+        "wiki_field_contains_target": true,
+        "rendered_context_contains_target": true,
+        "operations": [
+          "memory.compression.summary",
+          "memory.wiki.first_extract",
+          "memory.reflection"
+        ],
+        "passed": true
+      },
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "fba245bbc80cb997aaa37313a7ab97f6be8155bc834a1370a4804baae5246c41"
+      "audit_artifact_sha256": "03a44438321f08e6d04db972c337183215c40c7f5891e125d4eb8758f8965429"
     },
     {
       "candidate_id": "m0v13-deletion-tone-saved-feedback-style-reserve",
@@ -403,9 +505,22 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": true,
+      "derived_deletion_evidence": {
+        "compression_applied": true,
+        "summary_contains_target": true,
+        "summary_sources_target_event": true,
+        "wiki_field_contains_target": true,
+        "rendered_context_contains_target": true,
+        "operations": [
+          "memory.compression.summary",
+          "memory.wiki.first_extract",
+          "memory.reflection"
+        ],
+        "passed": true
+      },
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "bf97d8a38ea7943d0e7cdaff01f805518e33771366d0f7f00c580b4573207e64"
+      "audit_artifact_sha256": "1ebf588d23ff62d735aef65084dae1fecb020bd0d90549b50a343ed6a66ee3e0"
     },
     {
       "candidate_id": "m0v13-deletion-tone-saved-reminder-style-primary",
@@ -416,9 +531,22 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": true,
+      "derived_deletion_evidence": {
+        "compression_applied": true,
+        "summary_contains_target": true,
+        "summary_sources_target_event": true,
+        "wiki_field_contains_target": true,
+        "rendered_context_contains_target": true,
+        "operations": [
+          "memory.compression.summary",
+          "memory.wiki.first_extract",
+          "memory.reflection"
+        ],
+        "passed": true
+      },
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "6847a2c7dbab87f7d5501bcd9ffeb3f98c21d3f7942127a31d150f1a7e461ff7"
+      "audit_artifact_sha256": "f7f2655e4aca9294c9677104485b6612e8e018a26294d8473740425220dd1672"
     },
     {
       "candidate_id": "m0v13-no-memory-information-document-organization-primary",
@@ -429,9 +557,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "1f961702cb89ee71589c8c69496d0c3eaa6ecb682102fec3d48a8e02acdbebb8"
+      "audit_artifact_sha256": "f62e798487116a30333ce71abe701a89635aeee4c5a08ab82d0a3f472f93f24a"
     },
     {
       "candidate_id": "m0v13-no-memory-information-neutral-summary-primary",
@@ -442,9 +571,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "a9e71ea5105693bd5c3a6d6fab7b189632c921ec8c35555f9516c662cb9c687b"
+      "audit_artifact_sha256": "a19b7971a3915fbe40aeca30fe58c7968045ed61e8628f76423f775676d1ccad"
     },
     {
       "candidate_id": "m0v13-no-memory-information-unrelated-scheduling-primary",
@@ -455,9 +585,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "d44210728c238367316cd3501e502e301bdcac85c274971792d0779161763532"
+      "audit_artifact_sha256": "d98f00ba2f6d2f608bc98d630e280419799e448306b736f1d54c84871e2de0ee"
     },
     {
       "candidate_id": "m0v13-no-memory-information-unrelated-scheduling-reserve",
@@ -468,9 +599,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "ba31dd8aa08bcbcb6e8e10a8b10f4c6e9d90a7d20a7893e80326145baeaab26f"
+      "audit_artifact_sha256": "e483df736dae5765bbcdba3aa213e5c287f0d1144f8f1020b8ec038c7f3aab3b"
     },
     {
       "candidate_id": "m0v13-no-memory-social-casual-greeting-primary",
@@ -481,9 +613,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "e10439ccbb2afa51a75bd36c9dc52298c6b26734759379493db6395b7f1cb01e"
+      "audit_artifact_sha256": "60db2c20428030c5bb80be8fb5a622c4467f57988b5a344a5cc4611698c96ecc"
     },
     {
       "candidate_id": "m0v13-no-memory-social-casual-greeting-reserve",
@@ -494,9 +627,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "da11a4c059de27ec5e1913b88ab889ce595c0613db67c41dcf83e705db550f8d"
+      "audit_artifact_sha256": "8de16c274984bbb0209e6aeb03ae06faf16ee7097080e9b623a26938b5d31a37"
     },
     {
       "candidate_id": "m0v13-no-memory-social-neutral-checkin-primary",
@@ -507,9 +641,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "27521fc237edf4a112ed291556abdcfc3bf35d4944012e5e3d53f46c0322097f"
+      "audit_artifact_sha256": "1248e87c89230b2cfa3f5f0df9cb93a691e53a33a7076a72e683e5da87a9cfe6"
     },
     {
       "candidate_id": "m0v13-no-memory-social-third-party-coordination-primary",
@@ -520,9 +655,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "62a06070bd5cc36cb017df8eb36f1939c31d62e6a48226a0b78104f11aa4f933"
+      "audit_artifact_sha256": "e9b1733752ac9d67ba253c1f2a121c6d53e784009e0470fc727b825c5a49c955"
     },
     {
       "candidate_id": "m0v13-supersession-detail-meeting-recap-primary",
@@ -533,9 +669,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "3565af92f26c15706552c77d42f0ace0de2aa1b1f1ede8768569716ef2956b0d"
+      "audit_artifact_sha256": "5b1ca49a061bd7ee8b697993899a843831cd80cc2d00d7e960e26232d9eccf47"
     },
     {
       "candidate_id": "m0v13-supersession-detail-meeting-recap-reserve",
@@ -546,9 +683,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "89e563c09fe60e4f4fe4c94565d4af9a735fca43b4d696e2727e32f6996e6908"
+      "audit_artifact_sha256": "2f950bf5ab0aef2d92132b40c20188d1136444d2d75165c15c89e928ec57fe40"
     },
     {
       "candidate_id": "m0v13-supersession-detail-options-comparison-primary",
@@ -559,9 +697,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "c80c102ed1ef2a4a58d4cd37932f216e57c1de0892ad652969b5e02e8e58ba6a"
+      "audit_artifact_sha256": "c4ee4c3430065d9e10b3a00dddc939e5d01f5374ce96a0f3f73c8776385942ce"
     },
     {
       "candidate_id": "m0v13-supersession-detail-technical-handoff-primary",
@@ -572,9 +711,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "843a2b6f5659f9e4d3ab43f78744a0fa5a7a55ceba351d84d3da0b69f12057b5"
+      "audit_artifact_sha256": "4d8c09ace92a5ce24e3b7cb719b22ba944f313a4156fde8aa1cf3b305b7bf7b8"
     },
     {
       "candidate_id": "m0v13-supersession-tone-boundary-negotiation-primary",
@@ -585,9 +725,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "087ed327e562da4cc01cd6a23451561b4cc5ae85e3a4dbe9bfa1b9fc30f9e7f3"
+      "audit_artifact_sha256": "654d818b36075f8b7700f04b693cdaff41e5c3ec9b69b448b4f409a36a3bbabe"
     },
     {
       "candidate_id": "m0v13-supersession-tone-performance-reflection-primary",
@@ -598,9 +739,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "70f336d3e5d22cf16ec180fec51eb91020e7d202e0e11a244ac0dd0719805df6"
+      "audit_artifact_sha256": "ff1d0cb7488fdc9261fa5fb7c3fb48296a42377ffce32e17357d34d074fcab9e"
     },
     {
       "candidate_id": "m0v13-supersession-tone-performance-reflection-reserve",
@@ -611,9 +753,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "inactive-signed-reserve",
-      "audit_artifact_sha256": "fd0ea0ec2d673e256ee2a95a072dc2df60ecd56b7a24894b035cb020a6ef7f4a"
+      "audit_artifact_sha256": "c427f20afb02f36bb83fe973c8aab6afc02f03a82792ff8d229912ce9097a9f8"
     },
     {
       "candidate_id": "m0v13-supersession-tone-schedule-conflict-primary",
@@ -624,9 +767,10 @@
       "claim_state_review": "pass",
       "compression_length_setup": true,
       "derived_deletion_target": null,
+      "derived_deletion_evidence": null,
       "v1_2_item_ledger_visible": false,
       "automated_disposition": "eligible-primary",
-      "audit_artifact_sha256": "59f9b84d13bd4607a950748ae3c9bc65ac8cc5d4c2c80f362b7a5f2f793b0ef5"
+      "audit_artifact_sha256": "3849373270568aead65d4e0dcd6a3ae45c1e9b1555f76debe760ef9c06f2f78c"
     }
   ]
 }

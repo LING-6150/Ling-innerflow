@@ -4,11 +4,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from innerflow_v2.reliability.baselines import FaithfulSummaryPolicy, MemoryMessage
+from innerflow_v2.reliability.client import Completion
 from innerflow_v2.reliability.protocol_v13 import (
     CandidateRegistryRecordV13,
     CandidateRegistryV13,
@@ -19,6 +22,90 @@ from innerflow_v2.reliability.protocol_v13 import (
     validate_authored_candidate_inventory,
     validate_candidate_registry,
 )
+
+
+class _DerivedMemoryEvidenceBackend:
+    def __init__(self, claim: str) -> None:
+        self.claim = claim
+        self.operations: list[str] = []
+
+    def complete(self, *, operation, prompt, temperature, max_tokens):
+        self.operations.append(operation)
+        if operation == "memory.compression.summary":
+            content = f"Persisted user preference: {self.claim}"
+        elif operation == "memory.wiki.first_extract":
+            content = json.dumps(
+                {
+                    "emotionPattern": None,
+                    "coreStruggles": None,
+                    "effectiveCoping": None,
+                    "languageStyle": self.claim,
+                    "triggerUpdates": [],
+                    "conflicts": [],
+                    "newProgressNote": None,
+                    "changeLogEntry": (
+                        "Stored the authored deletion target in derived memory."
+                    ),
+                }
+            )
+        elif operation == "memory.reflection":
+            content = f"Derived memory still contains: {self.claim}"
+        else:
+            raise AssertionError(f"unexpected deterministic operation: {operation}")
+        return Completion(content, f"offline-{len(self.operations)}")
+
+
+def _deletion_derived_evidence(candidate) -> dict:
+    pre_world = next(
+        world for world in candidate.worlds if world.world_id == "pre_delete"
+    )
+    claim = pre_world.effective_claim
+    if claim is None or pre_world.applicable_claim_id is None:
+        raise ValueError("deletion candidate lacks a pre-delete target")
+    target_event_id = next(
+        claim_record.source_event_ids[0]
+        for claim_record in candidate.tracked_claims
+        if claim_record.claim_id == pre_world.applicable_claim_id
+    )
+    backend = _DerivedMemoryEvidenceBackend(claim)
+    policy = FaithfulSummaryPolicy(backend, today=date(2026, 7, 28))
+    for event in pre_world.setup_memory_events:
+        policy.add_message(
+            MemoryMessage(
+                role=event.role,
+                content=event.content,
+                timestamp=1_700_000_000_000 + event.sequence_index,
+                source_ids=(event.event_id,),
+            )
+        )
+    summary_contains_target = (
+        policy.wiki.conversation_summary is not None
+        and claim in policy.wiki.conversation_summary
+    )
+    summary_sources_target = target_event_id in policy.wiki.field_sources.get(
+        "conversation_summary",
+        set(),
+    )
+    policy.end_session()
+    rendered_context, _ = policy.build_context()
+    evidence = {
+        "compression_applied": policy.trace.compression_applied == 1,
+        "summary_contains_target": summary_contains_target,
+        "summary_sources_target_event": summary_sources_target,
+        "wiki_field_contains_target": policy.wiki.language_style == claim,
+        "rendered_context_contains_target": claim in rendered_context,
+        "operations": backend.operations,
+    }
+    evidence["passed"] = all(
+        value
+        for key, value in evidence.items()
+        if key not in {"operations", "passed"}
+    ) and evidence["operations"] == [
+        "memory.compression.summary",
+        "memory.wiki.first_extract",
+        "memory.reflection",
+    ]
+    return evidence
 
 
 def main() -> None:
@@ -42,6 +129,11 @@ def main() -> None:
     audit_entries = []
     for assignment in inventory.assignments:
         candidate = candidate_by_id[assignment.candidate_id]
+        deletion_evidence = (
+            _deletion_derived_evidence(candidate)
+            if candidate.category == "deletion"
+            else None
+        )
         entry = {
             "candidate_id": candidate.candidate_id,
             "assignment_match": True,
@@ -59,11 +151,11 @@ def main() -> None:
                 for world in candidate.worlds
             ),
             "derived_deletion_target": (
-                {"summary", "wiki"}
-                <= set(candidate.deletion_storage_locations)
+                deletion_evidence["passed"]
                 if candidate.category == "deletion"
                 else None
             ),
+            "derived_deletion_evidence": deletion_evidence,
             "v1_2_item_ledger_visible": candidate.author_saw_v12_item_ledger,
             "automated_disposition": (
                 "eligible-primary"
