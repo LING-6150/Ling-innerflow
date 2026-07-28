@@ -1,0 +1,166 @@
+{
+  "protocol_version": "v1.3",
+  "status": "DRAFT_AWAITING_INDEPENDENT_REVIEW",
+  "created_at": "2026-07-28T06:54:59Z",
+  "authoring_brief_sha256": "79db55936817deafe225b6fab2232e8fc4081f03575176c771825e1ab4233d3d",
+  "candidate_ids_sha256": "59a8cdc96847718e07624bf02e5495d4fed47aab62dc09229f57ae3767ef213c",
+  "assignments_sha256": "7b7f7abd75b3adee5afe244b0581590e63d9a0e337b6f8a4ace4afd1963d9d50",
+  "inventory_policy": {
+    "eligible_slots": 36,
+    "primary_ids": 36,
+    "reserve_ids": 12,
+    "total_precommitted_ids": 48,
+    "reserve_activation": "pre-model objective conformance failure only",
+    "candidate_content_present": false,
+    "v1_2_item_level_outputs_visible_to_author": false
+  },
+  "sources": {
+    "longmemeval": {
+      "reference": "https://github.com/xiaowu0162/LongMemEval",
+      "retrieved_at": "2026-07-28",
+      "use": "construction-pattern taxonomy only"
+    },
+    "personamem": {
+      "reference": "https://github.com/bowen-upenn/PersonaMem",
+      "retrieved_at": "2026-07-28",
+      "use": "construction-pattern taxonomy only"
+    },
+    "benchpres": {
+      "reference": "https://arxiv.org/abs/2603.16557",
+      "retrieved_at": "2026-07-28",
+      "use": "construction-pattern taxonomy only"
+    },
+    "rpeval": {
+      "reference": "https://github.com/XueyangFeng/RPEval",
+      "retrieved_at": "2026-07-28",
+      "use": "construction-pattern taxonomy only"
+    },
+    "innerflow": {
+      "reference": "docs/innerflow-memory-reliability-eval-v1.3.md",
+      "retrieved_at": "2026-07-28",
+      "use": "disclosed product-invariant extension"
+    }
+  },
+  "rows": [
+    {
+      "category": "correction",
+      "action_band": "detail",
+      "taxonomy_anchors": ["longmemeval", "personamem"],
+      "slots": [
+        {"slot": "project_update", "provenance_tier": "E", "primary_id": "m0v13-correction-detail-project-update-primary", "reserve_id": "m0v13-correction-detail-project-update-reserve"},
+        {"slot": "tutorial_explanation", "provenance_tier": "E", "primary_id": "m0v13-correction-detail-tutorial-explanation-primary", "reserve_id": null},
+        {"slot": "itinerary_briefing", "provenance_tier": "E", "primary_id": "m0v13-correction-detail-itinerary-briefing-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "correction",
+      "action_band": "tone",
+      "taxonomy_anchors": ["longmemeval", "personamem"],
+      "slots": [
+        {"slot": "peer_review", "provenance_tier": "E", "primary_id": "m0v13-correction-tone-peer-review-primary", "reserve_id": "m0v13-correction-tone-peer-review-reserve"},
+        {"slot": "planning_disagreement", "provenance_tier": "E", "primary_id": "m0v13-correction-tone-planning-disagreement-primary", "reserve_id": null},
+        {"slot": "accountability_reminder", "provenance_tier": "E", "primary_id": "m0v13-correction-tone-accountability-reminder-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "correction",
+      "action_band": "support",
+      "taxonomy_anchors": ["longmemeval", "personamem"],
+      "slots": [
+        {"slot": "routine_setback", "provenance_tier": "E", "primary_id": "m0v13-correction-support-routine-setback-primary", "reserve_id": "m0v13-correction-support-routine-setback-reserve"},
+        {"slot": "decision_uncertainty", "provenance_tier": "E", "primary_id": "m0v13-correction-support-decision-uncertainty-primary", "reserve_id": null},
+        {"slot": "creative_block", "provenance_tier": "P", "primary_id": "m0v13-correction-support-creative-block-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "supersession",
+      "action_band": "detail",
+      "taxonomy_anchors": ["longmemeval", "personamem"],
+      "slots": [
+        {"slot": "meeting_recap", "provenance_tier": "E", "primary_id": "m0v13-supersession-detail-meeting-recap-primary", "reserve_id": "m0v13-supersession-detail-meeting-recap-reserve"},
+        {"slot": "technical_handoff", "provenance_tier": "E", "primary_id": "m0v13-supersession-detail-technical-handoff-primary", "reserve_id": null},
+        {"slot": "options_comparison", "provenance_tier": "E", "primary_id": "m0v13-supersession-detail-options-comparison-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "supersession",
+      "action_band": "tone",
+      "taxonomy_anchors": ["longmemeval", "personamem"],
+      "slots": [
+        {"slot": "performance_reflection", "provenance_tier": "E", "primary_id": "m0v13-supersession-tone-performance-reflection-primary", "reserve_id": "m0v13-supersession-tone-performance-reflection-reserve"},
+        {"slot": "boundary_negotiation", "provenance_tier": "E", "primary_id": "m0v13-supersession-tone-boundary-negotiation-primary", "reserve_id": null},
+        {"slot": "schedule_conflict", "provenance_tier": "P", "primary_id": "m0v13-supersession-tone-schedule-conflict-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "context-exception",
+      "action_band": "detail",
+      "taxonomy_anchors": ["benchpres", "rpeval"],
+      "slots": [
+        {"slot": "audience_scope", "provenance_tier": "E", "primary_id": "m0v13-context-exception-detail-audience-scope-primary", "reserve_id": "m0v13-context-exception-detail-audience-scope-reserve"},
+        {"slot": "work_personal_scope", "provenance_tier": "E", "primary_id": "m0v13-context-exception-detail-work-personal-scope-primary", "reserve_id": null},
+        {"slot": "urgency_scope", "provenance_tier": "E", "primary_id": "m0v13-context-exception-detail-urgency-scope-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "context-exception",
+      "action_band": "tone",
+      "taxonomy_anchors": ["benchpres", "rpeval"],
+      "slots": [
+        {"slot": "public_private_scope", "provenance_tier": "E", "primary_id": "m0v13-context-exception-tone-public-private-scope-primary", "reserve_id": "m0v13-context-exception-tone-public-private-scope-reserve"},
+        {"slot": "work_home_scope", "provenance_tier": "E", "primary_id": "m0v13-context-exception-tone-work-home-scope-primary", "reserve_id": null},
+        {"slot": "celebration_debug_scope", "provenance_tier": "E", "primary_id": "m0v13-context-exception-tone-celebration-debug-scope-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "context-exception",
+      "action_band": "support",
+      "taxonomy_anchors": ["benchpres", "rpeval"],
+      "slots": [
+        {"slot": "venting_planning_scope", "provenance_tier": "E", "primary_id": "m0v13-context-exception-support-venting-planning-scope-primary", "reserve_id": "m0v13-context-exception-support-venting-planning-scope-reserve"},
+        {"slot": "ideation_decision_scope", "provenance_tier": "E", "primary_id": "m0v13-context-exception-support-ideation-decision-scope-primary", "reserve_id": null},
+        {"slot": "setback_next_scope", "provenance_tier": "P", "primary_id": "m0v13-context-exception-support-setback-next-scope-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "no-memory",
+      "action_band": "information-task-default",
+      "taxonomy_anchors": ["longmemeval", "rpeval"],
+      "slots": [
+        {"slot": "unrelated_scheduling", "provenance_tier": "E", "primary_id": "m0v13-no-memory-information-unrelated-scheduling-primary", "reserve_id": "m0v13-no-memory-information-unrelated-scheduling-reserve"},
+        {"slot": "neutral_summary", "provenance_tier": "E", "primary_id": "m0v13-no-memory-information-neutral-summary-primary", "reserve_id": null},
+        {"slot": "document_organization", "provenance_tier": "E", "primary_id": "m0v13-no-memory-information-document-organization-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "no-memory",
+      "action_band": "social-support-default",
+      "taxonomy_anchors": ["longmemeval", "rpeval"],
+      "slots": [
+        {"slot": "casual_greeting", "provenance_tier": "E", "primary_id": "m0v13-no-memory-social-casual-greeting-primary", "reserve_id": "m0v13-no-memory-social-casual-greeting-reserve"},
+        {"slot": "third_party_coordination", "provenance_tier": "E", "primary_id": "m0v13-no-memory-social-third-party-coordination-primary", "reserve_id": null},
+        {"slot": "neutral_checkin", "provenance_tier": "P", "primary_id": "m0v13-no-memory-social-neutral-checkin-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "deletion",
+      "action_band": "detail",
+      "taxonomy_anchors": ["innerflow", "longmemeval"],
+      "slots": [
+        {"slot": "saved_report_format", "provenance_tier": "P", "primary_id": "m0v13-deletion-detail-saved-report-format-primary", "reserve_id": "m0v13-deletion-detail-saved-report-format-reserve"},
+        {"slot": "saved_reading_format", "provenance_tier": "P", "primary_id": "m0v13-deletion-detail-saved-reading-format-primary", "reserve_id": null},
+        {"slot": "saved_planning_format", "provenance_tier": "P", "primary_id": "m0v13-deletion-detail-saved-planning-format-primary", "reserve_id": null}
+      ]
+    },
+    {
+      "category": "deletion",
+      "action_band": "tone",
+      "taxonomy_anchors": ["innerflow", "longmemeval"],
+      "slots": [
+        {"slot": "saved_feedback_style", "provenance_tier": "P", "primary_id": "m0v13-deletion-tone-saved-feedback-style-primary", "reserve_id": "m0v13-deletion-tone-saved-feedback-style-reserve"},
+        {"slot": "saved_reminder_style", "provenance_tier": "P", "primary_id": "m0v13-deletion-tone-saved-reminder-style-primary", "reserve_id": null},
+        {"slot": "saved_collaboration_style", "provenance_tier": "P", "primary_id": "m0v13-deletion-tone-saved-collaboration-style-primary", "reserve_id": null}
+      ]
+    }
+  ]
+}

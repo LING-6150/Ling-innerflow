@@ -7,6 +7,7 @@ import pytest
 
 from innerflow_v2.reliability.protocol_v13 import (
     MATRIX_ROWS,
+    AuthoringInventoryAssignment,
     BeaconPulse,
     CandidateRegistryRecordV13,
     CandidateRegistryV13,
@@ -233,15 +234,50 @@ def authoring_inventory_v13(
     candidate_pool_v13,
     frozen_at_v13,
 ) -> SignedAuthoringInventory:
-    inventory = sorted(
-        [
-            *(candidate.candidate_id for candidate in candidate_pool_v13),
-            "rejected-audit-record",
-        ]
+    assignments = [
+        AuthoringInventoryAssignment(
+            candidate_id=candidate.candidate_id,
+            role="primary",
+            category=candidate.category,
+            action_band=candidate.action_band,
+            situation_slot=candidate.situation_slot,
+            provenance_tier=candidate.provenance_tier,
+            taxonomy_anchors=[
+                (
+                    "external-taxonomy"
+                    if candidate.provenance_tier == "E"
+                    else "innerflow-product-invariant"
+                )
+            ],
+        )
+        for candidate in candidate_pool_v13
+    ]
+    reserve_target = candidate_pool_v13[0]
+    assignments.append(
+        AuthoringInventoryAssignment(
+            candidate_id="rejected-audit-record",
+            role="reserve",
+            category=reserve_target.category,
+            action_band=reserve_target.action_band,
+            situation_slot=reserve_target.situation_slot,
+            provenance_tier=reserve_target.provenance_tier,
+            taxonomy_anchors=["external-taxonomy"],
+            reserve_target_id=reserve_target.candidate_id,
+        )
     )
+    assignments = sorted(assignments, key=lambda value: value.candidate_id)
+    inventory = [assignment.candidate_id for assignment in assignments]
     return SignedAuthoringInventory(
         candidate_ids=inventory,
         candidate_ids_sha256=canonical_sha256(inventory),
+        assignments=assignments,
+        assignments_sha256=canonical_sha256(
+            [
+                assignment.model_dump(mode="json")
+                for assignment in assignments
+            ]
+        ),
+        review_disposition_sha256=sha("inventory-freeze-review"),
         frozen_at=frozen_at_v13,
         signed_by=["owner", "independent-reviewer"],
     )
@@ -255,9 +291,19 @@ def registry_v13(
     records = [
         CandidateRegistryRecordV13(
             candidate_id=candidate.candidate_id,
+            inventory_role="primary",
             status="eligible",
             category=candidate.category,
             action_band=candidate.action_band,
+            situation_slot=candidate.situation_slot,
+            provenance_tier=candidate.provenance_tier,
+            taxonomy_anchors=[
+                (
+                    "external-taxonomy"
+                    if candidate.provenance_tier == "E"
+                    else "innerflow-product-invariant"
+                )
+            ],
             content_sha256=candidate_sha256(candidate),
             reason="passed every frozen eligibility predicate",
             audit_artifact_sha256=sha(f"audit:{candidate.candidate_id}"),
@@ -282,9 +328,14 @@ def registry_v13(
     records.append(
         CandidateRegistryRecordV13(
             candidate_id="rejected-audit-record",
+            inventory_role="reserve",
             status="rejected",
             category="correction",
             action_band="detail",
+            situation_slot=candidate_pool_v13[0].situation_slot,
+            provenance_tier=candidate_pool_v13[0].provenance_tier,
+            taxonomy_anchors=["external-taxonomy"],
+            reserve_target_id=candidate_pool_v13[0].candidate_id,
             content_sha256=canonical_sha256("rejected content"),
             reason="failed the frozen byte-identical-probe predicate",
             audit_artifact_sha256=sha("audit:rejected"),
@@ -304,6 +355,9 @@ def registry_v13(
         authoring_inventory_ids=authoring_inventory_v13.candidate_ids,
         authoring_inventory_sha256=(
             authoring_inventory_v13.candidate_ids_sha256
+        ),
+        authoring_inventory_assignments_sha256=(
+            authoring_inventory_v13.assignments_sha256
         ),
         candidates=candidate_pool_v13,
         records=records,

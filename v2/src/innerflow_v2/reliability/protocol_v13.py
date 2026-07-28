@@ -384,9 +384,14 @@ class CandidateV13(StrictModel):
 
 class CandidateRegistryRecordV13(StrictModel):
     candidate_id: str = Field(min_length=1)
+    inventory_role: Literal["primary", "reserve"]
     status: Literal["eligible", "rejected", "replaced"]
     category: str = Field(min_length=1)
     action_band: str = Field(min_length=1)
+    situation_slot: str = Field(min_length=1)
+    provenance_tier: Literal["E", "P"]
+    taxonomy_anchors: list[str] = Field(min_length=1)
+    reserve_target_id: str | None = None
     content_sha256: str
     reason: str = Field(min_length=1)
     replaced_by: str | None = None
@@ -427,6 +432,15 @@ class CandidateRegistryRecordV13(StrictModel):
             not self.ontology_compatible or self.claim_state_review != "pass"
         ):
             raise ValueError("eligible record must pass ontology and claim review")
+        if self.taxonomy_anchors != sorted(set(self.taxonomy_anchors)):
+            raise ValueError("taxonomy anchors must be sorted and unique")
+        if self.inventory_role == "primary" and self.reserve_target_id is not None:
+            raise ValueError("primary inventory record cannot name a reserve target")
+        if self.inventory_role == "reserve" and (
+            not self.reserve_target_id
+            or self.reserve_target_id == self.candidate_id
+        ):
+            raise ValueError("reserve inventory record must name another candidate")
         return self
 
 
@@ -434,6 +448,7 @@ class CandidateRegistryV13(StrictModel):
     protocol_version: Literal["v1.3"] = "v1.3"
     authoring_inventory_ids: list[str] = Field(min_length=36)
     authoring_inventory_sha256: str
+    authoring_inventory_assignments_sha256: str
     candidates: list[CandidateV13]
     records: list[CandidateRegistryRecordV13]
 
@@ -443,8 +458,37 @@ class CandidateRegistryV13(StrictModel):
             self.authoring_inventory_ids
         ):
             raise ValueError("authoring inventory ids must be unique")
-        if not HEX_64.fullmatch(self.authoring_inventory_sha256):
+        if not HEX_64.fullmatch(
+            self.authoring_inventory_sha256
+        ) or not HEX_64.fullmatch(self.authoring_inventory_assignments_sha256):
             raise ValueError("authoring inventory hash must be lowercase SHA-256")
+        return self
+
+
+class AuthoringInventoryAssignment(StrictModel):
+    candidate_id: str = Field(min_length=1)
+    role: Literal["primary", "reserve"]
+    category: str = Field(min_length=1)
+    action_band: str = Field(min_length=1)
+    situation_slot: str = Field(min_length=1)
+    provenance_tier: Literal["E", "P"]
+    taxonomy_anchors: list[str] = Field(min_length=1)
+    reserve_target_id: str | None = None
+
+    @model_validator(mode="after")
+    def _assignment_is_canonical(self) -> "AuthoringInventoryAssignment":
+        row = MATRIX_BY_KEY.get((self.category, self.action_band))
+        if row is None or self.situation_slot not in row.slots:
+            raise ValueError("authoring assignment is outside the frozen matrix")
+        if self.taxonomy_anchors != sorted(set(self.taxonomy_anchors)):
+            raise ValueError("taxonomy anchors must be sorted and unique")
+        if self.role == "primary" and self.reserve_target_id is not None:
+            raise ValueError("primary assignment cannot name a reserve target")
+        if self.role == "reserve" and (
+            not self.reserve_target_id
+            or self.reserve_target_id == self.candidate_id
+        ):
+            raise ValueError("reserve assignment must name another candidate")
         return self
 
 
@@ -452,6 +496,9 @@ class SignedAuthoringInventory(StrictModel):
     protocol_version: Literal["v1.3"] = "v1.3"
     candidate_ids: list[str] = Field(min_length=36)
     candidate_ids_sha256: str
+    assignments: list[AuthoringInventoryAssignment] = Field(min_length=36)
+    assignments_sha256: str
+    review_disposition_sha256: str
     frozen_at: datetime
     signed_by: list[str] = Field(min_length=2)
 
@@ -461,6 +508,45 @@ class SignedAuthoringInventory(StrictModel):
             raise ValueError("signed authoring inventory ids must be unique")
         if canonical_sha256(sorted(self.candidate_ids)) != self.candidate_ids_sha256:
             raise ValueError("signed authoring inventory hash drift")
+        assignment_ids = [assignment.candidate_id for assignment in self.assignments]
+        if len(set(assignment_ids)) != len(assignment_ids):
+            raise ValueError("signed authoring assignments must have unique ids")
+        if sorted(assignment_ids) != sorted(self.candidate_ids):
+            raise ValueError("signed authoring assignment ids drift")
+        assignment_payload = [
+            assignment.model_dump(mode="json")
+            for assignment in sorted(
+                self.assignments,
+                key=lambda value: value.candidate_id,
+            )
+        ]
+        if canonical_sha256(assignment_payload) != self.assignments_sha256:
+            raise ValueError("signed authoring assignment hash drift")
+        if not HEX_64.fullmatch(self.review_disposition_sha256):
+            raise ValueError("inventory review disposition must be a SHA-256")
+        assignments_by_id = {
+            assignment.candidate_id: assignment for assignment in self.assignments
+        }
+        for assignment in self.assignments:
+            if assignment.role != "reserve":
+                continue
+            target = assignments_by_id.get(assignment.reserve_target_id or "")
+            if target is None or target.role != "primary":
+                raise ValueError("reserve target must be a signed primary assignment")
+            if (
+                assignment.category,
+                assignment.action_band,
+                assignment.situation_slot,
+                assignment.provenance_tier,
+                assignment.taxonomy_anchors,
+            ) != (
+                target.category,
+                target.action_band,
+                target.situation_slot,
+                target.provenance_tier,
+                target.taxonomy_anchors,
+            ):
+                raise ValueError("reserve assignment must match its primary target")
         if self.frozen_at.tzinfo is None:
             raise ValueError("authoring inventory freeze must be timezone-aware")
         if len(set(self.signed_by)) != len(self.signed_by):
@@ -774,6 +860,8 @@ def validate_candidate_registry(
         inventory_ids != sorted(authoring_inventory.candidate_ids)
         or registry.authoring_inventory_sha256
         != authoring_inventory.candidate_ids_sha256
+        or registry.authoring_inventory_assignments_sha256
+        != authoring_inventory.assignments_sha256
     ):
         raise ValueError(
             "registry does not match independently signed authoring inventory"
@@ -782,6 +870,32 @@ def validate_candidate_registry(
         raise ValueError("authoring inventory hash drift")
     if set(inventory_ids) != {record.candidate_id for record in registry.records}:
         raise ValueError("registry records do not match precommitted inventory")
+    assignments_by_id = {
+        assignment.candidate_id: assignment
+        for assignment in authoring_inventory.assignments
+    }
+    for record in registry.records:
+        assignment = assignments_by_id[record.candidate_id]
+        if (
+            record.inventory_role,
+            record.category,
+            record.action_band,
+            record.situation_slot,
+            record.provenance_tier,
+            record.taxonomy_anchors,
+            record.reserve_target_id,
+        ) != (
+            assignment.role,
+            assignment.category,
+            assignment.action_band,
+            assignment.situation_slot,
+            assignment.provenance_tier,
+            assignment.taxonomy_anchors,
+            assignment.reserve_target_id,
+        ):
+            raise ValueError(
+                "registry assignment does not match signed authoring inventory"
+            )
     eligible = {
         record.candidate_id: record
         for record in registry.records
@@ -803,6 +917,11 @@ def validate_candidate_registry(
             candidate.action_band,
         ):
             raise ValueError("eligible registry matrix metadata drift")
+        if (
+            record.situation_slot != candidate.situation_slot
+            or record.provenance_tier != candidate.provenance_tier
+        ):
+            raise ValueError("eligible registry assignment metadata drift")
         if (
             record.authoring_task_id != candidate.authoring_task_id
             or record.authoring_prompt_sha256 != candidate.authoring_prompt_sha256
