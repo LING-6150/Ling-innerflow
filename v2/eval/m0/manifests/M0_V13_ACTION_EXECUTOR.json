@@ -1,0 +1,11 @@
+{
+  "behavior_by_action": {
+    "ASK_PERMISSION": "Ask one direct permission question before offering advice.",
+    "GIVE_DIRECT_STEPS": "Provide concrete next steps immediately without asking permission first.",
+    "USE_CONCISE_DETAIL": "Render task content in no more than three short sentences.",
+    "USE_EXPANDED_DETAIL": "Render task content with rationale and at least three supporting details.",
+    "USE_GENTLE_PRIVATE": "Use gentle wording and frame sensitive feedback for a private channel.",
+    "USE_DIRECT_TONE": "State the main feedback directly in the first sentence.",
+    "USE_UNPERSONALIZED_DEFAULT": "Respond using only current-turn information and generic task norms; do not personalize from persistent memory."
+  }
+}
