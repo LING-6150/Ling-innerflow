@@ -118,7 +118,7 @@ def test_pool_enforces_all_36_frozen_slots_and_provenance(candidate_pool_v13):
     assert all(not candidate.old_item_overlap_hashes for candidate in candidate_pool_v13)
 
 
-def test_registry_retains_rejected_records_and_matches_every_eligible_hash(
+def test_registry_retains_reserve_records_and_matches_every_eligible_hash(
     candidate_pool_v13,
     registry_v13,
     authoring_inventory_v13,
@@ -127,7 +127,7 @@ def test_registry_retains_rejected_records_and_matches_every_eligible_hash(
         registry_v13,
         authoring_inventory=authoring_inventory_v13,
     ) == validate_candidate_pool(candidate_pool_v13)
-    assert any(record.status == "rejected" for record in registry_v13.records)
+    assert any(record.status == "reserve" for record in registry_v13.records)
 
     payload = registry_v13.model_dump(mode="json")
     payload["records"] = [
@@ -570,6 +570,7 @@ def test_candidate_hash_changes_when_frozen_content_changes(candidate_pool_v13):
     original = candidate_pool_v13[0]
     payload = original.model_dump(mode="json")
     payload["provenance_reference"] = "different-source"
+    payload["provenance_artifact"]["source_reference"] = "different-source"
     changed = type(original).model_validate(payload)
     assert candidate_sha256(original) != candidate_sha256(changed)
 

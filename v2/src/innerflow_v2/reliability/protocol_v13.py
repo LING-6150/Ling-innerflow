@@ -219,10 +219,63 @@ class TrackedClaim(StrictModel):
     historical_cues: list[str] = Field(default_factory=list)
 
 
+class SetupMemoryEventV13(StrictModel):
+    event_id: str = Field(min_length=1)
+    sequence_index: int = Field(ge=0)
+    role: Literal["user", "assistant", "system"]
+    operation: Literal[
+        "observe",
+        "correct",
+        "supersede",
+        "scope",
+        "delete",
+    ]
+    content: str = Field(min_length=1)
+    claim_ids: list[str] = Field(default_factory=list)
+    delete_target_claim_id: str | None = None
+
+    @model_validator(mode="after")
+    def _event_operation_contract(self) -> "SetupMemoryEventV13":
+        if len(set(self.claim_ids)) != len(self.claim_ids):
+            raise ValueError("setup event claim ids must be unique")
+        if self.operation == "delete":
+            if not self.delete_target_claim_id or self.claim_ids:
+                raise ValueError(
+                    "delete event needs one target and cannot assert claims"
+                )
+        elif self.delete_target_claim_id is not None:
+            raise ValueError("only delete events may name a delete target")
+        return self
+
+
+class CandidateProvenanceV13(StrictModel):
+    origin_type: Literal["construction_pattern", "product_extension"]
+    source_reference: str = Field(min_length=1)
+    source_item_id: str | None = None
+    taxonomy_anchors: list[str] = Field(min_length=1)
+    transformation_log: str = Field(min_length=1)
+    author: str = Field(min_length=1)
+    reviewer: str = Field(min_length=1)
+    unambiguous_gold_reason: str = Field(min_length=1)
+    leakage_note: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _provenance_is_canonical(self) -> "CandidateProvenanceV13":
+        if self.taxonomy_anchors != sorted(set(self.taxonomy_anchors)):
+            raise ValueError("provenance taxonomy anchors must be sorted and unique")
+        if self.source_item_id is not None:
+            raise ValueError(
+                "M0 construction-pattern/product-extension items cannot claim "
+                "item-level provenance"
+            )
+        return self
+
+
 class CounterfactualWorld(StrictModel):
     world_id: str
     probe: str
     non_memory_state: dict[str, str]
+    setup_memory_events: list[SetupMemoryEventV13] = Field(min_length=1)
     effective_claim: str | None
     applicable_claim_id: str | None
     gold_response_action: ResponseAction
@@ -241,6 +294,7 @@ class CandidateV13(StrictModel):
     situation_slot: str = Field(min_length=1)
     provenance_tier: Literal["E", "P"]
     provenance_reference: str = Field(min_length=1)
+    provenance_artifact: CandidateProvenanceV13
     underlying_event_fingerprint: str
     probe_template_fingerprint: str
     semantic_overlap_fingerprint: str
@@ -251,6 +305,9 @@ class CandidateV13(StrictModel):
     worlds: list[CounterfactualWorld] = Field(min_length=2, max_length=2)
     tracked_claims: list[TrackedClaim] = Field(default_factory=list)
     symmetry_certificate: SymmetryCertificate | None = None
+    deletion_storage_locations: list[
+        Literal["raw", "summary", "wiki", "reflection"]
+    ] = Field(default_factory=list)
     old_item_overlap_hashes: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -271,6 +328,13 @@ class CandidateV13(StrictModel):
             }
         ) != 1:
             raise ValueError("counterfactual non-memory state must be identical")
+        for world in self.worlds:
+            indexes = [event.sequence_index for event in world.setup_memory_events]
+            if indexes != list(range(len(indexes))):
+                raise ValueError("setup memory event indexes must be contiguous")
+            event_ids = [event.event_id for event in world.setup_memory_events]
+            if len(set(event_ids)) != len(event_ids):
+                raise ValueError("setup memory event ids must be unique")
         if self.old_item_overlap_hashes:
             raise ValueError("candidate overlaps a frozen v1.2 item")
         if not all(
@@ -289,6 +353,25 @@ class CandidateV13(StrictModel):
         claims_by_id = {claim.claim_id: claim for claim in self.tracked_claims}
         if len(claims_by_id) != len(self.tracked_claims):
             raise ValueError("tracked claim ids must be unique")
+        source_event_ids = {
+            event.event_id
+            for world in self.worlds
+            for event in world.setup_memory_events
+        }
+        if any(
+            source_event_id not in source_event_ids
+            for claim in self.tracked_claims
+            for source_event_id in claim.source_event_ids
+        ):
+            raise ValueError("tracked claim references an unknown setup event")
+        if self.provenance_reference != self.provenance_artifact.source_reference:
+            raise ValueError("candidate provenance reference drift")
+        expected_origin = {
+            "E": "construction_pattern",
+            "P": "product_extension",
+        }[self.provenance_tier]
+        if self.provenance_artifact.origin_type != expected_origin:
+            raise ValueError("candidate provenance tier/origin drift")
         if self.category in REQUIRED_MEMORY_CATEGORIES:
             by_id = {world.world_id: world for world in self.worlds}
             if set(by_id) != {"world_a", "world_b"}:
@@ -320,6 +403,32 @@ class CandidateV13(StrictModel):
                     )
             if self.symmetry_certificate is None:
                 raise ValueError("required-memory candidate needs a symmetry certificate")
+            left_events, right_events = (
+                by_id["world_a"].setup_memory_events,
+                by_id["world_b"].setup_memory_events,
+            )
+            if len(left_events) != len(right_events):
+                raise ValueError("required-memory worlds must share event structure")
+            changed_events = 0
+            for left, right in zip(left_events, right_events, strict=True):
+                left_payload = left.model_dump(mode="json")
+                right_payload = right.model_dump(mode="json")
+                left_content = left_payload.pop("content")
+                right_content = right_payload.pop("content")
+                left_claim_ids = left_payload.pop("claim_ids")
+                right_claim_ids = right_payload.pop("claim_ids")
+                if left_payload != right_payload:
+                    raise ValueError(
+                        "required-memory worlds may change only one event payload"
+                    )
+                changed_events += (
+                    left_content != right_content
+                    or left_claim_ids != right_claim_ids
+                )
+            if changed_events != 1:
+                raise ValueError(
+                    "required-memory worlds need exactly one memory intervention"
+                )
             if (
                 self.symmetry_certificate.action_a_binding
                 != by_id["world_a"].gold_response_action.value
@@ -349,6 +458,38 @@ class CandidateV13(StrictModel):
             }
             if {world.effective_claim for world in self.worlds} != irrelevant_values:
                 raise ValueError("no-memory worlds must bind tracked irrelevant claims")
+            left_events, right_events = (
+                next(
+                    world for world in self.worlds if world.world_id == "variant_a"
+                ).setup_memory_events,
+                next(
+                    world for world in self.worlds if world.world_id == "variant_b"
+                ).setup_memory_events,
+            )
+            if len(left_events) != len(right_events):
+                raise ValueError("no-memory variants must share event structure")
+            changed_events = 0
+            for left, right in zip(left_events, right_events, strict=True):
+                left_payload = left.model_dump(mode="json")
+                right_payload = right.model_dump(mode="json")
+                left_content = left_payload.pop("content")
+                right_content = right_payload.pop("content")
+                left_claim_ids = left_payload.pop("claim_ids")
+                right_claim_ids = right_payload.pop("claim_ids")
+                if left_payload != right_payload:
+                    raise ValueError(
+                        "no-memory variants may change only one event payload"
+                    )
+                changed_events += (
+                    left_content != right_content
+                    or left_claim_ids != right_claim_ids
+                )
+            if changed_events != 1:
+                raise ValueError(
+                    "no-memory variants need exactly one irrelevant-memory change"
+                )
+            if self.deletion_storage_locations:
+                raise ValueError("no-memory candidate cannot declare deletion storage")
         else:
             by_id = {world.world_id: world for world in self.worlds}
             if set(by_id) != {"pre_delete", "post_delete"}:
@@ -379,13 +520,29 @@ class CandidateV13(StrictModel):
                 or claim.canonical_value != pre.effective_claim
             ):
                 raise ValueError("deletion worlds must bind the deleted tracked claim")
+            pre_events = by_id["pre_delete"].setup_memory_events
+            post_events = by_id["post_delete"].setup_memory_events
+            if (
+                len(post_events) != len(pre_events) + 1
+                or post_events[:-1] != pre_events
+                or post_events[-1].operation != "delete"
+                or post_events[-1].delete_target_claim_id
+                != pre.applicable_claim_id
+            ):
+                raise ValueError(
+                    "post-delete world must append one matching delete event"
+                )
+            if not self.deletion_storage_locations:
+                raise ValueError("deletion candidate needs frozen storage locations")
+        if self.category != "deletion" and self.deletion_storage_locations:
+            raise ValueError("only deletion candidates declare storage locations")
         return self
 
 
 class CandidateRegistryRecordV13(StrictModel):
     candidate_id: str = Field(min_length=1)
     inventory_role: Literal["primary", "reserve"]
-    status: Literal["eligible", "rejected", "replaced"]
+    status: Literal["eligible", "reserve", "rejected", "replaced"]
     category: str = Field(min_length=1)
     action_band: str = Field(min_length=1)
     situation_slot: str = Field(min_length=1)
@@ -397,7 +554,7 @@ class CandidateRegistryRecordV13(StrictModel):
     replaced_by: str | None = None
     audit_artifact_sha256: str
     reviewer_id: str = Field(min_length=1)
-    reviewer_disposition: Literal["pass", "fail", "superseded"]
+    reviewer_disposition: Literal["pass", "held", "fail", "superseded"]
     authoring_task_id: str = Field(min_length=1)
     authoring_prompt_sha256: str
     visible_materials_sha256: str
@@ -423,6 +580,7 @@ class CandidateRegistryRecordV13(StrictModel):
             raise ValueError("only replaced records may name a replacement")
         expected_disposition = {
             "eligible": "pass",
+            "reserve": "held",
             "rejected": "fail",
             "replaced": "superseded",
         }[self.status]
@@ -441,6 +599,8 @@ class CandidateRegistryRecordV13(StrictModel):
             or self.reserve_target_id == self.candidate_id
         ):
             raise ValueError("reserve inventory record must name another candidate")
+        if self.status == "reserve" and self.inventory_role != "reserve":
+            raise ValueError("only a signed reserve assignment may be held in reserve")
         return self
 
 
@@ -763,6 +923,80 @@ def load_candidate_pool(path: str | Path) -> list[CandidateV13]:
     return [CandidateV13.model_validate(value) for value in payload]
 
 
+def validate_authored_candidate_inventory(
+    candidates: list[CandidateV13],
+    *,
+    authoring_inventory: SignedAuthoringInventory,
+) -> dict[str, str]:
+    assignments_by_id = {
+        assignment.candidate_id: assignment
+        for assignment in authoring_inventory.assignments
+    }
+    if len(candidates) != len(assignments_by_id):
+        raise ValueError("authored corpus does not fill the signed inventory")
+    if len({candidate.candidate_id for candidate in candidates}) != len(candidates):
+        raise ValueError("authored corpus contains duplicate candidate ids")
+    if {candidate.candidate_id for candidate in candidates} != set(assignments_by_id):
+        raise ValueError("authored corpus candidate ids drift from signed inventory")
+    for field_name in (
+        "underlying_event_fingerprint",
+        "probe_template_fingerprint",
+        "semantic_overlap_fingerprint",
+    ):
+        values = [getattr(candidate, field_name) for candidate in candidates]
+        if len(set(values)) != len(values):
+            raise ValueError(f"authored corpus duplicate {field_name}")
+
+    hashes = {}
+    by_id = {candidate.candidate_id: candidate for candidate in candidates}
+    for candidate_id, assignment in assignments_by_id.items():
+        candidate = by_id[candidate_id]
+        if (
+            candidate.category,
+            candidate.action_band,
+            candidate.situation_slot,
+            candidate.provenance_tier,
+            candidate.provenance_artifact.taxonomy_anchors,
+        ) != (
+            assignment.category,
+            assignment.action_band,
+            assignment.situation_slot,
+            assignment.provenance_tier,
+            assignment.taxonomy_anchors,
+        ):
+            raise ValueError("authored candidate assignment drift")
+        if candidate.author_saw_v12_item_ledger:
+            raise ValueError("authoring context exposed the v1.2 item ledger")
+        hashes[candidate_id] = candidate_sha256(candidate)
+
+    for assignment in authoring_inventory.assignments:
+        if assignment.role != "reserve":
+            continue
+        reserve = by_id[assignment.candidate_id]
+        target = by_id[assignment.reserve_target_id or ""]
+        if (
+            reserve.underlying_event_fingerprint
+            == target.underlying_event_fingerprint
+            or reserve.probe_template_fingerprint
+            == target.probe_template_fingerprint
+            or reserve.semantic_overlap_fingerprint
+            == target.semantic_overlap_fingerprint
+        ):
+            raise ValueError("reserve candidate is not distinct from its target")
+
+    deletion_candidates = [
+        candidate for candidate in candidates if candidate.category == "deletion"
+    ]
+    if not deletion_candidates or not all(
+        {"summary", "wiki"} <= set(candidate.deletion_storage_locations)
+        for candidate in deletion_candidates
+    ):
+        raise ValueError(
+            "authored deletion inventory does not guarantee derived-memory deletion"
+        )
+    return dict(sorted(hashes.items()))
+
+
 def load_candidate_registry(path: str | Path) -> CandidateRegistryV13:
     return CandidateRegistryV13.model_validate_json(
         Path(path).read_text(encoding="utf-8")
@@ -843,6 +1077,7 @@ def validate_candidate_registry(
     registry: CandidateRegistryV13,
     *,
     authoring_inventory: SignedAuthoringInventory,
+    authored_candidates: list[CandidateV13] | None = None,
     forbidden_candidate_hashes: set[str] | None = None,
     forbidden_overlap_fingerprints: set[str] | None = None,
 ) -> dict[str, str]:
@@ -896,6 +1131,14 @@ def validate_candidate_registry(
             raise ValueError(
                 "registry assignment does not match signed authoring inventory"
             )
+    if authored_candidates is not None:
+        authored_hashes = validate_authored_candidate_inventory(
+            authored_candidates,
+            authoring_inventory=authoring_inventory,
+        )
+        for record in registry.records:
+            if record.content_sha256 != authored_hashes[record.candidate_id]:
+                raise ValueError("registry authored-candidate content hash drift")
     eligible = {
         record.candidate_id: record
         for record in registry.records
@@ -920,6 +1163,8 @@ def validate_candidate_registry(
         if (
             record.situation_slot != candidate.situation_slot
             or record.provenance_tier != candidate.provenance_tier
+            or record.taxonomy_anchors
+            != candidate.provenance_artifact.taxonomy_anchors
         ):
             raise ValueError("eligible registry assignment metadata drift")
         if (
@@ -932,9 +1177,28 @@ def validate_candidate_registry(
             != candidate.author_saw_v12_item_ledger
         ):
             raise ValueError("eligible registry audit metadata drift")
+    records_by_id = {record.candidate_id: record for record in registry.records}
     for record in registry.records:
-        if record.status == "replaced" and record.replaced_by not in eligible:
-            raise ValueError("replacement target must be an eligible candidate")
+        if record.status == "replaced":
+            if record.replaced_by not in eligible:
+                raise ValueError("replacement target must be an eligible candidate")
+            replacement_assignment = assignments_by_id[record.replaced_by or ""]
+            if (
+                replacement_assignment.role != "reserve"
+                or replacement_assignment.reserve_target_id != record.candidate_id
+            ):
+                raise ValueError(
+                    "replacement must use the signed reserve for that primary"
+                )
+        if record.inventory_role == "reserve" and record.status == "eligible":
+            target = records_by_id[record.reserve_target_id or ""]
+            if (
+                target.status != "replaced"
+                or target.replaced_by != record.candidate_id
+            ):
+                raise ValueError(
+                    "eligible reserve must replace its signed primary target"
+                )
     return hashes
 
 
