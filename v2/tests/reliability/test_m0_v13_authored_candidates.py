@@ -143,6 +143,24 @@ def test_reviewed_probe_leaks_are_absent_and_reserve_templates_differ() -> None:
         assert "venting, not planning" not in probe
         assert "no stored preference" not in probe
 
+    for candidate_id in {
+        "m0v13-context-exception-support-venting-planning-scope-primary",
+        "m0v13-context-exception-support-venting-planning-scope-reserve",
+    }:
+        candidate = candidates[candidate_id]
+        probe = candidate.worlds[0].probe.lower()
+        task_description = candidate.worlds[0].non_memory_state[
+            "task_description"
+        ].lower()
+        assert "venting" in probe or "talking through" in probe
+        assert "plan" in probe
+        assert (
+            "venting" in task_description
+            or "talking through" in task_description
+        )
+        assert "plan" in task_description
+        assert "welcome" in probe or "acceptable" in probe
+
     for assignment in inventory.assignments:
         if assignment.role != "reserve":
             continue

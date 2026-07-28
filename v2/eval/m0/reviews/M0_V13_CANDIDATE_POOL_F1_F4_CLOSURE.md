@@ -38,6 +38,13 @@ The four named candidates were rewritten:
 
 Negative assertions retain the exact leaked phrases as forbidden text.
 
+The first closure review found that neutralizing
+`venting_planning_scope` had removed the situation construct itself. The
+primary and reserve now explicitly state that both brief venting/talking
+through the event and beginning a practical plan are acceptable absent the
+stored preference. Tests bind both the probe and non-memory task description
+to this neutral two-path construct.
+
 ## F3 — deletion derived-storage evidence
 
 **Disposition:** accept and patch

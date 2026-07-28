@@ -155,9 +155,9 @@ SLOT_BLUEPRINTS = {
         None,
     ),
     "venting_planning_scope": (
-        "a response to the user describing a minor setback",
-        "Select the response action after the user describes a minor setback and asks for a response.",
-        "a response to the user describing a frustrating afternoon",
+        "a response where either brief venting or beginning a practical plan is welcome",
+        "Select the response action after the user describes a minor setback and says that either venting briefly or beginning a practical plan would be welcome.",
+        "a response where either talking through a frustrating afternoon or starting a plan is acceptable",
     ),
     "ideation_decision_scope": (
         "an early ideation turn rather than a decision turn",

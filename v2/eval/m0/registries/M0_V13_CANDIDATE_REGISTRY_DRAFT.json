@@ -2594,9 +2594,9 @@
         "unambiguous_gold_reason": "The world-local current-effective or deleted claim explicitly binds one frozen downstream action while the probe supplies no competing norm.",
         "leakage_note": "The author used public taxonomy descriptions and the frozen v1.3 protocol, but not v1.2 item-level outputs or model results."
       },
-      "underlying_event_fingerprint": "839b0bf80dc24347b89ea0fc6a3d24fc3ed9e1d388a70bdb705d0788af756fb3",
-      "probe_template_fingerprint": "221a44742046c81f57aa6916e2496790d22b96a8aecb86639e33380cc1f56102",
-      "semantic_overlap_fingerprint": "350826e60fcc18b03cfa0c44827d71e3ad759a0e7c7fada5abd1d81a85d35564",
+      "underlying_event_fingerprint": "39d5430dfa13e933d9b2b71e0fad5e1e007af696b21ac8572e6713bdbc7cd5d0",
+      "probe_template_fingerprint": "333db152802a64f534d6f63e7d427895560411cee49a47ca77ce21f27f5a03bb",
+      "semantic_overlap_fingerprint": "81b0f1548e6cf9ef97c5a13b9d44f0765557c719256c35f4584d6a94b23b5fc5",
       "authoring_task_id": "m0v13-author-m0v13-context-exception-support-venting-planning-scope-primary",
       "authoring_prompt_sha256": "47a2f43c5b35f73298ba2bffe18c6f3a4c9427dbbc1f5c508ebd2b961afeb788",
       "visible_materials_sha256": "23f75c2e22ef9ec9c1856e284eeed2ea6913afdc578030f93fe4567933251432",
@@ -2604,9 +2604,9 @@
       "worlds": [
         {
           "world_id": "world_a",
-          "probe": "Select the response action after the user describes a minor setback and asks for a response.",
+          "probe": "Select the response action after the user describes a minor setback and says that either venting briefly or beginning a practical plan would be welcome.",
           "non_memory_state": {
-            "task_description": "a response to the user describing a minor setback",
+            "task_description": "a response where either brief venting or beginning a practical plan is welcome",
             "scenario_variant": "primary",
             "task_safety": "ordinary_non_safety_sensitive"
           },
@@ -2616,7 +2616,7 @@
               "sequence_index": 0,
               "role": "user",
               "operation": "observe",
-              "content": "Across other contexts involving a response to the user describing a minor setback, use a balanced default.",
+              "content": "Across other contexts involving a response where either brief venting or beginning a practical plan is welcome, use a balanced default.",
               "claim_ids": [
                 "m0v13-context-exception-support-venting-planning-scope-primary-prior-claim"
               ],
@@ -2627,7 +2627,7 @@
               "sequence_index": 1,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant acknowledges the earlier note about a response to the user describing a minor setback.",
+              "content": "The assistant acknowledges the earlier note about a response where either brief venting or beginning a practical plan is welcome.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2672,7 +2672,7 @@
               "sequence_index": 6,
               "role": "user",
               "operation": "observe",
-              "content": "The user says a response to the user describing a minor setback has no urgent deadline.",
+              "content": "The user says a response where either brief venting or beginning a practical plan is welcome has no urgent deadline.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2681,7 +2681,7 @@
               "sequence_index": 7,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant confirms that a response to the user describing a minor setback can follow its ordinary process.",
+              "content": "The assistant confirms that a response where either brief venting or beginning a practical plan is welcome can follow its ordinary process.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2699,7 +2699,7 @@
               "sequence_index": 9,
               "role": "user",
               "operation": "scope",
-              "content": "For this specific context only, apply this exception. For a response to the user describing a minor setback, ask whether suggestions are wanted before giving advice.",
+              "content": "For this specific context only, apply this exception. For a response where either brief venting or beginning a practical plan is welcome, ask whether suggestions are wanted before giving advice.",
               "claim_ids": [
                 "m0v13-context-exception-support-venting-planning-scope-primary-claim-a"
               ],
@@ -2728,7 +2728,7 @@
               "sequence_index": 12,
               "role": "user",
               "operation": "observe",
-              "content": "The user confirms that the request concerns a response to the user describing a minor setback, not a safety decision.",
+              "content": "The user confirms that the request concerns a response where either brief venting or beginning a practical plan is welcome, not a safety decision.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2737,7 +2737,7 @@
               "sequence_index": 13,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant acknowledges the low-stakes boundary around a response to the user describing a minor setback.",
+              "content": "The assistant acknowledges the low-stakes boundary around a response where either brief venting or beginning a practical plan is welcome.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2773,7 +2773,7 @@
               "sequence_index": 17,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant records that both ordinary response approaches remain feasible for a response to the user describing a minor setback.",
+              "content": "The assistant records that both ordinary response approaches remain feasible for a response where either brief venting or beginning a practical plan is welcome.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2782,7 +2782,7 @@
               "sequence_index": 18,
               "role": "user",
               "operation": "observe",
-              "content": "The user says the concrete request about a response to the user describing a minor setback will arrive later.",
+              "content": "The user says the concrete request about a response where either brief venting or beginning a practical plan is welcome will arrive later.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2791,20 +2791,20 @@
               "sequence_index": 19,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant waits for the request about a response to the user describing a minor setback without choosing a response action.",
+              "content": "The assistant waits for the request about a response where either brief venting or beginning a practical plan is welcome without choosing a response action.",
               "claim_ids": [],
               "delete_target_claim_id": null
             }
           ],
-          "effective_claim": "For a response to the user describing a minor setback, ask whether suggestions are wanted before giving advice.",
+          "effective_claim": "For a response where either brief venting or beginning a practical plan is welcome, ask whether suggestions are wanted before giving advice.",
           "applicable_claim_id": "m0v13-context-exception-support-venting-planning-scope-primary-claim-a",
           "gold_response_action": "ASK_PERMISSION"
         },
         {
           "world_id": "world_b",
-          "probe": "Select the response action after the user describes a minor setback and asks for a response.",
+          "probe": "Select the response action after the user describes a minor setback and says that either venting briefly or beginning a practical plan would be welcome.",
           "non_memory_state": {
-            "task_description": "a response to the user describing a minor setback",
+            "task_description": "a response where either brief venting or beginning a practical plan is welcome",
             "scenario_variant": "primary",
             "task_safety": "ordinary_non_safety_sensitive"
           },
@@ -2814,7 +2814,7 @@
               "sequence_index": 0,
               "role": "user",
               "operation": "observe",
-              "content": "Across other contexts involving a response to the user describing a minor setback, use a balanced default.",
+              "content": "Across other contexts involving a response where either brief venting or beginning a practical plan is welcome, use a balanced default.",
               "claim_ids": [
                 "m0v13-context-exception-support-venting-planning-scope-primary-prior-claim"
               ],
@@ -2825,7 +2825,7 @@
               "sequence_index": 1,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant acknowledges the earlier note about a response to the user describing a minor setback.",
+              "content": "The assistant acknowledges the earlier note about a response where either brief venting or beginning a practical plan is welcome.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2870,7 +2870,7 @@
               "sequence_index": 6,
               "role": "user",
               "operation": "observe",
-              "content": "The user says a response to the user describing a minor setback has no urgent deadline.",
+              "content": "The user says a response where either brief venting or beginning a practical plan is welcome has no urgent deadline.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2879,7 +2879,7 @@
               "sequence_index": 7,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant confirms that a response to the user describing a minor setback can follow its ordinary process.",
+              "content": "The assistant confirms that a response where either brief venting or beginning a practical plan is welcome can follow its ordinary process.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2897,7 +2897,7 @@
               "sequence_index": 9,
               "role": "user",
               "operation": "scope",
-              "content": "For this specific context only, apply this exception. For a response to the user describing a minor setback, give concrete next steps immediately without first asking permission.",
+              "content": "For this specific context only, apply this exception. For a response where either brief venting or beginning a practical plan is welcome, give concrete next steps immediately without first asking permission.",
               "claim_ids": [
                 "m0v13-context-exception-support-venting-planning-scope-primary-claim-b"
               ],
@@ -2926,7 +2926,7 @@
               "sequence_index": 12,
               "role": "user",
               "operation": "observe",
-              "content": "The user confirms that the request concerns a response to the user describing a minor setback, not a safety decision.",
+              "content": "The user confirms that the request concerns a response where either brief venting or beginning a practical plan is welcome, not a safety decision.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2935,7 +2935,7 @@
               "sequence_index": 13,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant acknowledges the low-stakes boundary around a response to the user describing a minor setback.",
+              "content": "The assistant acknowledges the low-stakes boundary around a response where either brief venting or beginning a practical plan is welcome.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2971,7 +2971,7 @@
               "sequence_index": 17,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant records that both ordinary response approaches remain feasible for a response to the user describing a minor setback.",
+              "content": "The assistant records that both ordinary response approaches remain feasible for a response where either brief venting or beginning a practical plan is welcome.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2980,7 +2980,7 @@
               "sequence_index": 18,
               "role": "user",
               "operation": "observe",
-              "content": "The user says the concrete request about a response to the user describing a minor setback will arrive later.",
+              "content": "The user says the concrete request about a response where either brief venting or beginning a practical plan is welcome will arrive later.",
               "claim_ids": [],
               "delete_target_claim_id": null
             },
@@ -2989,12 +2989,12 @@
               "sequence_index": 19,
               "role": "assistant",
               "operation": "observe",
-              "content": "The assistant waits for the request about a response to the user describing a minor setback without choosing a response action.",
+              "content": "The assistant waits for the request about a response where either brief venting or beginning a practical plan is welcome without choosing a response action.",
               "claim_ids": [],
               "delete_target_claim_id": null
             }
           ],
-          "effective_claim": "For a response to the user describing a minor setback, give concrete next steps immediately without first asking permission.",
+          "effective_claim": "For a response where either brief venting or beginning a practical plan is welcome, give concrete next steps immediately without first asking permission.",
           "applicable_claim_id": "m0v13-context-exception-support-venting-planning-scope-primary-claim-b",
           "gold_response_action": "GIVE_DIRECT_STEPS"
         }
@@ -3002,14 +3002,14 @@
       "tracked_claims": [
         {
           "claim_id": "m0v13-context-exception-support-venting-planning-scope-primary-claim-a",
-          "canonical_value": "For a response to the user describing a minor setback, ask whether suggestions are wanted before giving advice.",
+          "canonical_value": "For a response where either brief venting or beginning a practical plan is welcome, ask whether suggestions are wanted before giving advice.",
           "source_event_ids": [
             "m0v13-context-exception-support-venting-planning-scope-primary-effective-event"
           ],
           "gold_applicability": "CURRENT_EFFECTIVE",
           "surface_forms": [
-            "For a response to the user describing a minor setback, ask whether suggestions are wanted before giving advice.",
-            "For a response to the user describing a minor setback, ask whether suggestions are wanted before giving advice"
+            "For a response where either brief venting or beginning a practical plan is welcome, ask whether suggestions are wanted before giving advice.",
+            "For a response where either brief venting or beginning a practical plan is welcome, ask whether suggestions are wanted before giving advice"
           ],
           "active_cues": [
             "current preference",
@@ -3024,14 +3024,14 @@
         },
         {
           "claim_id": "m0v13-context-exception-support-venting-planning-scope-primary-claim-b",
-          "canonical_value": "For a response to the user describing a minor setback, give concrete next steps immediately without first asking permission.",
+          "canonical_value": "For a response where either brief venting or beginning a practical plan is welcome, give concrete next steps immediately without first asking permission.",
           "source_event_ids": [
             "m0v13-context-exception-support-venting-planning-scope-primary-effective-event"
           ],
           "gold_applicability": "CURRENT_EFFECTIVE",
           "surface_forms": [
-            "For a response to the user describing a minor setback, give concrete next steps immediately without first asking permission.",
-            "For a response to the user describing a minor setback, give concrete next steps immediately without first asking permission"
+            "For a response where either brief venting or beginning a practical plan is welcome, give concrete next steps immediately without first asking permission.",
+            "For a response where either brief venting or beginning a practical plan is welcome, give concrete next steps immediately without first asking permission"
           ],
           "active_cues": [
             "current preference",
@@ -3046,14 +3046,14 @@
         },
         {
           "claim_id": "m0v13-context-exception-support-venting-planning-scope-primary-prior-claim",
-          "canonical_value": "Across other contexts involving a response to the user describing a minor setback, use a balanced default.",
+          "canonical_value": "Across other contexts involving a response where either brief venting or beginning a practical plan is welcome, use a balanced default.",
           "source_event_ids": [
             "m0v13-context-exception-support-venting-planning-scope-primary-prior-event"
           ],
           "gold_applicability": "OUT_OF_SCOPE",
           "surface_forms": [
-            "Across other contexts involving a response to the user describing a minor setback, use a balanced default.",
-            "Across other contexts involving a response to the user describing a minor setback, use a balanced default"
+            "Across other contexts involving a response where either brief venting or beginning a practical plan is welcome, use a balanced default.",
+            "Across other contexts involving a response where either brief venting or beginning a practical plan is welcome, use a balanced default"
           ],
           "active_cues": [
             "current"
@@ -3066,7 +3066,7 @@
         }
       ],
       "symmetry_certificate": {
-        "controlled_claim": "Current action preference for a response to the user describing a minor setback.",
+        "controlled_claim": "Current action preference for a response where either brief venting or beginning a practical plan is welcome.",
         "action_a_binding": "ASK_PERMISSION",
         "action_b_binding": "GIVE_DIRECT_STEPS",
         "both_plausible_and_safe_reason": "Both frozen actions are ordinary, safe ways to handle this low-stakes task when no memory preference is supplied.",
@@ -17858,7 +17858,7 @@
         "rpeval"
       ],
       "reserve_target_id": null,
-      "content_sha256": "37be32fce3cf3bd76063573d0d2796f09b6fdb5161dbffeee9eaa2dc6df78e4b",
+      "content_sha256": "e21cafaa7dbdda17c3090f1c111ffeac63b1de083756cd1f5db3fdf3c5b76e66",
       "reason": "passed every automated frozen eligibility predicate",
       "replaced_by": null,
       "audit_artifact_sha256": "9d3ea0e7d96c6aea3b1dc366ebec88145b6ab1c0ed093c7aebc78caf631d70d6",
@@ -17886,7 +17886,7 @@
         "rpeval"
       ],
       "reserve_target_id": "m0v13-context-exception-support-venting-planning-scope-primary",
-      "content_sha256": "6a99b2e1061288a7084b8db254c9b4c5fc8fbd11f986058871e7182c44fdbd60",
+      "content_sha256": "10ec60396594027a17f32b86c022d9e244c3d62f3434a64ffb16d390b5ebd909",
       "reason": "inactive signed reserve; its primary passed conformance",
       "replaced_by": null,
       "audit_artifact_sha256": "a896bc2ec92f4cd4831fa130ebf07fbb03998eefe9275aa04db29eaf4be78922",
