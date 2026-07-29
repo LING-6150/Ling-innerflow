@@ -734,6 +734,69 @@ class FrozenExclusionManifest(StrictModel):
         return self
 
 
+class CandidatePoolFreezeManifestV13(StrictModel):
+    protocol_version: Literal["v1.3"] = "v1.3"
+    status: Literal["WAITING_FUTURE_SEED"] = "WAITING_FUTURE_SEED"
+    source_commit: str
+    authoring_inventory_path: Literal[
+        "v2/eval/m0/manifests/M0_V13_SIGNED_AUTHORING_INVENTORY.json"
+    ]
+    authored_candidates_path: Literal[
+        "v2/eval/m0/candidates/M0_V13_AUTHORED_CANDIDATES.json"
+    ]
+    conformance_audit_path: Literal[
+        "v2/eval/m0/audits/M0_V13_AUTOMATED_CONFORMANCE_AUDIT.json"
+    ]
+    candidate_registry_path: Literal[
+        "v2/eval/m0/registries/M0_V13_CANDIDATE_REGISTRY_DRAFT.json"
+    ]
+    review_disposition_path: Literal[
+        "v2/eval/m0/reviews/M0_V13_CANDIDATE_POOL_FREEZE_REVIEW.md"
+    ]
+    authoring_inventory_file_sha256: str
+    authoring_inventory_manifest_sha256: str
+    authored_candidates_file_sha256: str
+    conformance_audit_file_sha256: str
+    candidate_registry_file_sha256: str
+    candidate_registry_sha256: str
+    review_disposition_file_sha256: str
+    eligible_pool_sha256: str
+    authored_candidate_count: Literal[48]
+    eligible_candidate_count: Literal[36]
+    reserve_candidate_count: Literal[12]
+    frozen_at: datetime
+    future_seed_not_before: datetime
+    signed_by: list[str] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def _freeze_identity(self) -> "CandidatePoolFreezeManifestV13":
+        if not re.fullmatch(r"[0-9a-f]{40}", self.source_commit):
+            raise ValueError("freeze source commit must be a lowercase Git SHA-1")
+        for value in (
+            self.authoring_inventory_file_sha256,
+            self.authoring_inventory_manifest_sha256,
+            self.authored_candidates_file_sha256,
+            self.conformance_audit_file_sha256,
+            self.candidate_registry_file_sha256,
+            self.candidate_registry_sha256,
+            self.review_disposition_file_sha256,
+            self.eligible_pool_sha256,
+        ):
+            if not HEX_64.fullmatch(value):
+                raise ValueError("freeze hashes must be lowercase SHA-256")
+        if self.frozen_at.tzinfo is None or self.future_seed_not_before.tzinfo is None:
+            raise ValueError("candidate-pool freeze timestamps must be timezone-aware")
+        if self.future_seed_not_before != self.frozen_at + timedelta(hours=24):
+            raise ValueError("future seed boundary must equal pool freeze plus 24 hours")
+        if len(set(self.signed_by)) != len(self.signed_by):
+            raise ValueError("candidate-pool freeze signers must be distinct")
+        return self
+
+    @property
+    def sha256(self) -> str:
+        return canonical_sha256(self.model_dump(mode="json"))
+
+
 class BeaconPulse(StrictModel):
     chain_id: Literal[NIST_BEACON_V2_CHAIN] = NIST_BEACON_V2_CHAIN
     endpoint: Literal[NIST_BEACON_V2_ENDPOINT] = NIST_BEACON_V2_ENDPOINT
@@ -1011,6 +1074,14 @@ def load_authoring_inventory(path: str | Path) -> SignedAuthoringInventory:
 
 def load_exclusion_manifest(path: str | Path) -> FrozenExclusionManifest:
     return FrozenExclusionManifest.model_validate_json(
+        Path(path).read_text(encoding="utf-8")
+    )
+
+
+def load_candidate_pool_freeze_manifest(
+    path: str | Path,
+) -> CandidatePoolFreezeManifestV13:
+    return CandidatePoolFreezeManifestV13.model_validate_json(
         Path(path).read_text(encoding="utf-8")
     )
 

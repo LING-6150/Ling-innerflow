@@ -1,0 +1,27 @@
+{
+  "protocol_version": "v1.3",
+  "status": "WAITING_FUTURE_SEED",
+  "source_commit": "dbe1a761d8b06b2e7cd73fd7e16badbd387e4e64",
+  "authoring_inventory_path": "v2/eval/m0/manifests/M0_V13_SIGNED_AUTHORING_INVENTORY.json",
+  "authored_candidates_path": "v2/eval/m0/candidates/M0_V13_AUTHORED_CANDIDATES.json",
+  "conformance_audit_path": "v2/eval/m0/audits/M0_V13_AUTOMATED_CONFORMANCE_AUDIT.json",
+  "candidate_registry_path": "v2/eval/m0/registries/M0_V13_CANDIDATE_REGISTRY_DRAFT.json",
+  "review_disposition_path": "v2/eval/m0/reviews/M0_V13_CANDIDATE_POOL_FREEZE_REVIEW.md",
+  "authoring_inventory_file_sha256": "4017297621580e9fff2a890811a96047957834197a9b67661cc70162c46226ab",
+  "authoring_inventory_manifest_sha256": "d599646f0ef5b6b30e7176acb59a8143f88bbe999615eb591ddc528e361d7a4c",
+  "authored_candidates_file_sha256": "2f35eeab769755a9fc094705b483ee01cd4c8874fa36a4a757e6c4eac098e349",
+  "conformance_audit_file_sha256": "42c3159924fe8f5c3dfe2924d0db50c2f9943580c23a8a99c2ed4bf44f970450",
+  "candidate_registry_file_sha256": "c2aa3adb3851bc58aee43c382d3aa481b65815eb5033b904707f1a8194040244",
+  "candidate_registry_sha256": "acbb0bf18bb793ce67db4c6579bc4f16bd01d155cd99344f3e3694f04ddc0a0d",
+  "review_disposition_file_sha256": "d2a8c9068acd7fe472bc807e03e80547c67079c6d18c1839a624b5f1403d85b6",
+  "eligible_pool_sha256": "316fd2a18f84c759f447f9d3c68d8b1d6b7cb4730a9ca5d030ac0635268ba9b2",
+  "authored_candidate_count": 48,
+  "eligible_candidate_count": 36,
+  "reserve_candidate_count": 12,
+  "frozen_at": "2026-07-29T03:41:54Z",
+  "future_seed_not_before": "2026-07-30T03:41:54Z",
+  "signed_by": [
+    "LING-6150",
+    "independent-agent-reviewer"
+  ]
+}
