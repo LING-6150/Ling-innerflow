@@ -1,0 +1,12 @@
+{
+  "protocol_version": "v1.3",
+  "source_protocol_version": "v1.2",
+  "source_fixture_sha256": "4534de29ce7cc6607926602c4d3dd241225fe417a4d101b2da340dbf8c413dcd",
+  "source_candidate_registry_sha256": "aa90c1e4fd5ca0c79527d3b016f8e0ecedf6fe396a0dafcee85278b8eeaf442f",
+  "source_freeze_manifest_sha256": "3ef1494457b4a40fa11df6c1258d5051b09984418ff32327cb014d6a0492795f",
+  "overlap_fingerprint_algorithm": "sha256-nfkc-casefold-whitespace-v1",
+  "forbidden_candidate_hashes_sha256": "976e3c4340ddc8f9e18a85d41059271c61e44b586e1147b1f202bb421254ecf0",
+  "forbidden_candidate_hash_count": 24,
+  "forbidden_fingerprints_sha256": "4fcd82e6780f3a386634264c455e49a417b1339b143535a4df49a3643ad39fca",
+  "forbidden_fingerprint_count": 140
+}

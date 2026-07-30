@@ -35,7 +35,7 @@ HOLDOUT_COUNTS = {
     "no-memory": 1,
     "deletion": 2,
 }
-NIST_BEACON_V2_CHAIN = "1"
+NIST_BEACON_V2_CHAIN = "2"
 NIST_BEACON_V2_ENDPOINT = "https://beacon.nist.gov/beacon/2.0"
 HEX_64 = re.compile(r"^[0-9a-f]{64}$")
 HEX_EVEN = re.compile(r"^(?:[0-9a-f]{2})+$")
@@ -720,6 +720,13 @@ class SignedAuthoringInventory(StrictModel):
 
 class FrozenExclusionManifest(StrictModel):
     protocol_version: Literal["v1.3"] = "v1.3"
+    source_protocol_version: Literal["v1.2"] = "v1.2"
+    source_fixture_sha256: str
+    source_candidate_registry_sha256: str
+    source_freeze_manifest_sha256: str
+    overlap_fingerprint_algorithm: Literal[
+        "sha256-nfkc-casefold-whitespace-v1"
+    ] = "sha256-nfkc-casefold-whitespace-v1"
     forbidden_candidate_hashes_sha256: str
     forbidden_candidate_hash_count: int = Field(ge=1)
     forbidden_fingerprints_sha256: str
@@ -727,9 +734,16 @@ class FrozenExclusionManifest(StrictModel):
 
     @model_validator(mode="after")
     def _hashes_are_valid(self) -> "FrozenExclusionManifest":
-        if not HEX_64.fullmatch(
-            self.forbidden_candidate_hashes_sha256
-        ) or not HEX_64.fullmatch(self.forbidden_fingerprints_sha256):
+        if not all(
+            HEX_64.fullmatch(value)
+            for value in (
+                self.source_fixture_sha256,
+                self.source_candidate_registry_sha256,
+                self.source_freeze_manifest_sha256,
+                self.forbidden_candidate_hashes_sha256,
+                self.forbidden_fingerprints_sha256,
+            )
+        ):
             raise ValueError("exclusion-list hashes must be lowercase SHA-256")
         return self
 
@@ -1170,6 +1184,10 @@ def validate_candidate_pool(
     forbidden_candidate_hashes: set[str] | None = None,
     forbidden_overlap_fingerprints: set[str] | None = None,
 ) -> dict[str, str]:
+    from innerflow_v2.reliability.exclusions_v13 import (
+        candidate_normalized_overlap_fingerprints,
+    )
+
     if len(candidates) != 36:
         raise ValueError(
             "frozen matrix requires exactly 36 eligible candidates, "
@@ -1210,11 +1228,16 @@ def validate_candidate_pool(
     overlap_hashes = set(hashes.values()) & set(forbidden_candidate_hashes or ())
     if overlap_hashes:
         raise ValueError("candidate hash overlaps the frozen v1.2 corpus")
-    overlap_fingerprints = {
+    authored_overlap_fingerprints = {
         candidate.semantic_overlap_fingerprint for candidate in candidates
     } & set(forbidden_overlap_fingerprints or ())
-    if overlap_fingerprints:
+    if authored_overlap_fingerprints:
         raise ValueError("candidate semantic fingerprint overlaps a frozen item")
+    normalized_overlap_fingerprints = set().union(
+        *(candidate_normalized_overlap_fingerprints(candidate) for candidate in candidates)
+    ) & set(forbidden_overlap_fingerprints or ())
+    if normalized_overlap_fingerprints:
+        raise ValueError("candidate normalized text overlaps a frozen v1.2 item")
     return hashes
 
 
