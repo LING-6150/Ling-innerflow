@@ -7,7 +7,9 @@ import pytest
 
 from innerflow_v2.reliability.protocol_v13 import (
     MATRIX_ROWS,
+    AuthoringInventoryAssignment,
     BeaconPulse,
+    CandidateProvenanceV13,
     CandidateRegistryRecordV13,
     CandidateRegistryV13,
     CandidateV13,
@@ -16,6 +18,7 @@ from innerflow_v2.reliability.protocol_v13 import (
     FrozenExclusionManifest,
     GoldApplicability,
     ResponseAction,
+    SetupMemoryEventV13,
     SignedAuthoringInventory,
     SignedConformanceManifest,
     SymmetryCertificate,
@@ -49,11 +52,34 @@ def candidate_pool_v13() -> list[CandidateV13]:
                 "current_request": f"request-{candidate_id}",
             }
             if row.action_pair:
+                operation = {
+                    "correction": "correct",
+                    "supersession": "supersede",
+                    "context-exception": "scope",
+                }[row.category]
+                common_event = SetupMemoryEventV13(
+                    event_id=f"event-{candidate_id}-context",
+                    sequence_index=0,
+                    role="user",
+                    operation="observe",
+                    content=f"Neutral setup for {candidate_id}.",
+                )
                 worlds = [
                     CounterfactualWorld(
                         world_id="world_a",
                         probe=f"Choose the response action for {candidate_id}.",
                         non_memory_state=non_memory_state,
+                        setup_memory_events=[
+                            common_event,
+                            SetupMemoryEventV13(
+                                event_id=f"event-{candidate_id}-effective",
+                                sequence_index=1,
+                                role="user",
+                                operation=operation,
+                                content=f"{candidate_id}-claim-a",
+                                claim_ids=[f"claim-{candidate_id}-a"],
+                            ),
+                        ],
                         effective_claim=f"{candidate_id}-claim-a",
                         applicable_claim_id=f"claim-{candidate_id}-a",
                         gold_response_action=row.action_pair[0],
@@ -62,6 +88,17 @@ def candidate_pool_v13() -> list[CandidateV13]:
                         world_id="world_b",
                         probe=f"Choose the response action for {candidate_id}.",
                         non_memory_state=non_memory_state,
+                        setup_memory_events=[
+                            common_event,
+                            SetupMemoryEventV13(
+                                event_id=f"event-{candidate_id}-effective",
+                                sequence_index=1,
+                                role="user",
+                                operation=operation,
+                                content=f"{candidate_id}-claim-b",
+                                claim_ids=[f"claim-{candidate_id}-b"],
+                            ),
+                        ],
                         effective_claim=f"{candidate_id}-claim-b",
                         applicable_claim_id=f"claim-{candidate_id}-b",
                         gold_response_action=row.action_pair[1],
@@ -71,7 +108,7 @@ def candidate_pool_v13() -> list[CandidateV13]:
                     TrackedClaim(
                         claim_id=f"claim-{candidate_id}-a",
                         canonical_value=f"{candidate_id}-claim-a",
-                        source_event_ids=[f"event-{candidate_id}-a"],
+                        source_event_ids=[f"event-{candidate_id}-effective"],
                         gold_applicability=GoldApplicability.CURRENT_EFFECTIVE,
                         surface_forms=[f"surface {candidate_id} a"],
                         active_cues=["currently"],
@@ -80,7 +117,7 @@ def candidate_pool_v13() -> list[CandidateV13]:
                     TrackedClaim(
                         claim_id=f"claim-{candidate_id}-b",
                         canonical_value=f"{candidate_id}-claim-b",
-                        source_event_ids=[f"event-{candidate_id}-b"],
+                        source_event_ids=[f"event-{candidate_id}-effective"],
                         gold_applicability=GoldApplicability.CURRENT_EFFECTIVE,
                         surface_forms=[f"surface {candidate_id} b"],
                         active_cues=["currently"],
@@ -102,6 +139,16 @@ def candidate_pool_v13() -> list[CandidateV13]:
                         world_id="variant_a",
                         probe=f"Choose the response action for {candidate_id}.",
                         non_memory_state=non_memory_state,
+                        setup_memory_events=[
+                            SetupMemoryEventV13(
+                                event_id=f"event-{candidate_id}-irrelevant",
+                                sequence_index=0,
+                                role="user",
+                                operation="observe",
+                                content=f"{candidate_id}-irrelevant-a",
+                                claim_ids=[f"claim-{candidate_id}-a"],
+                            )
+                        ],
                         effective_claim=f"{candidate_id}-irrelevant-a",
                         applicable_claim_id=None,
                         gold_response_action=ResponseAction.USE_UNPERSONALIZED_DEFAULT,
@@ -110,6 +157,16 @@ def candidate_pool_v13() -> list[CandidateV13]:
                         world_id="variant_b",
                         probe=f"Choose the response action for {candidate_id}.",
                         non_memory_state=non_memory_state,
+                        setup_memory_events=[
+                            SetupMemoryEventV13(
+                                event_id=f"event-{candidate_id}-irrelevant",
+                                sequence_index=0,
+                                role="user",
+                                operation="observe",
+                                content=f"{candidate_id}-irrelevant-b",
+                                claim_ids=[f"claim-{candidate_id}-b"],
+                            )
+                        ],
                         effective_claim=f"{candidate_id}-irrelevant-b",
                         applicable_claim_id=None,
                         gold_response_action=ResponseAction.USE_UNPERSONALIZED_DEFAULT,
@@ -119,14 +176,14 @@ def candidate_pool_v13() -> list[CandidateV13]:
                     TrackedClaim(
                         claim_id=f"claim-{candidate_id}-a",
                         canonical_value=f"{candidate_id}-irrelevant-a",
-                        source_event_ids=[f"event-{candidate_id}-a"],
+                        source_event_ids=[f"event-{candidate_id}-irrelevant"],
                         gold_applicability=GoldApplicability.IRRELEVANT,
                         surface_forms=[f"surface {candidate_id} a"],
                     ),
                     TrackedClaim(
                         claim_id=f"claim-{candidate_id}-b",
                         canonical_value=f"{candidate_id}-irrelevant-b",
-                        source_event_ids=[f"event-{candidate_id}-b"],
+                        source_event_ids=[f"event-{candidate_id}-irrelevant"],
                         gold_applicability=GoldApplicability.IRRELEVANT,
                         surface_forms=[f"surface {candidate_id} b"],
                     ),
@@ -134,11 +191,20 @@ def candidate_pool_v13() -> list[CandidateV13]:
                 certificate = None
             else:
                 assert row.deletion_pre_actions is not None
+                stored_event = SetupMemoryEventV13(
+                    event_id=f"event-{candidate_id}",
+                    sequence_index=0,
+                    role="user",
+                    operation="observe",
+                    content=f"{candidate_id}-stored",
+                    claim_ids=[f"claim-{candidate_id}"],
+                )
                 worlds = [
                     CounterfactualWorld(
                         world_id="pre_delete",
                         probe=f"Choose the response action for {candidate_id}.",
                         non_memory_state=non_memory_state,
+                        setup_memory_events=[stored_event],
                         effective_claim=f"{candidate_id}-stored",
                         applicable_claim_id=f"claim-{candidate_id}",
                         gold_response_action=row.deletion_pre_actions[index % 2],
@@ -147,6 +213,17 @@ def candidate_pool_v13() -> list[CandidateV13]:
                         world_id="post_delete",
                         probe=f"Choose the response action for {candidate_id}.",
                         non_memory_state=non_memory_state,
+                        setup_memory_events=[
+                            stored_event,
+                            SetupMemoryEventV13(
+                                event_id=f"event-{candidate_id}-delete",
+                                sequence_index=1,
+                                role="user",
+                                operation="delete",
+                                content=f"Forget {candidate_id}-stored.",
+                                delete_target_claim_id=f"claim-{candidate_id}",
+                            ),
+                        ],
                         effective_claim=None,
                         applicable_claim_id=None,
                         gold_response_action=ResponseAction.USE_UNPERSONALIZED_DEFAULT,
@@ -172,6 +249,26 @@ def candidate_pool_v13() -> list[CandidateV13]:
                     situation_slot=slot,
                     provenance_tier=provenance,
                     provenance_reference=f"source:{candidate_id}",
+                    provenance_artifact=CandidateProvenanceV13(
+                        origin_type=(
+                            "construction_pattern"
+                            if provenance == "E"
+                            else "product_extension"
+                        ),
+                        source_reference=f"source:{candidate_id}",
+                        taxonomy_anchors=[
+                            (
+                                "external-taxonomy"
+                                if provenance == "E"
+                                else "innerflow-product-invariant"
+                            )
+                        ],
+                        transformation_log="Synthetic conformance fixture.",
+                        author="test-author",
+                        reviewer="test-reviewer",
+                        unambiguous_gold_reason="The controlled claim binds the action.",
+                        leakage_note="No v1.2 item content used.",
+                    ),
                     underlying_event_fingerprint=sha(f"event:{candidate_id}"),
                     probe_template_fingerprint=sha(f"template:{candidate_id}"),
                     semantic_overlap_fingerprint=sha(f"semantic:{candidate_id}"),
@@ -181,6 +278,13 @@ def candidate_pool_v13() -> list[CandidateV13]:
                     worlds=worlds,
                     tracked_claims=tracked_claims,
                     symmetry_certificate=certificate,
+                    deletion_storage_locations=(
+                        ["summary", "wiki"]
+                        if row.category == "deletion" and index == 0
+                        else ["raw"]
+                        if row.category == "deletion"
+                        else []
+                    ),
                 )
             )
     return candidates
@@ -233,15 +337,50 @@ def authoring_inventory_v13(
     candidate_pool_v13,
     frozen_at_v13,
 ) -> SignedAuthoringInventory:
-    inventory = sorted(
-        [
-            *(candidate.candidate_id for candidate in candidate_pool_v13),
-            "rejected-audit-record",
-        ]
+    assignments = [
+        AuthoringInventoryAssignment(
+            candidate_id=candidate.candidate_id,
+            role="primary",
+            category=candidate.category,
+            action_band=candidate.action_band,
+            situation_slot=candidate.situation_slot,
+            provenance_tier=candidate.provenance_tier,
+            taxonomy_anchors=[
+                (
+                    "external-taxonomy"
+                    if candidate.provenance_tier == "E"
+                    else "innerflow-product-invariant"
+                )
+            ],
+        )
+        for candidate in candidate_pool_v13
+    ]
+    reserve_target = candidate_pool_v13[0]
+    assignments.append(
+        AuthoringInventoryAssignment(
+            candidate_id="rejected-audit-record",
+            role="reserve",
+            category=reserve_target.category,
+            action_band=reserve_target.action_band,
+            situation_slot=reserve_target.situation_slot,
+            provenance_tier=reserve_target.provenance_tier,
+            taxonomy_anchors=["external-taxonomy"],
+            reserve_target_id=reserve_target.candidate_id,
+        )
     )
+    assignments = sorted(assignments, key=lambda value: value.candidate_id)
+    inventory = [assignment.candidate_id for assignment in assignments]
     return SignedAuthoringInventory(
         candidate_ids=inventory,
         candidate_ids_sha256=canonical_sha256(inventory),
+        assignments=assignments,
+        assignments_sha256=canonical_sha256(
+            [
+                assignment.model_dump(mode="json")
+                for assignment in assignments
+            ]
+        ),
+        review_disposition_sha256=sha("inventory-freeze-review"),
         frozen_at=frozen_at_v13,
         signed_by=["owner", "independent-reviewer"],
     )
@@ -255,9 +394,19 @@ def registry_v13(
     records = [
         CandidateRegistryRecordV13(
             candidate_id=candidate.candidate_id,
+            inventory_role="primary",
             status="eligible",
             category=candidate.category,
             action_band=candidate.action_band,
+            situation_slot=candidate.situation_slot,
+            provenance_tier=candidate.provenance_tier,
+            taxonomy_anchors=[
+                (
+                    "external-taxonomy"
+                    if candidate.provenance_tier == "E"
+                    else "innerflow-product-invariant"
+                )
+            ],
             content_sha256=candidate_sha256(candidate),
             reason="passed every frozen eligibility predicate",
             audit_artifact_sha256=sha(f"audit:{candidate.candidate_id}"),
@@ -282,14 +431,19 @@ def registry_v13(
     records.append(
         CandidateRegistryRecordV13(
             candidate_id="rejected-audit-record",
-            status="rejected",
+            inventory_role="reserve",
+            status="reserve",
             category="correction",
             action_band="detail",
+            situation_slot=candidate_pool_v13[0].situation_slot,
+            provenance_tier=candidate_pool_v13[0].provenance_tier,
+            taxonomy_anchors=["external-taxonomy"],
+            reserve_target_id=candidate_pool_v13[0].candidate_id,
             content_sha256=canonical_sha256("rejected content"),
-            reason="failed the frozen byte-identical-probe predicate",
+            reason="inactive signed reserve; its primary passed conformance",
             audit_artifact_sha256=sha("audit:rejected"),
             reviewer_id="pool-reviewer",
-            reviewer_disposition="fail",
+            reviewer_disposition="held",
             authoring_task_id="task-rejected",
             authoring_prompt_sha256=sha("prompt:rejected"),
             visible_materials_sha256=sha("materials:rejected"),
@@ -304,6 +458,9 @@ def registry_v13(
         authoring_inventory_ids=authoring_inventory_v13.candidate_ids,
         authoring_inventory_sha256=(
             authoring_inventory_v13.candidate_ids_sha256
+        ),
+        authoring_inventory_assignments_sha256=(
+            authoring_inventory_v13.assignments_sha256
         ),
         candidates=candidate_pool_v13,
         records=records,

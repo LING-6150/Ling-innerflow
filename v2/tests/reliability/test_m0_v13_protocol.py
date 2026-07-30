@@ -118,7 +118,7 @@ def test_pool_enforces_all_36_frozen_slots_and_provenance(candidate_pool_v13):
     assert all(not candidate.old_item_overlap_hashes for candidate in candidate_pool_v13)
 
 
-def test_registry_retains_rejected_records_and_matches_every_eligible_hash(
+def test_registry_retains_reserve_records_and_matches_every_eligible_hash(
     candidate_pool_v13,
     registry_v13,
     authoring_inventory_v13,
@@ -127,7 +127,7 @@ def test_registry_retains_rejected_records_and_matches_every_eligible_hash(
         registry_v13,
         authoring_inventory=authoring_inventory_v13,
     ) == validate_candidate_pool(candidate_pool_v13)
-    assert any(record.status == "rejected" for record in registry_v13.records)
+    assert any(record.status == "reserve" for record in registry_v13.records)
 
     payload = registry_v13.model_dump(mode="json")
     payload["records"] = [
@@ -156,6 +156,93 @@ def test_registry_retains_rejected_records_and_matches_every_eligible_hash(
             self_rewritten,
             authoring_inventory=authoring_inventory_v13,
         )
+
+
+def test_registry_rejects_signed_assignment_rebinding(
+    candidate_pool_v13,
+    registry_v13,
+    authoring_inventory_v13,
+):
+    def registry_with_record_update(candidate_id, **updates):
+        payload = registry_v13.model_dump(mode="json")
+        record = next(
+            value
+            for value in payload["records"]
+            if value["candidate_id"] == candidate_id
+        )
+        record.update(updates)
+        return type(registry_v13).model_validate(payload)
+
+    first_row = [
+        candidate
+        for candidate in candidate_pool_v13
+        if (candidate.category, candidate.action_band) == ("correction", "detail")
+    ]
+    slot_reassigned = registry_with_record_update(
+        first_row[0].candidate_id,
+        situation_slot=first_row[1].situation_slot,
+    )
+    with pytest.raises(ValueError, match="signed authoring inventory"):
+        validate_candidate_registry(
+            slot_reassigned,
+            authoring_inventory=authoring_inventory_v13,
+        )
+
+    mixed_row = next(
+        candidate
+        for candidate in candidate_pool_v13
+        if (candidate.category, candidate.action_band, candidate.provenance_tier)
+        == ("correction", "support", "E")
+    )
+    provenance_reassigned = registry_with_record_update(
+        mixed_row.candidate_id,
+        provenance_tier="P",
+    )
+    with pytest.raises(ValueError, match="signed authoring inventory"):
+        validate_candidate_registry(
+            provenance_reassigned,
+            authoring_inventory=authoring_inventory_v13,
+        )
+
+    reserve_retargeted = registry_with_record_update(
+        "rejected-audit-record",
+        reserve_target_id=first_row[1].candidate_id,
+    )
+    with pytest.raises(ValueError, match="signed authoring inventory"):
+        validate_candidate_registry(
+            reserve_retargeted,
+            authoring_inventory=authoring_inventory_v13,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("situation_slot", "tutorial_explanation"),
+        ("provenance_tier", "P"),
+        ("reserve_target_id", "correction-detail-1"),
+    ),
+)
+def test_signed_inventory_hash_rejects_assignment_rebinding(
+    authoring_inventory_v13,
+    field,
+    value,
+):
+    payload = authoring_inventory_v13.model_dump(mode="json")
+    if field == "reserve_target_id":
+        assignment = next(
+            item for item in payload["assignments"] if item["role"] == "reserve"
+        )
+    else:
+        assignment = next(
+            item
+            for item in payload["assignments"]
+            if item["candidate_id"] == "correction-detail-0"
+        )
+    assignment[field] = value
+
+    with pytest.raises(ValueError, match="assignment hash drift"):
+        type(authoring_inventory_v13).model_validate(payload)
 
 
 def test_required_no_memory_and_deletion_world_contracts_are_static(
@@ -483,6 +570,7 @@ def test_candidate_hash_changes_when_frozen_content_changes(candidate_pool_v13):
     original = candidate_pool_v13[0]
     payload = original.model_dump(mode="json")
     payload["provenance_reference"] = "different-source"
+    payload["provenance_artifact"]["source_reference"] = "different-source"
     changed = type(original).model_validate(payload)
     assert candidate_sha256(original) != candidate_sha256(changed)
 

@@ -1,0 +1,687 @@
+{
+  "protocol_version": "v1.3",
+  "candidate_ids": [
+    "m0v13-context-exception-detail-audience-scope-primary",
+    "m0v13-context-exception-detail-audience-scope-reserve",
+    "m0v13-context-exception-detail-urgency-scope-primary",
+    "m0v13-context-exception-detail-work-personal-scope-primary",
+    "m0v13-context-exception-support-ideation-decision-scope-primary",
+    "m0v13-context-exception-support-setback-next-scope-primary",
+    "m0v13-context-exception-support-venting-planning-scope-primary",
+    "m0v13-context-exception-support-venting-planning-scope-reserve",
+    "m0v13-context-exception-tone-celebration-debug-scope-primary",
+    "m0v13-context-exception-tone-public-private-scope-primary",
+    "m0v13-context-exception-tone-public-private-scope-reserve",
+    "m0v13-context-exception-tone-work-home-scope-primary",
+    "m0v13-correction-detail-itinerary-briefing-primary",
+    "m0v13-correction-detail-project-update-primary",
+    "m0v13-correction-detail-project-update-reserve",
+    "m0v13-correction-detail-tutorial-explanation-primary",
+    "m0v13-correction-support-creative-block-primary",
+    "m0v13-correction-support-decision-uncertainty-primary",
+    "m0v13-correction-support-routine-setback-primary",
+    "m0v13-correction-support-routine-setback-reserve",
+    "m0v13-correction-tone-accountability-reminder-primary",
+    "m0v13-correction-tone-peer-review-primary",
+    "m0v13-correction-tone-peer-review-reserve",
+    "m0v13-correction-tone-planning-disagreement-primary",
+    "m0v13-deletion-detail-saved-planning-format-primary",
+    "m0v13-deletion-detail-saved-reading-format-primary",
+    "m0v13-deletion-detail-saved-report-format-primary",
+    "m0v13-deletion-detail-saved-report-format-reserve",
+    "m0v13-deletion-tone-saved-collaboration-style-primary",
+    "m0v13-deletion-tone-saved-feedback-style-primary",
+    "m0v13-deletion-tone-saved-feedback-style-reserve",
+    "m0v13-deletion-tone-saved-reminder-style-primary",
+    "m0v13-no-memory-information-document-organization-primary",
+    "m0v13-no-memory-information-neutral-summary-primary",
+    "m0v13-no-memory-information-unrelated-scheduling-primary",
+    "m0v13-no-memory-information-unrelated-scheduling-reserve",
+    "m0v13-no-memory-social-casual-greeting-primary",
+    "m0v13-no-memory-social-casual-greeting-reserve",
+    "m0v13-no-memory-social-neutral-checkin-primary",
+    "m0v13-no-memory-social-third-party-coordination-primary",
+    "m0v13-supersession-detail-meeting-recap-primary",
+    "m0v13-supersession-detail-meeting-recap-reserve",
+    "m0v13-supersession-detail-options-comparison-primary",
+    "m0v13-supersession-detail-technical-handoff-primary",
+    "m0v13-supersession-tone-boundary-negotiation-primary",
+    "m0v13-supersession-tone-performance-reflection-primary",
+    "m0v13-supersession-tone-performance-reflection-reserve",
+    "m0v13-supersession-tone-schedule-conflict-primary"
+  ],
+  "candidate_ids_sha256": "59a8cdc96847718e07624bf02e5495d4fed47aab62dc09229f57ae3767ef213c",
+  "assignments": [
+    {
+      "candidate_id": "m0v13-context-exception-detail-audience-scope-primary",
+      "role": "primary",
+      "category": "context-exception",
+      "action_band": "detail",
+      "situation_slot": "audience_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-context-exception-detail-audience-scope-reserve",
+      "role": "reserve",
+      "category": "context-exception",
+      "action_band": "detail",
+      "situation_slot": "audience_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": "m0v13-context-exception-detail-audience-scope-primary"
+    },
+    {
+      "candidate_id": "m0v13-context-exception-detail-urgency-scope-primary",
+      "role": "primary",
+      "category": "context-exception",
+      "action_band": "detail",
+      "situation_slot": "urgency_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-context-exception-detail-work-personal-scope-primary",
+      "role": "primary",
+      "category": "context-exception",
+      "action_band": "detail",
+      "situation_slot": "work_personal_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-context-exception-support-ideation-decision-scope-primary",
+      "role": "primary",
+      "category": "context-exception",
+      "action_band": "support",
+      "situation_slot": "ideation_decision_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-context-exception-support-setback-next-scope-primary",
+      "role": "primary",
+      "category": "context-exception",
+      "action_band": "support",
+      "situation_slot": "setback_next_scope",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-context-exception-support-venting-planning-scope-primary",
+      "role": "primary",
+      "category": "context-exception",
+      "action_band": "support",
+      "situation_slot": "venting_planning_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-context-exception-support-venting-planning-scope-reserve",
+      "role": "reserve",
+      "category": "context-exception",
+      "action_band": "support",
+      "situation_slot": "venting_planning_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": "m0v13-context-exception-support-venting-planning-scope-primary"
+    },
+    {
+      "candidate_id": "m0v13-context-exception-tone-celebration-debug-scope-primary",
+      "role": "primary",
+      "category": "context-exception",
+      "action_band": "tone",
+      "situation_slot": "celebration_debug_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-context-exception-tone-public-private-scope-primary",
+      "role": "primary",
+      "category": "context-exception",
+      "action_band": "tone",
+      "situation_slot": "public_private_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-context-exception-tone-public-private-scope-reserve",
+      "role": "reserve",
+      "category": "context-exception",
+      "action_band": "tone",
+      "situation_slot": "public_private_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": "m0v13-context-exception-tone-public-private-scope-primary"
+    },
+    {
+      "candidate_id": "m0v13-context-exception-tone-work-home-scope-primary",
+      "role": "primary",
+      "category": "context-exception",
+      "action_band": "tone",
+      "situation_slot": "work_home_scope",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "benchpres",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-correction-detail-itinerary-briefing-primary",
+      "role": "primary",
+      "category": "correction",
+      "action_band": "detail",
+      "situation_slot": "itinerary_briefing",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-correction-detail-project-update-primary",
+      "role": "primary",
+      "category": "correction",
+      "action_band": "detail",
+      "situation_slot": "project_update",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-correction-detail-project-update-reserve",
+      "role": "reserve",
+      "category": "correction",
+      "action_band": "detail",
+      "situation_slot": "project_update",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": "m0v13-correction-detail-project-update-primary"
+    },
+    {
+      "candidate_id": "m0v13-correction-detail-tutorial-explanation-primary",
+      "role": "primary",
+      "category": "correction",
+      "action_band": "detail",
+      "situation_slot": "tutorial_explanation",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-correction-support-creative-block-primary",
+      "role": "primary",
+      "category": "correction",
+      "action_band": "support",
+      "situation_slot": "creative_block",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-correction-support-decision-uncertainty-primary",
+      "role": "primary",
+      "category": "correction",
+      "action_band": "support",
+      "situation_slot": "decision_uncertainty",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-correction-support-routine-setback-primary",
+      "role": "primary",
+      "category": "correction",
+      "action_band": "support",
+      "situation_slot": "routine_setback",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-correction-support-routine-setback-reserve",
+      "role": "reserve",
+      "category": "correction",
+      "action_band": "support",
+      "situation_slot": "routine_setback",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": "m0v13-correction-support-routine-setback-primary"
+    },
+    {
+      "candidate_id": "m0v13-correction-tone-accountability-reminder-primary",
+      "role": "primary",
+      "category": "correction",
+      "action_band": "tone",
+      "situation_slot": "accountability_reminder",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-correction-tone-peer-review-primary",
+      "role": "primary",
+      "category": "correction",
+      "action_band": "tone",
+      "situation_slot": "peer_review",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-correction-tone-peer-review-reserve",
+      "role": "reserve",
+      "category": "correction",
+      "action_band": "tone",
+      "situation_slot": "peer_review",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": "m0v13-correction-tone-peer-review-primary"
+    },
+    {
+      "candidate_id": "m0v13-correction-tone-planning-disagreement-primary",
+      "role": "primary",
+      "category": "correction",
+      "action_band": "tone",
+      "situation_slot": "planning_disagreement",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-deletion-detail-saved-planning-format-primary",
+      "role": "primary",
+      "category": "deletion",
+      "action_band": "detail",
+      "situation_slot": "saved_planning_format",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "innerflow",
+        "longmemeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-deletion-detail-saved-reading-format-primary",
+      "role": "primary",
+      "category": "deletion",
+      "action_band": "detail",
+      "situation_slot": "saved_reading_format",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "innerflow",
+        "longmemeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-deletion-detail-saved-report-format-primary",
+      "role": "primary",
+      "category": "deletion",
+      "action_band": "detail",
+      "situation_slot": "saved_report_format",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "innerflow",
+        "longmemeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-deletion-detail-saved-report-format-reserve",
+      "role": "reserve",
+      "category": "deletion",
+      "action_band": "detail",
+      "situation_slot": "saved_report_format",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "innerflow",
+        "longmemeval"
+      ],
+      "reserve_target_id": "m0v13-deletion-detail-saved-report-format-primary"
+    },
+    {
+      "candidate_id": "m0v13-deletion-tone-saved-collaboration-style-primary",
+      "role": "primary",
+      "category": "deletion",
+      "action_band": "tone",
+      "situation_slot": "saved_collaboration_style",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "innerflow",
+        "longmemeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-deletion-tone-saved-feedback-style-primary",
+      "role": "primary",
+      "category": "deletion",
+      "action_band": "tone",
+      "situation_slot": "saved_feedback_style",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "innerflow",
+        "longmemeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-deletion-tone-saved-feedback-style-reserve",
+      "role": "reserve",
+      "category": "deletion",
+      "action_band": "tone",
+      "situation_slot": "saved_feedback_style",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "innerflow",
+        "longmemeval"
+      ],
+      "reserve_target_id": "m0v13-deletion-tone-saved-feedback-style-primary"
+    },
+    {
+      "candidate_id": "m0v13-deletion-tone-saved-reminder-style-primary",
+      "role": "primary",
+      "category": "deletion",
+      "action_band": "tone",
+      "situation_slot": "saved_reminder_style",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "innerflow",
+        "longmemeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-no-memory-information-document-organization-primary",
+      "role": "primary",
+      "category": "no-memory",
+      "action_band": "information-task-default",
+      "situation_slot": "document_organization",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-no-memory-information-neutral-summary-primary",
+      "role": "primary",
+      "category": "no-memory",
+      "action_band": "information-task-default",
+      "situation_slot": "neutral_summary",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-no-memory-information-unrelated-scheduling-primary",
+      "role": "primary",
+      "category": "no-memory",
+      "action_band": "information-task-default",
+      "situation_slot": "unrelated_scheduling",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-no-memory-information-unrelated-scheduling-reserve",
+      "role": "reserve",
+      "category": "no-memory",
+      "action_band": "information-task-default",
+      "situation_slot": "unrelated_scheduling",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "rpeval"
+      ],
+      "reserve_target_id": "m0v13-no-memory-information-unrelated-scheduling-primary"
+    },
+    {
+      "candidate_id": "m0v13-no-memory-social-casual-greeting-primary",
+      "role": "primary",
+      "category": "no-memory",
+      "action_band": "social-support-default",
+      "situation_slot": "casual_greeting",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-no-memory-social-casual-greeting-reserve",
+      "role": "reserve",
+      "category": "no-memory",
+      "action_band": "social-support-default",
+      "situation_slot": "casual_greeting",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "rpeval"
+      ],
+      "reserve_target_id": "m0v13-no-memory-social-casual-greeting-primary"
+    },
+    {
+      "candidate_id": "m0v13-no-memory-social-neutral-checkin-primary",
+      "role": "primary",
+      "category": "no-memory",
+      "action_band": "social-support-default",
+      "situation_slot": "neutral_checkin",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-no-memory-social-third-party-coordination-primary",
+      "role": "primary",
+      "category": "no-memory",
+      "action_band": "social-support-default",
+      "situation_slot": "third_party_coordination",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "rpeval"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-supersession-detail-meeting-recap-primary",
+      "role": "primary",
+      "category": "supersession",
+      "action_band": "detail",
+      "situation_slot": "meeting_recap",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-supersession-detail-meeting-recap-reserve",
+      "role": "reserve",
+      "category": "supersession",
+      "action_band": "detail",
+      "situation_slot": "meeting_recap",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": "m0v13-supersession-detail-meeting-recap-primary"
+    },
+    {
+      "candidate_id": "m0v13-supersession-detail-options-comparison-primary",
+      "role": "primary",
+      "category": "supersession",
+      "action_band": "detail",
+      "situation_slot": "options_comparison",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-supersession-detail-technical-handoff-primary",
+      "role": "primary",
+      "category": "supersession",
+      "action_band": "detail",
+      "situation_slot": "technical_handoff",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-supersession-tone-boundary-negotiation-primary",
+      "role": "primary",
+      "category": "supersession",
+      "action_band": "tone",
+      "situation_slot": "boundary_negotiation",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-supersession-tone-performance-reflection-primary",
+      "role": "primary",
+      "category": "supersession",
+      "action_band": "tone",
+      "situation_slot": "performance_reflection",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    },
+    {
+      "candidate_id": "m0v13-supersession-tone-performance-reflection-reserve",
+      "role": "reserve",
+      "category": "supersession",
+      "action_band": "tone",
+      "situation_slot": "performance_reflection",
+      "provenance_tier": "E",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": "m0v13-supersession-tone-performance-reflection-primary"
+    },
+    {
+      "candidate_id": "m0v13-supersession-tone-schedule-conflict-primary",
+      "role": "primary",
+      "category": "supersession",
+      "action_band": "tone",
+      "situation_slot": "schedule_conflict",
+      "provenance_tier": "P",
+      "taxonomy_anchors": [
+        "longmemeval",
+        "personamem"
+      ],
+      "reserve_target_id": null
+    }
+  ],
+  "assignments_sha256": "7b7f7abd75b3adee5afe244b0581590e63d9a0e337b6f8a4ace4afd1963d9d50",
+  "review_disposition_sha256": "64fbc04f42975cd9d5b486ea84ca36af5dfc2d935c136847cb9b14a88ac26955",
+  "frozen_at": "2026-07-28T07:52:23Z",
+  "signed_by": [
+    "LING-6150",
+    "independent-agent-reviewer"
+  ]
+}
