@@ -797,6 +797,72 @@ class CandidatePoolFreezeManifestV13(StrictModel):
         return canonical_sha256(self.model_dump(mode="json"))
 
 
+class CandidatePoolPublicFreezeManifestV13(StrictModel):
+    protocol_version: Literal["v1.3"] = "v1.3"
+    status: Literal["PUBLISHED_WAITING_FUTURE_SEED"] = (
+        "PUBLISHED_WAITING_FUTURE_SEED"
+    )
+    source_commit: str
+    superseded_unpublished_manifest_path: Literal[
+        "v2/eval/m0/manifests/M0_V13_CANDIDATE_POOL_FREEZE_MANIFEST.json"
+    ]
+    publication_incident_path: Literal[
+        "v2/eval/m0/reviews/M0_V13_FREEZE_PUBLICATION_INCIDENT.md"
+    ]
+    superseded_unpublished_manifest_file_sha256: str
+    publication_incident_file_sha256: str
+    authoring_inventory_file_sha256: str
+    authored_candidates_file_sha256: str
+    conformance_audit_file_sha256: str
+    candidate_registry_file_sha256: str
+    review_disposition_file_sha256: str
+    candidate_registry_sha256: str
+    eligible_pool_sha256: str
+    authored_candidate_count: Literal[48]
+    eligible_candidate_count: Literal[36]
+    reserve_candidate_count: Literal[12]
+    public_freeze_effective_at: datetime
+    future_seed_not_before: datetime
+    publication_target: Literal[
+        "https://github.com/LING-6150/Ling-innerflow/"
+        "tree/codex/memory-reliability-m0-candidate-pool"
+    ]
+    signed_by: list[str] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def _public_freeze_identity(self) -> "CandidatePoolPublicFreezeManifestV13":
+        if not re.fullmatch(r"[0-9a-f]{40}", self.source_commit):
+            raise ValueError("public-freeze source commit must be a lowercase Git SHA-1")
+        for value in (
+            self.superseded_unpublished_manifest_file_sha256,
+            self.publication_incident_file_sha256,
+            self.authoring_inventory_file_sha256,
+            self.authored_candidates_file_sha256,
+            self.conformance_audit_file_sha256,
+            self.candidate_registry_file_sha256,
+            self.review_disposition_file_sha256,
+            self.candidate_registry_sha256,
+            self.eligible_pool_sha256,
+        ):
+            if not HEX_64.fullmatch(value):
+                raise ValueError("public-freeze hashes must be lowercase SHA-256")
+        if (
+            self.public_freeze_effective_at.tzinfo is None
+            or self.future_seed_not_before.tzinfo is None
+        ):
+            raise ValueError("public-freeze timestamps must be timezone-aware")
+        if (
+            self.future_seed_not_before
+            != self.public_freeze_effective_at + timedelta(hours=24)
+        ):
+            raise ValueError(
+                "future seed boundary must equal public freeze plus 24 hours"
+            )
+        if len(set(self.signed_by)) != len(self.signed_by):
+            raise ValueError("public-freeze signers must be distinct")
+        return self
+
+
 class BeaconPulse(StrictModel):
     chain_id: Literal[NIST_BEACON_V2_CHAIN] = NIST_BEACON_V2_CHAIN
     endpoint: Literal[NIST_BEACON_V2_ENDPOINT] = NIST_BEACON_V2_ENDPOINT
@@ -1082,6 +1148,14 @@ def load_candidate_pool_freeze_manifest(
     path: str | Path,
 ) -> CandidatePoolFreezeManifestV13:
     return CandidatePoolFreezeManifestV13.model_validate_json(
+        Path(path).read_text(encoding="utf-8")
+    )
+
+
+def load_candidate_pool_public_freeze_manifest(
+    path: str | Path,
+) -> CandidatePoolPublicFreezeManifestV13:
+    return CandidatePoolPublicFreezeManifestV13.model_validate_json(
         Path(path).read_text(encoding="utf-8")
     )
 

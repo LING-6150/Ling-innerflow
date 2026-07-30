@@ -7,6 +7,7 @@ from innerflow_v2.reliability.protocol_v13 import (
     load_authoring_inventory,
     load_candidate_pool,
     load_candidate_pool_freeze_manifest,
+    load_candidate_pool_public_freeze_manifest,
     load_candidate_registry,
     pool_sha256,
     registry_sha256,
@@ -22,6 +23,13 @@ MANIFEST_PATH = (
     / "m0"
     / "manifests"
     / "M0_V13_CANDIDATE_POOL_FREEZE_MANIFEST.json"
+)
+PUBLIC_MANIFEST_PATH = (
+    V2_ROOT
+    / "eval"
+    / "m0"
+    / "manifests"
+    / "M0_V13_CANDIDATE_POOL_PUBLIC_FREEZE_MANIFEST.json"
 )
 
 
@@ -87,3 +95,46 @@ def test_frozen_artifact_mutation_cannot_preserve_manifest_identity(tmp_path) ->
     changed.write_bytes(source.read_bytes() + b"\n")
 
     assert _file_sha256(changed) != manifest.authored_candidates_file_sha256
+
+
+def test_public_freeze_preserves_reviewed_pool_and_records_incident() -> None:
+    original = load_candidate_pool_freeze_manifest(MANIFEST_PATH)
+    public = load_candidate_pool_public_freeze_manifest(PUBLIC_MANIFEST_PATH)
+    incident_path = _bound_path(public.publication_incident_path)
+
+    assert public.superseded_unpublished_manifest_file_sha256 == _file_sha256(
+        MANIFEST_PATH
+    )
+    assert public.publication_incident_file_sha256 == _file_sha256(incident_path)
+    assert public.source_commit == original.source_commit
+    assert (
+        public.authoring_inventory_file_sha256
+        == original.authoring_inventory_file_sha256
+    )
+    assert (
+        public.authored_candidates_file_sha256
+        == original.authored_candidates_file_sha256
+    )
+    assert (
+        public.conformance_audit_file_sha256
+        == original.conformance_audit_file_sha256
+    )
+    assert (
+        public.candidate_registry_file_sha256
+        == original.candidate_registry_file_sha256
+    )
+    assert public.candidate_registry_sha256 == original.candidate_registry_sha256
+    assert public.eligible_pool_sha256 == original.eligible_pool_sha256
+
+
+def test_public_freeze_restarts_the_full_24_hour_wait() -> None:
+    public = load_candidate_pool_public_freeze_manifest(PUBLIC_MANIFEST_PATH)
+
+    assert public.status == "PUBLISHED_WAITING_FUTURE_SEED"
+    assert (
+        public.future_seed_not_before
+        == public.public_freeze_effective_at + timedelta(hours=24)
+    )
+    assert public.public_freeze_effective_at > load_candidate_pool_freeze_manifest(
+        MANIFEST_PATH
+    ).future_seed_not_before
