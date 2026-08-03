@@ -14,6 +14,7 @@ from innerflow_v2.reliability.execution_freeze_v13 import (
     persist_execution_freeze,
 )
 from innerflow_v2.reliability.execution_v13 import load_frozen_action_executor
+from innerflow_v2.reliability.execution_v13 import FrozenRunManifestV13
 from innerflow_v2.reliability.protocol_v13 import (
     public_selection_manifest,
     select_candidate_pool,
@@ -30,6 +31,13 @@ EVIDENCE = V2_ROOT / "eval/m0/beacon/M0_V13_BEACON_EVIDENCE.json"
 VERIFIED = V2_ROOT / "eval/m0/beacon/M0_V13_VERIFIED_BEACON.json"
 EXECUTOR = V2_ROOT / "eval/m0/manifests/M0_V13_ACTION_EXECUTOR.json"
 MODEL_METADATA = V2_ROOT / "eval/m0/manifests/M0_V13_MODEL_METADATA.json"
+RUN_MANIFEST = V2_ROOT / "eval/m0/manifests/M0_V13_RUN_MANIFEST.json"
+PUBLIC_EXECUTION_FREEZE = (
+    V2_ROOT / "eval/m0/manifests/M0_V13_EXECUTION_FREEZE_PUBLIC.json"
+)
+SEALED_ROOT_IDENTITY = Path(
+    "/Users/apple/Documents/New project/innerflow-m0-sealed/execution"
+)
 
 
 def _official_selection():
@@ -127,3 +135,31 @@ def test_execution_freeze_artifacts_and_histories_are_create_only(tmp_path) -> N
             public_run_manifest_path=run_path,
             public_freeze_path=freeze_path,
         )
+
+
+def test_committed_execution_freeze_is_reproducible_without_model_calls() -> None:
+    official, selection = _official_selection()
+    committed_run = FrozenRunManifestV13.model_validate_json(
+        RUN_MANIFEST.read_text(encoding="utf-8")
+    )
+    committed_public = json.loads(
+        PUBLIC_EXECUTION_FREEZE.read_text(encoding="utf-8")
+    )
+    metadata = json.loads(MODEL_METADATA.read_text(encoding="utf-8"))
+    _, reproduced_run, _, reproduced_public = build_execution_freeze(
+        repo_root=REPO_ROOT,
+        source_commit=committed_run.source_commit,
+        selection=selection,
+        public_selection=public_selection_manifest(selection),
+        official=official,
+        executor=load_frozen_action_executor(EXECUTOR),
+        sealed_root=SEALED_ROOT_IDENTITY,
+        run_date=date.fromisoformat(metadata["run_date"]),
+        provider_model_metadata_sha256=file_sha256(MODEL_METADATA),
+    )
+
+    assert committed_run.source_commit == (
+        "b84962df4b9b75a9a0854e4625070c214d301d02"
+    )
+    assert committed_run == reproduced_run
+    assert committed_public == reproduced_public
