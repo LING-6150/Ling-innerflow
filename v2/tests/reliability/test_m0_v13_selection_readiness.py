@@ -19,6 +19,7 @@ from cryptography.x509.oid import NameOID
 from innerflow_v2.reliability.beacon_v2 import (
     BeaconEvidenceBundle,
     NistPulseV2,
+    VerifiedBeaconArtifactV13,
     _serialize_signed_fields,
     fetch_first_eligible_beacon_evidence,
     verify_beacon_evidence,
@@ -38,6 +39,8 @@ from innerflow_v2.reliability.selection_readiness import (
 REPO_ROOT = Path(__file__).resolve().parents[3]
 V2_ROOT = REPO_ROOT / "v2"
 SCRIPT = V2_ROOT / "scripts" / "check_m0_v13_conformance.py"
+OFFICIAL_EVIDENCE = V2_ROOT / "eval/m0/beacon/M0_V13_BEACON_EVIDENCE.json"
+OFFICIAL_VERIFIED = V2_ROOT / "eval/m0/beacon/M0_V13_VERIFIED_BEACON.json"
 ZERO_512 = "00" * 64
 
 
@@ -518,3 +521,22 @@ def test_beacon_artifacts_are_create_only(
     write_create_only(target, verified)
     with pytest.raises(FileExistsError):
         write_create_only(target, verified)
+
+
+def test_committed_official_beacon_evidence_matches_verified_artifact(
+    public_freeze,
+) -> None:
+    bundle = BeaconEvidenceBundle.model_validate_json(
+        OFFICIAL_EVIDENCE.read_text(encoding="utf-8")
+    )
+    claimed = VerifiedBeaconArtifactV13.model_validate_json(
+        OFFICIAL_VERIFIED.read_text(encoding="utf-8")
+    )
+    verified = verify_beacon_evidence(
+        bundle,
+        public_freeze,
+        certificate_fetch=_certificate_fetch(bundle),
+    )
+    assert claimed == verified
+    assert verified.previous_pulse_timestamp < verified.future_seed_not_before
+    assert verified.beacon.pulse_timestamp >= verified.future_seed_not_before
