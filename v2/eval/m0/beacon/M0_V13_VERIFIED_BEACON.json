@@ -1,0 +1,15 @@
+{
+  "protocol_version": "v1.3",
+  "public_freeze_manifest_sha256": "e6e379af102fdd67afac3e26c5487a62ba9467295ea191c56e909d96e913e772",
+  "future_seed_not_before": "2026-07-31T04:04:41Z",
+  "evidence_bundle_sha256": "04ebe05bb6d72a13a4d854747b3abefdcadbda5e5c4746bbf41f41b7078e9e00",
+  "previous_pulse_timestamp": "2026-07-31T04:04:00Z",
+  "beacon": {
+    "chain_id": "2",
+    "endpoint": "https://beacon.nist.gov/beacon/2.0",
+    "pulse_timestamp": "2026-07-31T04:05:00Z",
+    "output_value_hex": "5708f5dd718abe3c693fb767ebeeadac6660325a3537bc3fd0bf67f69f5660c2cd1a799a0307f144b746ef1b86da983f71a8d2cbfb4c832b6262b90eed5e63e7",
+    "signed_pulse_sha256": "febd3612c3bf014be05c71c8a71b2d77e268293b3fd6d16636f9a48d067803fa",
+    "signature_verified": true
+  }
+}
