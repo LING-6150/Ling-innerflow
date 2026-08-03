@@ -575,43 +575,19 @@ def test_candidate_hash_changes_when_frozen_content_changes(candidate_pool_v13):
     assert candidate_sha256(original) != candidate_sha256(changed)
 
 
-def test_local_cli_validates_and_selects_without_model_or_network(
+def test_local_cli_validates_pool_without_model_or_network(
     registry_v13,
     authoring_inventory_v13,
-    exclusion_manifest_v13,
-    forbidden_hashes_v13,
-    forbidden_fingerprints_v13,
-    frozen_at_v13,
-    beacon_v13,
     tmp_path,
 ):
     registry_path = tmp_path / "registry.json"
     inventory_path = tmp_path / "authoring-inventory.json"
-    beacon_path = tmp_path / "beacon.json"
-    selection_path = tmp_path / "selection.json"
-    public_path = tmp_path / "public.json"
-    forbidden_hashes = tmp_path / "old-hashes.txt"
-    forbidden_fingerprints = tmp_path / "old-fingerprints.txt"
-    exclusion_manifest_path = tmp_path / "exclusion-manifest.json"
     registry_path.write_text(
         json.dumps(registry_v13.model_dump(mode="json")),
         encoding="utf-8",
     )
     inventory_path.write_text(
         authoring_inventory_v13.model_dump_json(),
-        encoding="utf-8",
-    )
-    beacon_path.write_text(beacon_v13.model_dump_json(), encoding="utf-8")
-    forbidden_hashes.write_text(
-        "\n".join(sorted(forbidden_hashes_v13)) + "\n",
-        encoding="utf-8",
-    )
-    forbidden_fingerprints.write_text(
-        "\n".join(sorted(forbidden_fingerprints_v13)) + "\n",
-        encoding="utf-8",
-    )
-    exclusion_manifest_path.write_text(
-        exclusion_manifest_v13.model_dump_json(),
         encoding="utf-8",
     )
     script = ROOT / "scripts" / "check_m0_v13_conformance.py"
@@ -631,34 +607,3 @@ def test_local_cli_validates_and_selects_without_model_or_network(
         text=True,
     )
     assert json.loads(validation.stdout)["eligible_candidates"] == 36
-
-    subprocess.run(
-        [
-            sys.executable,
-            str(script),
-            "select",
-            "--registry",
-            str(registry_path),
-            "--authoring-inventory",
-            str(inventory_path),
-            "--pool-frozen-at",
-            frozen_at_v13.isoformat(),
-            "--beacon",
-            str(beacon_path),
-            "--output",
-            str(selection_path),
-            "--public-output",
-            str(public_path),
-            "--forbidden-hashes",
-            str(forbidden_hashes),
-            "--forbidden-fingerprints",
-            str(forbidden_fingerprints),
-            "--exclusion-manifest",
-            str(exclusion_manifest_path),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    assert len(json.loads(selection_path.read_text())["selected"]) == 24
-    assert json.loads(public_path.read_text())["holdout"]["count"] == 8

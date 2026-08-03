@@ -321,6 +321,9 @@ def exclusion_manifest_v13(
     forbidden_fingerprints_v13,
 ) -> FrozenExclusionManifest:
     return FrozenExclusionManifest(
+        source_fixture_sha256=sha("v1.2-fixture"),
+        source_candidate_registry_sha256=sha("v1.2-registry"),
+        source_freeze_manifest_sha256=sha("v1.2-freeze"),
         forbidden_candidate_hashes_sha256=exclusion_list_sha256(
             forbidden_hashes_v13
         ),
