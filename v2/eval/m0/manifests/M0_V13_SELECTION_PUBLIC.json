@@ -1,0 +1,187 @@
+{
+  "protocol_version": "v1.3",
+  "pool_sha256": "316fd2a18f84c759f447f9d3c68d8b1d6b7cb4730a9ca5d030ac0635268ba9b2",
+  "selection_sha256": "01655a903f3f63c15abb24b29d8d151a8c079427ce8e84b4203be8bd63f7e253",
+  "visible": [
+    {
+      "candidate_id": "m0v13-context-exception-detail-urgency-scope-primary",
+      "candidate_sha256": "49e23f4e6c73a5898a3d32f136a29ec5139eb10d5e67bdf7463ee8a687947873",
+      "category": "context-exception",
+      "action_band": "detail",
+      "split": "visible",
+      "gate_world_id": "world_b",
+      "counter_world_ids": [
+        "world_a"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-context-exception-support-setback-next-scope-primary",
+      "candidate_sha256": "52f93178bc321d7183d10385408b72733dabc51607d2250ba9f0be1c7784d62e",
+      "category": "context-exception",
+      "action_band": "support",
+      "split": "visible",
+      "gate_world_id": "world_a",
+      "counter_world_ids": [
+        "world_b"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-context-exception-support-venting-planning-scope-primary",
+      "candidate_sha256": "e21cafaa7dbdda17c3090f1c111ffeac63b1de083756cd1f5db3fdf3c5b76e66",
+      "category": "context-exception",
+      "action_band": "support",
+      "split": "visible",
+      "gate_world_id": "world_b",
+      "counter_world_ids": [
+        "world_a"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-context-exception-tone-celebration-debug-scope-primary",
+      "candidate_sha256": "0dfbdb3e635cccb2a546426e276d0817397a570d6942b404c2326bb29b52eb10",
+      "category": "context-exception",
+      "action_band": "tone",
+      "split": "visible",
+      "gate_world_id": "world_a",
+      "counter_world_ids": [
+        "world_b"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-correction-detail-itinerary-briefing-primary",
+      "candidate_sha256": "3fd5f4fcd9e73a9c238d4feb3ae68fd69781aa31431d702d0fa3fee04d338a8c",
+      "category": "correction",
+      "action_band": "detail",
+      "split": "visible",
+      "gate_world_id": "world_a",
+      "counter_world_ids": [
+        "world_b"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-correction-detail-project-update-primary",
+      "candidate_sha256": "5a3d1497e4bad2c36b064ab7f50ad7df33fe77bd8c62c17969df52d74d49a8af",
+      "category": "correction",
+      "action_band": "detail",
+      "split": "visible",
+      "gate_world_id": "world_b",
+      "counter_world_ids": [
+        "world_a"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-correction-support-routine-setback-primary",
+      "candidate_sha256": "cca1f9197d07bf4fede71be62258f5c3269178e25d7e7015ab02a63b16a01711",
+      "category": "correction",
+      "action_band": "support",
+      "split": "visible",
+      "gate_world_id": "world_a",
+      "counter_world_ids": [
+        "world_b"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-correction-tone-accountability-reminder-primary",
+      "candidate_sha256": "7ec00e2bc1793ece859c9d49a79c8b139d898d915768514888399e2ae591777e",
+      "category": "correction",
+      "action_band": "tone",
+      "split": "visible",
+      "gate_world_id": "world_b",
+      "counter_world_ids": [
+        "world_a"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-deletion-tone-saved-collaboration-style-primary",
+      "candidate_sha256": "4e5edaca0cccd82ae60b7bee378c7bf0bec5a754809a7c7b891e05d27f65b89d",
+      "category": "deletion",
+      "action_band": "tone",
+      "split": "visible",
+      "gate_world_id": "post_delete",
+      "counter_world_ids": [
+        "pre_delete"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-deletion-tone-saved-feedback-style-primary",
+      "candidate_sha256": "297cc1dca3a9d3f5fbced72786c16dab29d90cb60772fb25f8a9cfea59f5b106",
+      "category": "deletion",
+      "action_band": "tone",
+      "split": "visible",
+      "gate_world_id": "post_delete",
+      "counter_world_ids": [
+        "pre_delete"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-no-memory-information-neutral-summary-primary",
+      "candidate_sha256": "7afe4e9276cbc77ea13f1f1f88cc5c74c502dc8ad296c8dec7c988c29e7f30a8",
+      "category": "no-memory",
+      "action_band": "information-task-default",
+      "split": "visible",
+      "gate_world_id": "variant_a",
+      "counter_world_ids": [
+        "variant_b"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-no-memory-social-neutral-checkin-primary",
+      "candidate_sha256": "5bac29d5191cc601be7f793bc5e5b1610cb4ac2929936e8ccd082f7a139b7959",
+      "category": "no-memory",
+      "action_band": "social-support-default",
+      "split": "visible",
+      "gate_world_id": "variant_b",
+      "counter_world_ids": [
+        "variant_a"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-no-memory-social-third-party-coordination-primary",
+      "candidate_sha256": "d91a81f3f4946c9eedc377c38cc21ac5af5f0aa916b55f295d08a707dc49ff32",
+      "category": "no-memory",
+      "action_band": "social-support-default",
+      "split": "visible",
+      "gate_world_id": "variant_b",
+      "counter_world_ids": [
+        "variant_a"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-supersession-detail-options-comparison-primary",
+      "candidate_sha256": "d745268bee037a2c5b41b406b143c98f5b8ba74346adab2e2ed0f89981bb1811",
+      "category": "supersession",
+      "action_band": "detail",
+      "split": "visible",
+      "gate_world_id": "world_a",
+      "counter_world_ids": [
+        "world_b"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-supersession-tone-boundary-negotiation-primary",
+      "candidate_sha256": "876a773d2aa65fee60f05030c74b37b4f95b08d625a4bd3e96df7cef4b457ece",
+      "category": "supersession",
+      "action_band": "tone",
+      "split": "visible",
+      "gate_world_id": "world_a",
+      "counter_world_ids": [
+        "world_b"
+      ]
+    },
+    {
+      "candidate_id": "m0v13-supersession-tone-schedule-conflict-primary",
+      "candidate_sha256": "abd9e07cc7d26fedd755619ca83e0723df65768e208d23b95607c5a025a20919",
+      "category": "supersession",
+      "action_band": "tone",
+      "split": "visible",
+      "gate_world_id": "world_b",
+      "counter_world_ids": [
+        "world_a"
+      ]
+    }
+  ],
+  "holdout": {
+    "count": 8,
+    "aggregate_sha256": "ceb0e7353f72b3a752a55368af7c2d40bc8bcc1c393a6b2b9ee7376b293ced08"
+  }
+}

@@ -27,7 +27,11 @@ from innerflow_v2.reliability.beacon_v2 import (
 )
 from innerflow_v2.reliability.protocol_v13 import (
     CandidateV13,
+    SelectionManifestV13,
     load_candidate_pool_public_freeze_manifest,
+    public_selection_manifest,
+    select_candidate_pool,
+    selection_manifest_sha256,
     validate_candidate_pool,
 )
 from innerflow_v2.reliability.selection_readiness import (
@@ -41,6 +45,9 @@ V2_ROOT = REPO_ROOT / "v2"
 SCRIPT = V2_ROOT / "scripts" / "check_m0_v13_conformance.py"
 OFFICIAL_EVIDENCE = V2_ROOT / "eval/m0/beacon/M0_V13_BEACON_EVIDENCE.json"
 OFFICIAL_VERIFIED = V2_ROOT / "eval/m0/beacon/M0_V13_VERIFIED_BEACON.json"
+OFFICIAL_PUBLIC_SELECTION = (
+    V2_ROOT / "eval/m0/manifests/M0_V13_SELECTION_PUBLIC.json"
+)
 ZERO_512 = "00" * 64
 
 
@@ -540,3 +547,34 @@ def test_committed_official_beacon_evidence_matches_verified_artifact(
     assert claimed == verified
     assert verified.previous_pulse_timestamp < verified.future_seed_not_before
     assert verified.beacon.pulse_timestamp >= verified.future_seed_not_before
+
+
+def test_committed_official_selection_is_reproducible_offline() -> None:
+    official = load_official_selection_inputs(REPO_ROOT)
+    bundle = BeaconEvidenceBundle.model_validate_json(
+        OFFICIAL_EVIDENCE.read_text(encoding="utf-8")
+    )
+    verified = load_verified_beacon_for_selection(
+        OFFICIAL_EVIDENCE,
+        OFFICIAL_VERIFIED,
+        official.public_freeze,
+        certificate_fetch=_certificate_fetch(bundle),
+    )
+    reproduced = select_candidate_pool(
+        official.registry,
+        authoring_inventory=official.inventory,
+        exclusion_manifest=official.exclusion_manifest,
+        forbidden_candidate_hashes=official.forbidden_hashes,
+        forbidden_overlap_fingerprints=official.forbidden_fingerprints,
+        pool_frozen_at=official.public_freeze.public_freeze_effective_at,
+        beacon=verified.beacon,
+    )
+    committed_public = json.loads(
+        OFFICIAL_PUBLIC_SELECTION.read_text(encoding="utf-8")
+    )
+
+    assert isinstance(reproduced, SelectionManifestV13)
+    assert selection_manifest_sha256(reproduced) == (
+        "01655a903f3f63c15abb24b29d8d151a8c079427ce8e84b4203be8bd63f7e253"
+    )
+    assert committed_public == public_selection_manifest(reproduced)
