@@ -79,6 +79,22 @@ class PolicyTrace:
     )
 
 
+class FormationOutputError(ValueError):
+    def __init__(
+        self,
+        *,
+        operation: str,
+        raw_response: str,
+        request_id: str | None,
+        cause: Exception,
+    ) -> None:
+        super().__init__(f"{operation} returned invalid structured output: {cause}")
+        self.operation = operation
+        self.raw_response = raw_response
+        self.request_id = request_id
+        self.__cause__ = cause
+
+
 @dataclass
 class PolicyOutput:
     case_id: str
@@ -247,9 +263,16 @@ class FaithfulSummaryPolicy:
             else merge_prompt(self._wiki_prompt_text(), history)
         )
         operation = "memory.wiki.first_extract" if first else "memory.wiki.merge"
-        result = parse_json_object(
-            self._complete(operation, prompt, self.wiki_max_tokens).content
-        )
+        completion = self._complete(operation, prompt, self.wiki_max_tokens)
+        try:
+            result = parse_json_object(completion.content)
+        except (TypeError, ValueError) as error:
+            raise FormationOutputError(
+                operation=operation,
+                raw_response=completion.content,
+                request_id=completion.request_id,
+                cause=error,
+            ) from error
         session_sources = {
             source_id for message in history for source_id in message.source_ids
         }

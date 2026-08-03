@@ -26,6 +26,15 @@ class EmbeddingBackend(Protocol):
     def embed(self, texts: list[str]) -> list[list[float]]: ...
 
 
+class ProviderCallError(RuntimeError):
+    def __init__(self, operation: str, cause: Exception) -> None:
+        super().__init__(f"{operation} provider call failed: {type(cause).__name__}")
+        self.operation = operation
+        self.provider_request_id = getattr(cause, "request_id", None)
+        self.cause_type = type(cause).__name__
+        self.__cause__ = cause
+
+
 class OpenAICompatibleBackend:
     """Small adapter; importing OpenAI is deferred so deterministic tests stay offline."""
 
@@ -52,22 +61,28 @@ class OpenAICompatibleBackend:
         temperature: float,
         max_tokens: int,
     ) -> Completion:
-        response = self._client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        try:
+            response = self._client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except Exception as error:
+            raise ProviderCallError(operation, error) from error
         content = response.choices[0].message.content or ""
         return Completion(content=content, request_id=response.id)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not self.embedding_model:
             raise RuntimeError("embedding model is not configured")
-        response = self._client.embeddings.create(
-            model=self.embedding_model,
-            input=texts,
-        )
+        try:
+            response = self._client.embeddings.create(
+                model=self.embedding_model,
+                input=texts,
+            )
+        except Exception as error:
+            raise ProviderCallError("memory.trigger.embedding", error) from error
         return [row.embedding for row in response.data]
 
 

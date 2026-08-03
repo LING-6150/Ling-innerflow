@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from innerflow_v2.reliability.execution_v13 import (
     AttemptV13,
+    FrozenActionExecutor,
     FrozenRunManifestV13,
     IncidentDisposition,
     RequestCell,
@@ -32,6 +33,7 @@ from innerflow_v2.reliability.execution_v13 import (
     validate_result_audit,
     validate_resume_manifest,
 )
+from innerflow_v2.reliability.client import Completion
 from innerflow_v2.reliability.protocol_v13 import (
     ConformancePredicate,
     ResponseAction,
@@ -41,9 +43,38 @@ from innerflow_v2.reliability.protocol_v13 import (
     selection_manifest_sha256,
     signed_conformance_manifest_sha256,
 )
+from innerflow_v2.reliability.runner_v13 import run_complete_replicate
 
 
 ORDER_SEED = 6150
+
+
+class _CompleteV13Backend:
+    def complete(self, *, operation, prompt, temperature, max_tokens):
+        if operation in {
+            "memory.wiki.first_extract",
+            "memory.wiki.merge",
+        }:
+            return Completion(
+                content=(
+                    '{"emotionPattern":null,"coreStruggles":null,'
+                    '"effectiveCoping":null,"languageStyle":null,'
+                    '"triggerUpdates":[],"conflicts":[],'
+                    '"newProgressNote":null,"changeLogEntry":null}'
+                ),
+                request_id="formation-request",
+            )
+        if operation == "memory.compression.summary":
+            return Completion("frozen summary", "summary-request")
+        if operation == "memory.reflection":
+            return Completion("frozen reflection", "reflection-request")
+        return Completion(
+            '{"response_action":"ASK_PERMISSION"}',
+            "response-request",
+        )
+
+    def embed(self, texts):
+        return [[1.0, 0.0] for _ in texts]
 
 
 def _signed_manifest(
@@ -70,6 +101,7 @@ def _run_manifest(
 ) -> FrozenRunManifestV13:
     signed_manifest = signed_manifest or _signed_manifest(selection)
     return FrozenRunManifestV13(
+        source_commit="1" * 40,
         selection_sha256=selection_manifest_sha256(selection),
         signed_conformance_manifest_sha256=(
             signed_conformance_manifest_sha256(signed_manifest)
@@ -85,6 +117,9 @@ def _run_manifest(
         model_id="provider/model-v1",
         provider_model_version="provider/model-v1-20260801",
         provider="test-provider",
+        provider_base_url="https://provider.test/v1",
+        provider_model_metadata_sha256=canonical_sha256("provider-metadata"),
+        embedding_model_id="provider/embedding-v1",
         formation_temperature=0.2,
         response_temperature=0.4,
         token_limits={
@@ -101,9 +136,13 @@ def _run_manifest(
         normalizer_sha256=canonical_sha256("normalizer"),
         executor_sha256=canonical_sha256("executor"),
         dependency_lock_sha256=canonical_sha256("lock"),
+        implementation_source_hashes={
+            "runner.py": canonical_sha256("runner")
+        },
         order_seed=ORDER_SEED,
         retry_attempts=3,
         retry_backoff_seconds=2.0,
+        request_timeout_seconds=120.0,
     )
 
 
@@ -250,6 +289,43 @@ def test_request_order_is_frozen_and_hash_changes_with_replicate(
     )
     assert request_order_sha256(first) == request_order_sha256(repeated)
     assert request_order_sha256(first) != request_order_sha256(second_replicate)
+
+
+def test_v13_runner_executes_every_policy_and_world_in_frozen_order(
+    selection_v13,
+    registry_v13,
+    signed_conformance_v13,
+) -> None:
+    run_manifest = _run_manifest(selection_v13, signed_conformance_v13)
+    initialize_run_incident_history(run_manifest)
+    backend = _CompleteV13Backend()
+    executor = FrozenActionExecutor(
+        behavior_by_action={
+            action: f"Execute {action.value}." for action in ResponseAction
+        }
+    )
+
+    records = run_complete_replicate(
+        selection_v13,
+        registry_v13,
+        signed_conformance_v13,
+        replicate=1,
+        backend=backend,
+        embedding_backend=backend,
+        executor=executor,
+        run_manifest=run_manifest,
+    )
+
+    assert len(records) == 24 * 3 * 2
+    assert all(record.status in {"complete", "wrong_output"} for record in records)
+    validate_complete_replicate(
+        selection_v13,
+        registry_v13,
+        signed_conformance_v13,
+        records,
+        replicate=1,
+        run_manifest=run_manifest,
+    )
 
 
 def test_execution_rejects_a_reduced_selection_even_with_a_new_run_manifest(

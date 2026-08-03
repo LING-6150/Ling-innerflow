@@ -1,0 +1,17 @@
+{
+  "protocol_version": "v1.3",
+  "provider": "ModelVerse",
+  "models_endpoint": "https://api.modelverse.cn/v1/models",
+  "queried_at": "2026-08-03T07:35:44Z",
+  "raw_models_response_sha256": "c660659434f0dc601931b9220d6f41c038bee9ba376d3deb5a560bc594a3cdee",
+  "target_model": {
+    "id": "gemini-2.5-flash",
+    "object": "model",
+    "created": 1754387520,
+    "owned_by": "UCloud_UModelverse"
+  },
+  "embedding_model_id": "text-embedding-3-large",
+  "immutable_provider_version_exposed": false,
+  "limitation": "ModelVerse exposes gemini-2.5-flash as an alias and does not report an immutable upstream snapshot version.",
+  "run_date": "2026-08-03"
+}

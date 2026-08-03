@@ -569,6 +569,7 @@ def next_resume_replicate(checkpoint: SealedCheckpoint | None) -> int:
 
 class FrozenRunManifestV13(StrictModel):
     protocol_version: Literal["v1.3"] = "v1.3"
+    source_commit: str
     selection_sha256: str
     signed_conformance_manifest_sha256: str
     candidate_pool_sha256: str
@@ -577,6 +578,9 @@ class FrozenRunManifestV13(StrictModel):
     model_id: str = Field(min_length=1)
     provider_model_version: str = Field(min_length=1)
     provider: str = Field(min_length=1)
+    provider_base_url: str = Field(min_length=1)
+    provider_model_metadata_sha256: str
+    embedding_model_id: str = Field(min_length=1)
     formation_temperature: float = Field(gt=0)
     response_temperature: float = Field(gt=0)
     token_limits: dict[str, int]
@@ -585,9 +589,15 @@ class FrozenRunManifestV13(StrictModel):
     normalizer_sha256: str
     executor_sha256: str
     dependency_lock_sha256: str
+    implementation_source_hashes: dict[str, str]
     order_seed: int
+    initial_replicates: Literal[3] = 3
+    variance_replicates: Literal[5] = 5
+    compression_threshold_rounds: Literal[10] = 10
+    keep_recent_rounds: Literal[4] = 4
     retry_attempts: int = Field(ge=1)
     retry_backoff_seconds: float = Field(ge=0)
+    request_timeout_seconds: float = Field(gt=0)
 
     @property
     def sha256(self) -> str:
@@ -596,16 +606,20 @@ class FrozenRunManifestV13(StrictModel):
     @model_validator(mode="after")
     def _hashes_are_sha256(self) -> "FrozenRunManifestV13":
         for field_name in (
+            "source_commit",
             "selection_sha256",
             "signed_conformance_manifest_sha256",
             "candidate_pool_sha256",
+            "provider_model_metadata_sha256",
             "ontology_sha256",
             "normalizer_sha256",
             "executor_sha256",
             "dependency_lock_sha256",
         ):
-            if not re.fullmatch(r"[0-9a-f]{64}", getattr(self, field_name)):
-                raise ValueError(f"{field_name} must be lowercase SHA-256")
+            expected = r"[0-9a-f]{40}" if field_name == "source_commit" else r"[0-9a-f]{64}"
+            if not re.fullmatch(expected, getattr(self, field_name)):
+                label = "Git commit" if field_name == "source_commit" else "SHA-256"
+                raise ValueError(f"{field_name} must be lowercase {label}")
         if not self.token_limits or any(
             value <= 0 for value in self.token_limits.values()
         ):
@@ -618,6 +632,11 @@ class FrozenRunManifestV13(StrictModel):
             for value in self.prompt_hashes.values()
         ):
             raise ValueError("prompt hashes must bind every frozen stage")
+        if not self.implementation_source_hashes or any(
+            not re.fullmatch(r"[0-9a-f]{64}", value)
+            for value in self.implementation_source_hashes.values()
+        ):
+            raise ValueError("implementation source hashes must be SHA-256")
         if not Path(self.incident_history_path).is_absolute():
             raise ValueError("run incident history path must be absolute")
         return self

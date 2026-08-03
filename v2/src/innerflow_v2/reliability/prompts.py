@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Iterable, Protocol
+from typing import Iterable, Mapping, Protocol
 
 from innerflow_v2.reliability.models import Probe
 
@@ -128,6 +128,42 @@ def response_prompt(context: str, probe: Probe) -> str:
         f"{options}\n\n"
         'Return ONLY JSON in this exact shape: {"choice":"A"}\n'
         "The choice must be exactly one of A, B, or C."
+    )
+
+
+def response_action_prompt(
+    context: str,
+    *,
+    current_message: str,
+    non_memory_state: Mapping[str, str],
+    behavior_by_action: Mapping[str, str],
+) -> str:
+    actions = "\n".join(
+        f"- {action}: {behavior_by_action[action]}"
+        for action in sorted(behavior_by_action)
+    )
+    state = json.dumps(
+        dict(sorted(non_memory_state.items())),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return (
+        "Select the single downstream response action that should govern the "
+        "assistant's next response. Persistent memory may be stale, conflicting, "
+        "deleted, irrelevant, or scoped to another context. Use it only when it "
+        "is currently applicable. Do not describe your reasoning and do not "
+        "write the user-facing response.\n\n"
+        "Allowed actions:\n"
+        f"{actions}\n\n"
+        "Persistent memory context:\n"
+        f"{context or '(none)'}\n"
+        "Current non-memory state (authoritative for this turn):\n"
+        f"{state}\n"
+        "Current user message:\n"
+        f"{current_message}\n\n"
+        'Return ONLY JSON in this exact shape: {"response_action":"ACTION"}\n'
+        "ACTION must be exactly one allowed action name."
     )
 
 
