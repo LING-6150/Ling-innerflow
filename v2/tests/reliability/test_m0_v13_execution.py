@@ -318,6 +318,18 @@ def test_v13_runner_executes_every_policy_and_world_in_frozen_order(
 
     assert len(records) == 24 * 3 * 2
     assert all(record.status in {"complete", "wrong_output"} for record in records)
+    summary_records = [record for record in records if record.policy == "B-summary"]
+    assert all(record.formation_calls for record in summary_records)
+    assert all(
+        call.provider_request_id == "formation-request"
+        for record in summary_records
+        for call in record.formation_calls
+    )
+    assert all(
+        record.attempts[-1].provider_request_id == "response-request"
+        for record in records
+        if record.status == "complete"
+    )
     validate_complete_replicate(
         selection_v13,
         registry_v13,

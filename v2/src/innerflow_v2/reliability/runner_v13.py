@@ -7,6 +7,7 @@ from innerflow_v2.reliability.baselines import (
     FaithfulSummaryPolicy,
     FormationOutputError,
     MemoryMessage,
+    ModelCall,
 )
 from innerflow_v2.reliability.client import (
     ChatBackend,
@@ -16,6 +17,7 @@ from innerflow_v2.reliability.client import (
 from innerflow_v2.reliability.execution_v13 import (
     AttemptV13,
     FrozenActionExecutor,
+    FormationCallV13,
     FrozenRunManifestV13,
     RequestCell,
     WorldResultV13,
@@ -38,6 +40,13 @@ from innerflow_v2.reliability.protocol_v13 import (
 class _TerminalFormationOutput:
     raw_response: str
     rendered_context: str
+    calls: tuple[ModelCall, ...]
+
+
+@dataclass(frozen=True)
+class _RenderedContext:
+    value: str
+    calls: tuple[ModelCall, ...] = ()
 
 
 def execution_attempt_id(
@@ -106,7 +115,7 @@ def _summary_context(
     backend: ChatBackend,
     embedding_backend: EmbeddingBackend | None,
     run_manifest: FrozenRunManifestV13,
-) -> str | _TerminalFormationOutput:
+) -> _RenderedContext | _TerminalFormationOutput:
     policy = FaithfulSummaryPolicy(
         backend,
         today=run_manifest.run_date,
@@ -131,9 +140,10 @@ def _summary_context(
         return _TerminalFormationOutput(
             raw_response=error.raw_response,
             rendered_context=context,
+            calls=tuple(policy.trace.calls),
         )
     context, _ = policy.build_context()
-    return context
+    return _RenderedContext(context, tuple(policy.trace.calls))
 
 
 def _render_context(
@@ -143,7 +153,7 @@ def _render_context(
     backend: ChatBackend,
     embedding_backend: EmbeddingBackend | None,
     run_manifest: FrozenRunManifestV13,
-) -> str | _TerminalFormationOutput:
+) -> _RenderedContext | _TerminalFormationOutput:
     if cell.policy == "B-summary":
         return _summary_context(
             world,
@@ -152,9 +162,9 @@ def _render_context(
             run_manifest=run_manifest,
         )
     if cell.policy == "B-full":
-        return _full_context(world)
+        return _RenderedContext(_full_context(world))
     if cell.policy == "B-none":
-        return ""
+        return _RenderedContext("")
     raise ValueError(f"unsupported frozen policy: {cell.policy}")
 
 
@@ -172,6 +182,8 @@ def _run_cell(
     )
     failures: list[AttemptV13] = []
     request_ids: list[str] = []
+    provider_request_ids: list[str | None] = []
+    formation_calls: list[FormationCallV13] = []
     for attempt in range(1, run_manifest.retry_attempts + 1):
         request_id = logical_request_id(run_manifest, cell, attempt=attempt)
         request_ids.append(request_id)
@@ -183,16 +195,30 @@ def _run_cell(
                 embedding_backend=embedding_backend,
                 run_manifest=run_manifest,
             )
+            formation_calls.extend(
+                FormationCallV13(
+                    attempt=attempt,
+                    operation=call.operation,
+                    provider_request_id=call.request_id,
+                    prompt_sha256=canonical_sha256(call.prompt),
+                    raw_response=call.response,
+                )
+                for call in rendered.calls
+            )
             if isinstance(rendered, _TerminalFormationOutput):
                 return record_model_response(
                     cell,
                     raw_response=rendered.raw_response,
                     request_id=request_id,
+                    provider_request_id=(
+                        rendered.calls[-1].request_id if rendered.calls else None
+                    ),
                     rendered_context=rendered.rendered_context,
                     prior_failures=failures,
+                    formation_calls=formation_calls,
                 )
             prompt = response_action_prompt(
-                rendered,
+                rendered.value,
                 current_message=world.probe,
                 non_memory_state=world.non_memory_state,
                 behavior_by_action={
@@ -210,14 +236,18 @@ def _run_cell(
                 cell,
                 raw_response=completion.content,
                 request_id=request_id,
-                rendered_context=rendered,
+                provider_request_id=completion.request_id,
+                rendered_context=rendered.value,
                 prior_failures=failures,
+                formation_calls=formation_calls,
             )
         except ProviderCallError as error:
+            provider_request_ids.append(error.provider_request_id)
             failures.append(
                 AttemptV13(
                     attempt=attempt,
                     request_id=request_id,
+                    provider_request_id=error.provider_request_id,
                     outcome="provider_failure",
                     error_type=error.cause_type,
                 )
@@ -228,6 +258,8 @@ def _run_cell(
         cell,
         request_ids=request_ids,
         error_type=failures[-1].error_type or "ProviderCallError",
+        provider_request_ids=provider_request_ids,
+        formation_calls=formation_calls,
     )
 
 

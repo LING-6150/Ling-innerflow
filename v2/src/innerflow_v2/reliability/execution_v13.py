@@ -146,6 +146,7 @@ class RequestCell:
 class AttemptV13(StrictModel):
     attempt: int = Field(ge=1)
     request_id: str = Field(min_length=1)
+    provider_request_id: str | None = None
     outcome: Literal["response", "provider_failure"]
     raw_response: str | None = None
     error_type: str | None = None
@@ -157,6 +158,20 @@ class AttemptV13(StrictModel):
                 raise ValueError("response attempt must retain raw response only")
         elif self.raw_response is not None or not self.error_type:
             raise ValueError("provider failure attempt must retain error type only")
+        return self
+
+
+class FormationCallV13(StrictModel):
+    attempt: int = Field(ge=1)
+    operation: str = Field(min_length=1)
+    provider_request_id: str | None = None
+    prompt_sha256: str
+    raw_response: str
+
+    @model_validator(mode="after")
+    def _prompt_hash(self) -> "FormationCallV13":
+        if not re.fullmatch(r"[0-9a-f]{64}", self.prompt_sha256):
+            raise ValueError("formation prompt hash must be lowercase SHA-256")
         return self
 
 
@@ -174,6 +189,7 @@ class WorldResultV13(StrictModel):
     response_action: ResponseAction | None = None
     request_id: str | None = None
     attempts: list[AttemptV13] = Field(min_length=1)
+    formation_calls: list[FormationCallV13] = Field(default_factory=list)
     rendered_context: str | None = None
 
     @model_validator(mode="after")
@@ -332,14 +348,17 @@ def record_model_response(
     *,
     raw_response: str,
     request_id: str,
+    provider_request_id: str | None = None,
     rendered_context: str,
     prior_failures: list[AttemptV13] | None = None,
+    formation_calls: list[FormationCallV13] | None = None,
 ) -> WorldResultV13:
     attempts = list(prior_failures or ())
     attempts.append(
         AttemptV13(
             attempt=len(attempts) + 1,
             request_id=request_id,
+            provider_request_id=provider_request_id,
             outcome="response",
             raw_response=raw_response,
         )
@@ -359,6 +378,7 @@ def record_model_response(
         response_action=grade.action,
         request_id=request_id,
         attempts=attempts,
+        formation_calls=list(formation_calls or ()),
         rendered_context=rendered_context,
     )
 
@@ -368,7 +388,12 @@ def record_provider_failure(
     *,
     request_ids: list[str],
     error_type: str,
+    provider_request_ids: list[str | None] | None = None,
+    formation_calls: list[FormationCallV13] | None = None,
 ) -> WorldResultV13:
+    provider_ids = provider_request_ids or [None] * len(request_ids)
+    if len(provider_ids) != len(request_ids):
+        raise ValueError("provider request-id ledger length drift")
     return WorldResultV13(
         candidate_id=cell.candidate_id,
         category=cell.category,
@@ -385,11 +410,13 @@ def record_provider_failure(
             AttemptV13(
                 attempt=index,
                 request_id=request_id,
+                provider_request_id=provider_ids[index - 1],
                 outcome="provider_failure",
                 error_type=error_type,
             )
             for index, request_id in enumerate(request_ids, start=1)
         ],
+        formation_calls=list(formation_calls or ()),
         rendered_context=None,
     )
 
