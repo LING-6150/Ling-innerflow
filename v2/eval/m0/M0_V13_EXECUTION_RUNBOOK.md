@@ -42,7 +42,7 @@ checkpoints, raw responses, and item-level holdout traces remain under the local
 sealed root:
 
 ```text
-/Users/apple/Documents/New project/innerflow-m0-sealed/
+~/Desktop/Ling-innerflow/.sealed/
 ```
 
 This is process sealing, not cryptographic separation from the owner.
@@ -91,7 +91,9 @@ mandatory diagnostics and never enter the 24-scenario G0 denominator.
 ## Provider failure or interruption
 
 If any cell exhausts all three provider attempts, the replicate is incomplete.
-The runner writes a sealed partial artifact and stops. Do not:
+The runner stops immediately, writes a create-only sealed partial artifact, and
+records a `PARTIAL_REPLICATE_INTERRUPTION` bound to the attempt and artifact
+hash. Do not:
 
 - count the missing cell as wrong;
 - rerun only that cell;
@@ -99,11 +101,25 @@ The runner writes a sealed partial artifact and stops. Do not:
 - change provider, model, prompt, temperature, retry policy, or order;
 - invoke G0.
 
-Classify the incident under §9.1. A replay is allowed once only with
-contemporaneous external outage evidence and a byte-identical run manifest.
-Without that evidence, terminate as `INCONCLUSIVE_API_FAILURE`. A syntactically
-complete but invalid response is a terminal wrong output, not a provider
-failure and not retryable.
+Classify the pending incident exactly once:
+
+```bash
+# With contemporaneous external outage evidence: authorizes the sole replay.
+uv run python scripts/run_m0_v13_reliability.py classify-api-failure \
+  --replicate 1 --external-outage-evidence /absolute/path/to/evidence
+
+# Without external evidence: terminates as INCONCLUSIVE_API_FAILURE.
+uv run python scripts/run_m0_v13_reliability.py classify-api-failure \
+  --replicate 1
+```
+
+Only the first failed attempt can receive
+`REPLAY_IDENTICAL_MANIFEST`, and only with contemporaneous external outage
+evidence. The replay uses epoch 2 of the same frozen run manifest; a second
+provider failure terminates. Missing, empty, or explicitly truncated provider
+content remains a missing cell and follows the frozen retries. A syntactically
+complete but enum/schema-invalid response is a terminal wrong output, not a
+provider failure and not retryable.
 
 ## Variance escalation
 

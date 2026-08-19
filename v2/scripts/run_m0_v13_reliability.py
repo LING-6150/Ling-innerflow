@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from innerflow_v2.reliability.beacon_v2 import write_create_only
 from innerflow_v2.reliability.client import OpenAICompatibleBackend
 from innerflow_v2.reliability.execution_freeze_v13 import (
+    IMPLEMENTATION_FILES,
     build_execution_freeze,
     build_request_plan,
     file_sha256,
@@ -24,12 +25,15 @@ from innerflow_v2.reliability.execution_freeze_v13 import (
 )
 from innerflow_v2.reliability.execution_v13 import (
     FrozenRunManifestV13,
+    IncidentDisposition,
+    RunIncident,
     SealedCheckpoint,
     build_checkpoint,
     evaluate_gate_worlds,
     load_frozen_action_executor,
     load_run_incident_history,
     public_checkpoint_status,
+    resolve_run_incident,
     validate_run_identity,
 )
 from innerflow_v2.reliability.protocol_v13 import (
@@ -38,7 +42,10 @@ from innerflow_v2.reliability.protocol_v13 import (
     load_invalidation_history,
     public_selection_manifest,
 )
-from innerflow_v2.reliability.runner_v13 import run_complete_replicate
+from innerflow_v2.reliability.runner_v13 import (
+    execution_attempt_id,
+    run_complete_replicate,
+)
 from innerflow_v2.reliability.selection_readiness import (
     load_official_selection_inputs,
 )
@@ -52,12 +59,10 @@ PUBLIC_FREEZE = ROOT / "eval/m0/manifests/M0_V13_EXECUTION_FREEZE_PUBLIC.json"
 PUBLIC_VARIANCE_PLAN = (
     ROOT / "eval/m0/manifests/M0_V13_VARIANCE_REQUEST_PLAN_PUBLIC.json"
 )
-DEFAULT_SEALED_ROOT = Path(
-    "/Users/apple/Documents/New project/innerflow-m0-sealed/execution"
-)
-DEFAULT_SELECTION = Path(
-    "/Users/apple/Documents/New project/innerflow-m0-sealed/selection/"
-    "M0_V13_SELECTION.json"
+DEFAULT_SEALED_ROOT = Path.home() / "Desktop/Ling-innerflow/.sealed/execution"
+DEFAULT_SELECTION = (
+    Path.home()
+    / "Desktop/Ling-innerflow/.sealed/selection/M0_V13_SELECTION.json"
 )
 
 
@@ -93,6 +98,32 @@ def _require_clean_worktree() -> None:
     ).stdout
     if status:
         raise ValueError("prepare requires a clean committed worktree")
+
+
+def _verify_source_boundary(
+    source_commit: str,
+    *,
+    repo_root: Path = REPO_ROOT,
+) -> None:
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", source_commit, "HEAD"],
+        cwd=repo_root,
+    )
+    if ancestor.returncode != 0:
+        raise ValueError("frozen source commit is not an ancestor of HEAD")
+    changed = subprocess.run(
+        ["git", "diff", "--quiet", source_commit, "HEAD", "--", *IMPLEMENTATION_FILES],
+        cwd=repo_root,
+    )
+    dirty = subprocess.run(
+        ["git", "status", "--porcelain", "--", *IMPLEMENTATION_FILES],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    if changed.returncode != 0 or dirty:
+        raise ValueError("runtime-critical source drifted from frozen source commit")
 
 
 def _load_json(path: Path):
@@ -151,7 +182,95 @@ def prepare() -> None:
     )
 
 
-def preflight() -> tuple[
+def _partial_path(sealed: Path, replicate: int, epoch: int) -> Path:
+    return sealed / f"M0_V13_PARTIAL_R{replicate}_E{epoch}.json"
+
+
+def _incident_state(
+    run_manifest: FrozenRunManifestV13,
+    *,
+    allow_pending_api_classification: bool = False,
+) -> None:
+    history = load_run_incident_history(run_manifest.incident_history_path)
+    if any(
+        event.disposition
+        in {IncidentDisposition.AUTHORIZE_M1, IncidentDisposition.TERMINATE_NO_M1}
+        for event in history.events
+    ):
+        raise ValueError("run incident history is terminal")
+    if any(
+        event.incident
+        not in {
+            RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
+            RunIncident.API_FAILURE,
+        }
+        for event in history.events
+    ):
+        raise ValueError("run incident history is not executable")
+    partials = {
+        event.execution_attempt_id: event
+        for event in history.events
+        if event.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION
+    }
+    classifications = {
+        event.execution_attempt_id: event
+        for event in history.events
+        if event.incident == RunIncident.API_FAILURE
+    }
+    expected_attempts = {
+        execution_attempt_id(run_manifest, replicate=replicate, epoch=epoch): (
+            replicate,
+            epoch,
+        )
+        for replicate in range(1, run_manifest.variance_replicates + 1)
+        for epoch in (1, 2)
+    }
+    for attempt_id, event in partials.items():
+        if attempt_id not in expected_attempts:
+            raise ValueError("partial incident binds an unknown execution attempt")
+        replicate, epoch = expected_attempts[attempt_id]
+        partial_path = _partial_path(_sealed_root(), replicate, epoch)
+        if (
+            not partial_path.exists()
+            or event.evidence_sha256 != file_sha256(partial_path)
+        ):
+            raise ValueError("partial incident artifact binding drift")
+    pending = set(partials) - set(classifications)
+    if pending and not allow_pending_api_classification:
+        raise ValueError("provider-failure partial awaits API incident classification")
+
+
+def _execution_epoch(run_manifest: FrozenRunManifestV13, replicate: int) -> int:
+    history = load_run_incident_history(run_manifest.incident_history_path)
+    first = execution_attempt_id(run_manifest, replicate=replicate, epoch=1)
+    second = execution_attempt_id(run_manifest, replicate=replicate, epoch=2)
+    by_attempt = {
+        event.execution_attempt_id: event
+        for event in history.events
+        if event.incident == RunIncident.API_FAILURE
+    }
+    voided = {
+        event.execution_attempt_id
+        for event in history.events
+        if event.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION
+    }
+    if first not in voided:
+        return 1
+    first_decision = by_attempt.get(first)
+    if (
+        first_decision is not None
+        and first_decision.disposition
+        == IncidentDisposition.REPLAY_IDENTICAL_MANIFEST
+        and second not in voided
+    ):
+        return 2
+    raise ValueError("replicate has no authorized executable epoch")
+
+
+def preflight(
+    *,
+    allow_pending_api_classification: bool = False,
+) -> tuple[
     SelectionManifestV13,
     SignedConformanceManifest,
     FrozenRunManifestV13,
@@ -191,21 +310,24 @@ def preflight() -> tuple[
         raise ValueError("sealed request plan drift")
     if public_freeze != expected_public:
         raise ValueError("public execution freeze drift")
+    _verify_source_boundary(run_manifest.source_commit)
     if public_selection != public_selection_manifest(selection):
         raise ValueError("public selection projection drift")
     validate_run_identity(selection, signed, run_manifest)
     invalidations = load_invalidation_history(signed.invalidation_history_path)
-    incidents = load_run_incident_history(run_manifest.incident_history_path)
     if invalidations.incidents:
         raise ValueError("selection invalidation history is non-empty")
-    if incidents.events:
-        raise ValueError("run incident history is non-empty before execution")
+    _incident_state(
+        run_manifest,
+        allow_pending_api_classification=allow_pending_api_classification,
+    )
     return selection, signed, run_manifest
 
 
 def run_replicate(replicate: int) -> None:
     selection, signed, run_manifest = preflight()
     sealed = _sealed_root()
+    epoch = _execution_epoch(run_manifest, replicate)
     if replicate > run_manifest.initial_replicates:
         initial_decision = _load_json(
             sealed / "M0_V13_G0_INITIAL_DECISION.json"
@@ -260,17 +382,31 @@ def run_replicate(replicate: int) -> None:
         embedding_backend=backend,
         executor=executor,
         run_manifest=run_manifest,
+        epoch=epoch,
     )
     failed = [record for record in records if record.status == "provider_failure"]
     if failed:
-        partial_path = sealed / f"M0_V13_PARTIAL_R{replicate}.json"
+        partial_path = _partial_path(sealed, replicate, epoch)
         write_json_create_only(
             partial_path,
             {
                 "run_manifest_sha256": run_manifest.sha256,
                 "replicate": replicate,
+                "epoch": epoch,
+                "execution_attempt_id": execution_attempt_id(
+                    run_manifest, replicate=replicate, epoch=epoch
+                ),
                 "records": [record.model_dump(mode="json") for record in records],
             },
+        )
+        resolve_run_incident(
+            run_manifest,
+            RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
+            current_run_manifest_sha256=run_manifest.sha256,
+            evidence_sha256=file_sha256(partial_path),
+            execution_attempt_id=execution_attempt_id(
+                run_manifest, replicate=replicate, epoch=epoch
+            ),
         )
         raise RuntimeError(
             f"replicate {replicate} incomplete: {len(failed)} provider failures; "
@@ -285,6 +421,63 @@ def run_replicate(replicate: int) -> None:
     )
     write_create_only(checkpoint_path, checkpoint)
     print(json.dumps(public_checkpoint_status(checkpoint), indent=2))
+
+
+def classify_api_failure(
+    replicate: int,
+    external_outage_evidence: Path | None,
+) -> None:
+    _, _, run_manifest = preflight(allow_pending_api_classification=True)
+    history = load_run_incident_history(run_manifest.incident_history_path)
+    pending = [
+        event
+        for event in history.events
+        if event.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION
+        and not any(
+            classified.incident == RunIncident.API_FAILURE
+            and classified.execution_attempt_id == event.execution_attempt_id
+            for classified in history.events
+        )
+    ]
+    expected_attempts = {
+        execution_attempt_id(run_manifest, replicate=replicate, epoch=epoch): epoch
+        for epoch in (1, 2)
+    }
+    pending = [
+        event
+        for event in pending
+        if event.execution_attempt_id in expected_attempts
+    ]
+    if len(pending) != 1:
+        raise ValueError("replicate must have exactly one unclassified partial attempt")
+    event = pending[0]
+    epoch = expected_attempts[event.execution_attempt_id]
+    partial_path = _partial_path(_sealed_root(), replicate, epoch)
+    partial = _load_json(partial_path)
+    if (
+        partial.get("run_manifest_sha256") != run_manifest.sha256
+        or partial.get("replicate") != replicate
+        or partial.get("epoch") != epoch
+        or partial.get("execution_attempt_id") != event.execution_attempt_id
+        or event.evidence_sha256 != file_sha256(partial_path)
+        or not partial.get("records")
+        or partial["records"][-1].get("status") != "provider_failure"
+    ):
+        raise ValueError("sealed partial artifact does not match its incident")
+    evidence_sha256 = (
+        file_sha256(external_outage_evidence)
+        if external_outage_evidence is not None
+        else None
+    )
+    disposition = resolve_run_incident(
+        run_manifest,
+        RunIncident.API_FAILURE,
+        current_run_manifest_sha256=run_manifest.sha256,
+        external_outage_evidence=external_outage_evidence is not None,
+        evidence_sha256=evidence_sha256,
+        execution_attempt_id=event.execution_attempt_id,
+    )
+    print(json.dumps({"disposition": disposition.value}, indent=2))
 
 
 def evaluate() -> None:
@@ -344,6 +537,11 @@ def main() -> None:
     run.add_argument(
         "--replicate", type=int, choices=(1, 2, 3, 4, 5), required=True
     )
+    classify = subparsers.add_parser("classify-api-failure")
+    classify.add_argument(
+        "--replicate", type=int, choices=(1, 2, 3, 4, 5), required=True
+    )
+    classify.add_argument("--external-outage-evidence", type=Path)
     subparsers.add_parser("evaluate")
     subparsers.add_parser("prepare-variance")
     args = parser.parse_args()
@@ -354,6 +552,8 @@ def main() -> None:
         print(json.dumps({"status": "ready-no-model-call"}, indent=2))
     elif args.command == "run-replicate":
         run_replicate(args.replicate)
+    elif args.command == "classify-api-failure":
+        classify_api_failure(args.replicate, args.external_outage_evidence)
     elif args.command == "prepare-variance":
         prepare_variance()
     else:

@@ -2,23 +2,41 @@ from __future__ import annotations
 
 import base64
 import json
+import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from innerflow_v2.reliability.beacon_v2 import BeaconEvidenceBundle
 from innerflow_v2.reliability.execution_freeze_v13 import (
+    IMPLEMENTATION_FILES,
     build_execution_freeze,
     file_sha256,
     persist_execution_freeze,
 )
-from innerflow_v2.reliability.execution_v13 import load_frozen_action_executor
-from innerflow_v2.reliability.execution_v13 import FrozenRunManifestV13
+from scripts.run_m0_v13_reliability import (
+    _execution_epoch,
+    _incident_state,
+    _verify_source_boundary,
+)
+from innerflow_v2.reliability.execution_v13 import (
+    FrozenRunManifestV13,
+    IncidentDisposition,
+    RunIncident,
+    initialize_run_incident_history,
+    load_frozen_action_executor,
+    resolve_run_incident,
+)
 from innerflow_v2.reliability.protocol_v13 import (
+    canonical_sha256,
     public_selection_manifest,
     select_candidate_pool,
 )
+from innerflow_v2.reliability.runner_v13 import execution_attempt_id
 from innerflow_v2.reliability.selection_readiness import (
     load_official_selection_inputs,
     load_verified_beacon_for_selection,
@@ -95,7 +113,10 @@ def test_execution_freeze_binds_complete_orders_without_holdout_disclosure(
     assert run_manifest.model_id == "gemini-2.5-flash"
     assert run_manifest.embedding_model_id == "text-embedding-3-large"
     assert len(request_plan["replicates"]) == 3
-    assert all(len(value["cells"]) == 24 * 3 * 2 for value in request_plan["replicates"])
+    assert all(
+        len(value["cells"]) == 24 * 3 * 2
+        for value in request_plan["replicates"]
+    )
     assert len(public_freeze["request_order_sha256_by_replicate"]) == 3
 
     public_text = json.dumps(public_freeze, sort_keys=True)
@@ -104,6 +125,97 @@ def test_execution_freeze_binds_complete_orders_without_holdout_disclosure(
     }
     assert all(candidate_id not in public_text for candidate_id in holdout_ids)
     assert public_freeze["holdout"]["count"] == 8
+    assert "v2/src/innerflow_v2/reliability/gate.py" in (
+        run_manifest.implementation_source_hashes
+    )
+
+
+def test_source_boundary_allows_artifact_commit_but_rejects_gate_drift(
+    tmp_path,
+) -> None:
+    repo = tmp_path / "repo"
+    gate = repo / "v2/src/innerflow_v2/reliability/gate.py"
+    gate.parent.mkdir(parents=True)
+    gate.write_text("FROZEN = True\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"],
+        cwd=repo,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test"], cwd=repo, check=True
+    )
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "freeze source"],
+        cwd=repo,
+        check=True,
+    )
+    source_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    artifact = repo / "artifact.json"
+    artifact.write_text("{}\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "add artifact"],
+        cwd=repo,
+        check=True,
+    )
+
+    _verify_source_boundary(source_commit, repo_root=repo)
+
+    gate.write_text("FROZEN = False\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "drift gate"],
+        cwd=repo,
+        check=True,
+    )
+    with pytest.raises(ValueError, match="runtime-critical source drifted"):
+        _verify_source_boundary(source_commit, repo_root=repo)
+
+
+def test_failed_attempt_blocks_rerun_until_single_evidenced_replay(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    _, (_, run_manifest, _, _) = _build(tmp_path)
+    sealed = tmp_path / "sealed"
+    sealed.mkdir(exist_ok=True)
+    initialize_run_incident_history(run_manifest)
+    monkeypatch.setenv("M0_V13_SEALED_ROOT", str(sealed))
+    attempt_id = execution_attempt_id(run_manifest, replicate=1, epoch=1)
+    partial_path = sealed / "M0_V13_PARTIAL_R1_E1.json"
+    partial_path.write_text('{"sealed":"partial"}\n', encoding="utf-8")
+    resolve_run_incident(
+        run_manifest,
+        RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
+        current_run_manifest_sha256=run_manifest.sha256,
+        evidence_sha256=file_sha256(partial_path),
+        execution_attempt_id=attempt_id,
+    )
+
+    with pytest.raises(ValueError, match="awaits API incident classification"):
+        _incident_state(run_manifest)
+    assert (
+        resolve_run_incident(
+            run_manifest,
+            RunIncident.API_FAILURE,
+            current_run_manifest_sha256=run_manifest.sha256,
+            external_outage_evidence=True,
+            evidence_sha256=canonical_sha256("external outage evidence"),
+            execution_attempt_id=attempt_id,
+        )
+        == IncidentDisposition.REPLAY_IDENTICAL_MANIFEST
+    )
+    _incident_state(run_manifest)
+    assert _execution_epoch(run_manifest, 1) == 2
 
 
 def test_execution_freeze_artifacts_and_histories_are_create_only(tmp_path) -> None:

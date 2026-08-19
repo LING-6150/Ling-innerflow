@@ -33,7 +33,7 @@ from innerflow_v2.reliability.execution_v13 import (
     validate_result_audit,
     validate_resume_manifest,
 )
-from innerflow_v2.reliability.client import Completion
+from innerflow_v2.reliability.client import Completion, ProviderCallError
 from innerflow_v2.reliability.protocol_v13 import (
     ConformancePredicate,
     ResponseAction,
@@ -43,7 +43,10 @@ from innerflow_v2.reliability.protocol_v13 import (
     selection_manifest_sha256,
     signed_conformance_manifest_sha256,
 )
-from innerflow_v2.reliability.runner_v13 import run_complete_replicate
+from innerflow_v2.reliability.runner_v13 import (
+    execution_attempt_id,
+    run_complete_replicate,
+)
 
 
 ORDER_SEED = 6150
@@ -76,6 +79,20 @@ class _CompleteV13Backend:
     def embed(self, texts):
         return [[1.0, 0.0] for _ in texts]
 
+
+class _AlwaysFailingBackend:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def complete(self, *, operation, prompt, temperature, max_tokens):
+        self.calls += 1
+        raise ProviderCallError(operation, TimeoutError("provider timeout"))
+
+    def embed(self, texts):
+        self.calls += 1
+        raise ProviderCallError(
+            "memory.trigger.embedding", TimeoutError("provider timeout")
+        )
 
 def _signed_manifest(
     selection,
@@ -338,6 +355,39 @@ def test_v13_runner_executes_every_policy_and_world_in_frozen_order(
         replicate=1,
         run_manifest=run_manifest,
     )
+
+
+def test_runner_stops_at_first_exhausted_provider_failure(
+    selection_v13,
+    registry_v13,
+    signed_conformance_v13,
+) -> None:
+    run_manifest = _run_manifest(
+        selection_v13,
+        signed_conformance_v13,
+    ).model_copy(update={"retry_backoff_seconds": 0})
+    backend = _AlwaysFailingBackend()
+    executor = FrozenActionExecutor(
+        behavior_by_action={
+            action: f"Execute {action.value}." for action in ResponseAction
+        }
+    )
+
+    records = run_complete_replicate(
+        selection_v13,
+        registry_v13,
+        signed_conformance_v13,
+        replicate=1,
+        backend=backend,
+        embedding_backend=backend,
+        executor=executor,
+        run_manifest=run_manifest,
+    )
+
+    assert len(records) == 1
+    assert records[0].status == "provider_failure"
+    assert len(records[0].attempts) == run_manifest.retry_attempts
+    assert backend.calls == run_manifest.retry_attempts
 
 
 def test_execution_rejects_a_reduced_selection_even_with_a_new_run_manifest(
@@ -607,6 +657,7 @@ def test_replicate_cells_cannot_merge_across_execution_attempts(
             run_manifest,
             RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
             current_run_manifest_sha256=run_manifest.sha256,
+            evidence_sha256=canonical_sha256("partial-artifact"),
             execution_attempt_id=original_attempt,
         )
         == IncidentDisposition.VOID_PARTIAL_REPLICATE
@@ -1217,12 +1268,21 @@ def test_api_evidence_controls_replay_only_and_second_failure_terminates(
     run_manifest = _run_manifest(selection_v13, signed)
     run_hash = run_manifest.sha256
     initialize_run_incident_history(run_manifest)
+    first_attempt = execution_attempt_id(run_manifest, replicate=1, epoch=1)
+    resolve_run_incident(
+        run_manifest,
+        RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
+        current_run_manifest_sha256=run_hash,
+        evidence_sha256=canonical_sha256("first-partial"),
+        execution_attempt_id=first_attempt,
+    )
     assert (
         resolve_run_incident(
             run_manifest,
             RunIncident.API_FAILURE,
             current_run_manifest_sha256=run_hash,
             external_outage_evidence=False,
+            execution_attempt_id=first_attempt,
         )
         == IncidentDisposition.TERMINATE_NO_M1
     )
@@ -1243,6 +1303,16 @@ def test_api_evidence_controls_replay_only_and_second_failure_terminates(
     initialize_run_incident_history(replay_run)
     with pytest.raises(FileExistsError):
         initialize_run_incident_history(replay_run)
+    replay_first_attempt = execution_attempt_id(
+        replay_run, replicate=1, epoch=1
+    )
+    resolve_run_incident(
+        replay_run,
+        RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
+        current_run_manifest_sha256=replay_run.sha256,
+        evidence_sha256=canonical_sha256("replay-first-partial"),
+        execution_attempt_id=replay_first_attempt,
+    )
     assert (
         resolve_run_incident(
             replay_run,
@@ -1250,8 +1320,19 @@ def test_api_evidence_controls_replay_only_and_second_failure_terminates(
             current_run_manifest_sha256=replay_run.sha256,
             external_outage_evidence=True,
             evidence_sha256=canonical_sha256("provider-status-page"),
+            execution_attempt_id=replay_first_attempt,
         )
         == IncidentDisposition.REPLAY_IDENTICAL_MANIFEST
+    )
+    replay_second_attempt = execution_attempt_id(
+        replay_run, replicate=1, epoch=2
+    )
+    resolve_run_incident(
+        replay_run,
+        RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
+        current_run_manifest_sha256=replay_run.sha256,
+        evidence_sha256=canonical_sha256("replay-second-partial"),
+        execution_attempt_id=replay_second_attempt,
     )
     assert (
         resolve_run_incident(
@@ -1260,6 +1341,7 @@ def test_api_evidence_controls_replay_only_and_second_failure_terminates(
             current_run_manifest_sha256=replay_run.sha256,
             external_outage_evidence=True,
             evidence_sha256=canonical_sha256("provider-status-page-2"),
+            execution_attempt_id=replay_second_attempt,
         )
         == IncidentDisposition.TERMINATE_NO_M1
     )

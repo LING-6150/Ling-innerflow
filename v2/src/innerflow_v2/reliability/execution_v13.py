@@ -946,12 +946,25 @@ class RunIncidentEvent(StrictModel):
             r"[0-9a-f]{64}", self.execution_attempt_id
         ):
             raise ValueError("incident execution attempt id must be SHA-256")
-        if (
-            self.disposition == IncidentDisposition.VOID_PARTIAL_REPLICATE
-        ) != (self.execution_attempt_id is not None):
+        attempt_bound = self.incident in {
+            RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
+            RunIncident.API_FAILURE,
+        }
+        if attempt_bound != (self.execution_attempt_id is not None):
             raise ValueError(
-                "partial-replicate disposition must bind exactly one attempt"
+                "partial/API incidents must bind exactly one execution attempt"
             )
+        if (
+            self.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION
+            and self.disposition
+            != IncidentDisposition.VOID_PARTIAL_REPLICATE
+        ):
+            raise ValueError("partial interruption must void its attempt")
+        if (
+            self.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION
+            and self.evidence_sha256 is None
+        ):
+            raise ValueError("partial interruption must bind its artifact hash")
         return self
 
 
@@ -983,6 +996,24 @@ class RunIncidentHistory(StrictModel):
             > 1
         ):
             raise ValueError("incident history exceeds one replay or repair")
+        partial_attempts: set[str] = set()
+        classified_attempts: set[str] = set()
+        for event in self.events:
+            attempt_id = event.execution_attempt_id
+            if event.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION:
+                if attempt_id in partial_attempts:
+                    raise ValueError("execution attempt was voided more than once")
+                partial_attempts.add(attempt_id)  # type: ignore[arg-type]
+            elif event.incident == RunIncident.API_FAILURE:
+                if attempt_id not in partial_attempts:
+                    raise ValueError(
+                        "API failure must classify a prior partial attempt"
+                    )
+                if attempt_id in classified_attempts:
+                    raise ValueError(
+                        "execution attempt API failure was classified twice"
+                    )
+                classified_attempts.add(attempt_id)  # type: ignore[arg-type]
         return self
 
     @property
@@ -1044,9 +1075,7 @@ def resolve_run_incident(
         for event in history.events
     )
     if terminal_history:
-        if execution_attempt_id is not None:
-            raise ValueError("terminal run cannot accept a replicate attempt")
-        disposition = IncidentDisposition.TERMINATE_NO_M1
+        raise ValueError("terminal run cannot accept another incident")
     elif incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION:
         if execution_attempt_id is None or not re.fullmatch(
             r"[0-9a-f]{64}", execution_attempt_id
@@ -1058,13 +1087,29 @@ def resolve_run_incident(
         ):
             raise ValueError("execution attempt already has an incident")
         disposition = IncidentDisposition.VOID_PARTIAL_REPLICATE
-    elif execution_attempt_id is not None:
-        raise ValueError("only partial interruption may bind an attempt id")
     elif current_run_manifest_sha256 != history.bound_run_manifest_sha256:
         disposition = IncidentDisposition.TERMINATE_NO_M1
     elif incident == RunIncident.GO_PATH:
         disposition = IncidentDisposition.AUTHORIZE_M1
     elif incident == RunIncident.API_FAILURE:
+        if execution_attempt_id is None or not re.fullmatch(
+            r"[0-9a-f]{64}", execution_attempt_id
+        ):
+            raise ValueError("API failure must identify its failed attempt")
+        partial_events = [
+            event
+            for event in history.events
+            if event.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION
+            and event.execution_attempt_id == execution_attempt_id
+        ]
+        if len(partial_events) != 1:
+            raise ValueError("API failure must classify one prior partial attempt")
+        if any(
+            event.incident == RunIncident.API_FAILURE
+            and event.execution_attempt_id == execution_attempt_id
+            for event in history.events
+        ):
+            raise ValueError("failed attempt was already classified")
         prior_replays = sum(
             event.disposition == IncidentDisposition.REPLAY_IDENTICAL_MANIFEST
             for event in history.events
@@ -1078,6 +1123,8 @@ def resolve_run_incident(
             disposition = IncidentDisposition.REPLAY_IDENTICAL_MANIFEST
         else:
             disposition = IncidentDisposition.TERMINATE_NO_M1
+    elif execution_attempt_id is not None:
+        raise ValueError("only partial/API incidents may bind an attempt id")
     elif incident == RunIncident.IMPLEMENTATION_NONCONFORMANCE:
         prior_repairs = sum(
             event.disposition

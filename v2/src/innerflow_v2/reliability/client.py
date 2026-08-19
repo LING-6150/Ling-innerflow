@@ -35,6 +35,43 @@ class ProviderCallError(RuntimeError):
         self.__cause__ = cause
 
 
+class IncompleteProviderResponse(RuntimeError):
+    def __init__(
+        self,
+        *,
+        request_id: str | None,
+        finish_reason: str | None,
+    ) -> None:
+        super().__init__("provider returned no complete response content")
+        self.request_id = request_id
+        self.finish_reason = finish_reason
+
+
+def require_complete_content(response: Any, *, operation: str) -> str:
+    request_id = getattr(response, "id", None)
+    try:
+        choice = response.choices[0]
+        content = choice.message.content
+        finish_reason = getattr(choice, "finish_reason", None)
+    except (AttributeError, IndexError, TypeError) as error:
+        incomplete = IncompleteProviderResponse(
+            request_id=request_id,
+            finish_reason=None,
+        )
+        raise ProviderCallError(operation, incomplete) from error
+    if (
+        finish_reason == "length"
+        or not isinstance(content, str)
+        or not content.strip()
+    ):
+        incomplete = IncompleteProviderResponse(
+            request_id=request_id,
+            finish_reason=finish_reason,
+        )
+        raise ProviderCallError(operation, incomplete)
+    return content
+
+
 class OpenAICompatibleBackend:
     """Small adapter; importing OpenAI is deferred so deterministic tests stay offline."""
 
@@ -70,7 +107,7 @@ class OpenAICompatibleBackend:
             )
         except Exception as error:
             raise ProviderCallError(operation, error) from error
-        content = response.choices[0].message.content or ""
+        content = require_complete_content(response, operation=operation)
         return Completion(content=content, request_id=response.id)
 
     def embed(self, texts: list[str]) -> list[list[float]]:

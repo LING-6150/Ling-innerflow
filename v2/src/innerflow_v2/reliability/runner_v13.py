@@ -295,14 +295,15 @@ def run_complete_replicate(
     }
     records: list[WorldResultV13] = []
     for cell in order:
-        records.append(
-            _run_cell(
-                cell,
-                candidates[cell.candidate_id],
-                backend=backend,
-                embedding_backend=embedding_backend,
-                executor=executor,
-                run_manifest=run_manifest,
-            )
+        result = _run_cell(
+            cell,
+            candidates[cell.candidate_id],
+            backend=backend,
+            embedding_backend=embedding_backend,
+            executor=executor,
+            run_manifest=run_manifest,
         )
+        records.append(result)
+        if result.status == "provider_failure":
+            break
     return records

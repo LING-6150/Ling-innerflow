@@ -46,6 +46,7 @@ IMPLEMENTATION_FILES = (
     "v2/src/innerflow_v2/reliability/client.py",
     "v2/src/innerflow_v2/reliability/execution_freeze_v13.py",
     "v2/src/innerflow_v2/reliability/execution_v13.py",
+    "v2/src/innerflow_v2/reliability/gate.py",
     "v2/src/innerflow_v2/reliability/prompts.py",
     "v2/src/innerflow_v2/reliability/protocol_v13.py",
     "v2/src/innerflow_v2/reliability/runner_v13.py",
