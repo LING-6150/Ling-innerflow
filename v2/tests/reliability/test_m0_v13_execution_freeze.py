@@ -54,7 +54,7 @@ PUBLIC_EXECUTION_FREEZE = (
     V2_ROOT / "eval/m0/manifests/M0_V13_EXECUTION_FREEZE_PUBLIC.json"
 )
 SEALED_ROOT_IDENTITY = Path(
-    "/Users/apple/Documents/New project/innerflow-m0-sealed/execution"
+    "/Users/lingduan/Desktop/Ling-innerflow/.sealed/execution"
 )
 
 
@@ -271,7 +271,7 @@ def test_committed_execution_freeze_is_reproducible_without_model_calls() -> Non
     )
 
     assert committed_run.source_commit == (
-        "b84962df4b9b75a9a0854e4625070c214d301d02"
+        "c531ce40394dc29dc95952ce790d09e20aeb521e"
     )
     assert committed_run == reproduced_run
     assert committed_public == reproduced_public
