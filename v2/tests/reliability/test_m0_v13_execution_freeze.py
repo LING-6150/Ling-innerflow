@@ -356,7 +356,7 @@ def test_committed_execution_freeze_is_reproducible_without_model_calls() -> Non
     )
 
     assert committed_run.source_commit == (
-        "c531ce40394dc29dc95952ce790d09e20aeb521e"
+        "3fd84cf90e5ff81a8dc95a5d3435ce83892cf4ab"
     )
     assert committed_run == reproduced_run
     assert committed_public == reproduced_public
