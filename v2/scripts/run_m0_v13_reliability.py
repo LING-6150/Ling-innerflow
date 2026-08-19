@@ -7,7 +7,11 @@ import os
 import subprocess
 import sys
 from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parent
@@ -39,6 +43,7 @@ from innerflow_v2.reliability.execution_v13 import (
 from innerflow_v2.reliability.protocol_v13 import (
     SelectionManifestV13,
     SignedConformanceManifest,
+    canonical_sha256,
     load_invalidation_history,
     public_selection_manifest,
 )
@@ -64,6 +69,73 @@ DEFAULT_SELECTION = (
     Path.home()
     / "Desktop/Ling-innerflow/.sealed/selection/M0_V13_SELECTION.json"
 )
+
+
+class OutageSignoff(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    role: Literal["execution_operator", "independent_reviewer"]
+    signer: str = Field(min_length=1)
+    signed_at_utc: datetime
+    signed_body_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class OutageClassificationArtifact(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal["m0-v1.3-outage-classification-v1"]
+    classification: Literal["CONFIRMED_PROVIDER_OUTAGE"]
+    provider: str = Field(min_length=1)
+    run_manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    execution_attempt_id: str = Field(pattern=r"^[0-9a-f]{64}$")
+    failed_request_ids: list[str] = Field(min_length=1)
+    failed_provider_request_ids: list[str]
+    failure_recorded_at_utc: datetime
+    outage_started_at_utc: datetime
+    outage_ended_at_utc: datetime
+    external_reference: str = Field(min_length=1)
+    classification_body_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    signoffs: list[OutageSignoff] = Field(min_length=2, max_length=2)
+
+    def body_sha256(self) -> str:
+        return canonical_sha256(
+            self.model_dump(
+                mode="json",
+                exclude={"classification_body_sha256", "signoffs"},
+            )
+        )
+
+    @model_validator(mode="after")
+    def _validate_binding_and_signoffs(self) -> "OutageClassificationArtifact":
+        timestamps = (
+            self.failure_recorded_at_utc,
+            self.outage_started_at_utc,
+            self.outage_ended_at_utc,
+            *(signoff.signed_at_utc for signoff in self.signoffs),
+        )
+        if any(value.tzinfo is None for value in timestamps):
+            raise ValueError("outage artifact timestamps must be timezone-aware")
+        if not (
+            self.outage_started_at_utc
+            <= self.failure_recorded_at_utc
+            <= self.outage_ended_at_utc
+        ):
+            raise ValueError("outage window does not contain the failed attempt")
+        if self.classification_body_sha256 != self.body_sha256():
+            raise ValueError("outage classification body hash mismatch")
+        if {signoff.role for signoff in self.signoffs} != {
+            "execution_operator",
+            "independent_reviewer",
+        }:
+            raise ValueError("outage artifact requires operator and reviewer signoff")
+        if len({signoff.signer for signoff in self.signoffs}) != 2:
+            raise ValueError("outage artifact signers must be independent")
+        if any(
+            signoff.signed_body_sha256 != self.classification_body_sha256
+            for signoff in self.signoffs
+        ):
+            raise ValueError("outage signoff body hash mismatch")
+        return self
 
 
 def _sealed_root() -> Path:
@@ -186,10 +258,53 @@ def _partial_path(sealed: Path, replicate: int, epoch: int) -> Path:
     return sealed / f"M0_V13_PARTIAL_R{replicate}_E{epoch}.json"
 
 
+def _expected_partial_attempts(
+    run_manifest: FrozenRunManifestV13,
+) -> dict[str, tuple[int, int, Path]]:
+    sealed = _sealed_root()
+    return {
+        execution_attempt_id(run_manifest, replicate=replicate, epoch=epoch): (
+            replicate,
+            epoch,
+            _partial_path(sealed, replicate, epoch),
+        )
+        for replicate in range(1, run_manifest.variance_replicates + 1)
+        for epoch in (1, 2)
+    }
+
+
+def _validate_partial_artifact(
+    run_manifest: FrozenRunManifestV13,
+    *,
+    attempt_id: str,
+    replicate: int,
+    epoch: int,
+    path: Path,
+) -> dict:
+    partial = _load_json(path)
+    records = partial.get("records")
+    if (
+        partial.get("run_manifest_sha256") != run_manifest.sha256
+        or partial.get("replicate") != replicate
+        or partial.get("epoch") != epoch
+        or partial.get("execution_attempt_id") != attempt_id
+        or not isinstance(records, list)
+        or not records
+        or records[-1].get("status") != "provider_failure"
+        or any(record.get("execution_attempt_id") != attempt_id for record in records)
+    ):
+        raise ValueError("sealed partial artifact identity drift")
+    recorded_at = datetime.fromisoformat(partial["failure_recorded_at_utc"])
+    if recorded_at.tzinfo is None:
+        raise ValueError("partial failure timestamp must be timezone-aware")
+    return partial
+
+
 def _incident_state(
     run_manifest: FrozenRunManifestV13,
     *,
     allow_pending_api_classification: bool = False,
+    allow_orphan_attempt_id: str | None = None,
 ) -> None:
     history = load_run_incident_history(run_manifest.incident_history_path)
     if any(
@@ -217,24 +332,39 @@ def _incident_state(
         for event in history.events
         if event.incident == RunIncident.API_FAILURE
     }
-    expected_attempts = {
-        execution_attempt_id(run_manifest, replicate=replicate, epoch=epoch): (
-            replicate,
-            epoch,
-        )
-        for replicate in range(1, run_manifest.variance_replicates + 1)
-        for epoch in (1, 2)
+    expected_attempts = _expected_partial_attempts(run_manifest)
+    path_to_attempt = {
+        path: attempt_id
+        for attempt_id, (_, _, path) in expected_attempts.items()
     }
+    existing_paths = set(_sealed_root().glob("M0_V13_PARTIAL*.json"))
+    unknown_paths = existing_paths - set(path_to_attempt)
+    if unknown_paths:
+        raise ValueError("sealed root contains an unknown partial artifact")
+    existing_attempts = {path_to_attempt[path] for path in existing_paths}
     for attempt_id, event in partials.items():
         if attempt_id not in expected_attempts:
             raise ValueError("partial incident binds an unknown execution attempt")
-        replicate, epoch = expected_attempts[attempt_id]
-        partial_path = _partial_path(_sealed_root(), replicate, epoch)
-        if (
-            not partial_path.exists()
-            or event.evidence_sha256 != file_sha256(partial_path)
-        ):
+        replicate, epoch, partial_path = expected_attempts[attempt_id]
+        if not partial_path.exists():
             raise ValueError("partial incident artifact binding drift")
+        _validate_partial_artifact(
+            run_manifest,
+            attempt_id=attempt_id,
+            replicate=replicate,
+            epoch=epoch,
+            path=partial_path,
+        )
+        if event.evidence_sha256 != file_sha256(partial_path):
+            raise ValueError("partial incident artifact binding drift")
+    orphan_attempts = existing_attempts - set(partials)
+    allowed_orphans = (
+        {allow_orphan_attempt_id}
+        if allow_orphan_attempt_id is not None
+        else set()
+    )
+    if orphan_attempts != allowed_orphans:
+        raise ValueError("unbound partial artifact blocks execution")
     pending = set(partials) - set(classifications)
     if pending and not allow_pending_api_classification:
         raise ValueError("provider-failure partial awaits API incident classification")
@@ -270,6 +400,7 @@ def _execution_epoch(run_manifest: FrozenRunManifestV13, replicate: int) -> int:
 def preflight(
     *,
     allow_pending_api_classification: bool = False,
+    allow_orphan_attempt_id: str | None = None,
 ) -> tuple[
     SelectionManifestV13,
     SignedConformanceManifest,
@@ -320,6 +451,7 @@ def preflight(
     _incident_state(
         run_manifest,
         allow_pending_api_classification=allow_pending_api_classification,
+        allow_orphan_attempt_id=allow_orphan_attempt_id,
     )
     return selection, signed, run_manifest
 
@@ -396,6 +528,7 @@ def run_replicate(replicate: int) -> None:
                 "execution_attempt_id": execution_attempt_id(
                     run_manifest, replicate=replicate, epoch=epoch
                 ),
+                "failure_recorded_at_utc": datetime.now(timezone.utc).isoformat(),
                 "records": [record.model_dump(mode="json") for record in records],
             },
         )
@@ -423,9 +556,67 @@ def run_replicate(replicate: int) -> None:
     print(json.dumps(public_checkpoint_status(checkpoint), indent=2))
 
 
+def recover_partial_incident(replicate: int, epoch: int) -> None:
+    run_manifest = FrozenRunManifestV13.model_validate_json(
+        RUN_MANIFEST.read_text(encoding="utf-8")
+    )
+    attempt_id = execution_attempt_id(
+        run_manifest,
+        replicate=replicate,
+        epoch=epoch,
+    )
+    _, _, verified_run = preflight(allow_orphan_attempt_id=attempt_id)
+    partial_path = _partial_path(_sealed_root(), replicate, epoch)
+    _validate_partial_artifact(
+        verified_run,
+        attempt_id=attempt_id,
+        replicate=replicate,
+        epoch=epoch,
+        path=partial_path,
+    )
+    disposition = resolve_run_incident(
+        verified_run,
+        RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
+        current_run_manifest_sha256=verified_run.sha256,
+        evidence_sha256=file_sha256(partial_path),
+        execution_attempt_id=attempt_id,
+    )
+    print(json.dumps({"disposition": disposition.value}, indent=2))
+
+
+def _validate_outage_classification(
+    path: Path,
+    *,
+    run_manifest: FrozenRunManifestV13,
+    attempt_id: str,
+    partial: dict,
+) -> OutageClassificationArtifact:
+    artifact = OutageClassificationArtifact.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+    failure = partial["records"][-1]
+    failed_request_ids = [attempt["request_id"] for attempt in failure["attempts"]]
+    failed_provider_request_ids = [
+        attempt["provider_request_id"]
+        for attempt in failure["attempts"]
+        if attempt.get("provider_request_id") is not None
+    ]
+    if (
+        artifact.provider != run_manifest.provider
+        or artifact.run_manifest_sha256 != run_manifest.sha256
+        or artifact.execution_attempt_id != attempt_id
+        or artifact.failed_request_ids != failed_request_ids
+        or artifact.failed_provider_request_ids != failed_provider_request_ids
+        or artifact.failure_recorded_at_utc
+        != datetime.fromisoformat(partial["failure_recorded_at_utc"])
+    ):
+        raise ValueError("outage classification does not bind the failed attempt")
+    return artifact
+
+
 def classify_api_failure(
     replicate: int,
-    external_outage_evidence: Path | None,
+    outage_classification_artifact: Path | None,
 ) -> None:
     _, _, run_manifest = preflight(allow_pending_api_classification=True)
     history = load_run_incident_history(run_manifest.incident_history_path)
@@ -453,27 +644,29 @@ def classify_api_failure(
     event = pending[0]
     epoch = expected_attempts[event.execution_attempt_id]
     partial_path = _partial_path(_sealed_root(), replicate, epoch)
-    partial = _load_json(partial_path)
-    if (
-        partial.get("run_manifest_sha256") != run_manifest.sha256
-        or partial.get("replicate") != replicate
-        or partial.get("epoch") != epoch
-        or partial.get("execution_attempt_id") != event.execution_attempt_id
-        or event.evidence_sha256 != file_sha256(partial_path)
-        or not partial.get("records")
-        or partial["records"][-1].get("status") != "provider_failure"
-    ):
-        raise ValueError("sealed partial artifact does not match its incident")
-    evidence_sha256 = (
-        file_sha256(external_outage_evidence)
-        if external_outage_evidence is not None
-        else None
+    partial = _validate_partial_artifact(
+        run_manifest,
+        attempt_id=event.execution_attempt_id,
+        replicate=replicate,
+        epoch=epoch,
+        path=partial_path,
     )
+    if event.evidence_sha256 != file_sha256(partial_path):
+        raise ValueError("sealed partial artifact does not match its incident")
+    evidence_sha256 = None
+    if outage_classification_artifact is not None:
+        _validate_outage_classification(
+            outage_classification_artifact,
+            run_manifest=run_manifest,
+            attempt_id=event.execution_attempt_id,
+            partial=partial,
+        )
+        evidence_sha256 = file_sha256(outage_classification_artifact)
     disposition = resolve_run_incident(
         run_manifest,
         RunIncident.API_FAILURE,
         current_run_manifest_sha256=run_manifest.sha256,
-        external_outage_evidence=external_outage_evidence is not None,
+        external_outage_evidence=outage_classification_artifact is not None,
         evidence_sha256=evidence_sha256,
         execution_attempt_id=event.execution_attempt_id,
     )
@@ -541,7 +734,12 @@ def main() -> None:
     classify.add_argument(
         "--replicate", type=int, choices=(1, 2, 3, 4, 5), required=True
     )
-    classify.add_argument("--external-outage-evidence", type=Path)
+    classify.add_argument("--outage-classification-artifact", type=Path)
+    recover = subparsers.add_parser("recover-partial-incident")
+    recover.add_argument(
+        "--replicate", type=int, choices=(1, 2, 3, 4, 5), required=True
+    )
+    recover.add_argument("--epoch", type=int, choices=(1, 2), required=True)
     subparsers.add_parser("evaluate")
     subparsers.add_parser("prepare-variance")
     args = parser.parse_args()
@@ -553,7 +751,12 @@ def main() -> None:
     elif args.command == "run-replicate":
         run_replicate(args.replicate)
     elif args.command == "classify-api-failure":
-        classify_api_failure(args.replicate, args.external_outage_evidence)
+        classify_api_failure(
+            args.replicate,
+            args.outage_classification_artifact,
+        )
+    elif args.command == "recover-partial-incident":
+        recover_partial_incident(args.replicate, args.epoch)
     elif args.command == "prepare-variance":
         prepare_variance()
     else:

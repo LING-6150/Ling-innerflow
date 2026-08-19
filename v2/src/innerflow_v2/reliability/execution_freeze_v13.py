@@ -43,6 +43,7 @@ from innerflow_v2.reliability.selection_readiness import OfficialSelectionInputs
 IMPLEMENTATION_FILES = (
     "v2/scripts/run_m0_v13_reliability.py",
     "v2/src/innerflow_v2/reliability/baselines.py",
+    "v2/src/innerflow_v2/reliability/beacon_v2.py",
     "v2/src/innerflow_v2/reliability/client.py",
     "v2/src/innerflow_v2/reliability/execution_freeze_v13.py",
     "v2/src/innerflow_v2/reliability/execution_v13.py",

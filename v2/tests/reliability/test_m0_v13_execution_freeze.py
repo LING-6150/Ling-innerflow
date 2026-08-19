@@ -21,6 +21,7 @@ from innerflow_v2.reliability.execution_freeze_v13 import (
 from scripts.run_m0_v13_reliability import (
     _execution_epoch,
     _incident_state,
+    _validate_outage_classification,
     _verify_source_boundary,
 )
 from innerflow_v2.reliability.execution_v13 import (
@@ -128,15 +129,26 @@ def test_execution_freeze_binds_complete_orders_without_holdout_disclosure(
     assert "v2/src/innerflow_v2/reliability/gate.py" in (
         run_manifest.implementation_source_hashes
     )
+    assert "v2/src/innerflow_v2/reliability/beacon_v2.py" in (
+        run_manifest.implementation_source_hashes
+    )
 
 
-def test_source_boundary_allows_artifact_commit_but_rejects_gate_drift(
+@pytest.mark.parametrize(
+    "runtime_file",
+    [
+        "v2/src/innerflow_v2/reliability/gate.py",
+        "v2/src/innerflow_v2/reliability/beacon_v2.py",
+    ],
+)
+def test_source_boundary_allows_artifact_but_rejects_runtime_drift(
     tmp_path,
+    runtime_file,
 ) -> None:
     repo = tmp_path / "repo"
-    gate = repo / "v2/src/innerflow_v2/reliability/gate.py"
-    gate.parent.mkdir(parents=True)
-    gate.write_text("FROZEN = True\n", encoding="utf-8")
+    runtime = repo / runtime_file
+    runtime.parent.mkdir(parents=True)
+    runtime.write_text("FROZEN = True\n", encoding="utf-8")
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     subprocess.run(
         ["git", "config", "user.email", "test@example.com"],
@@ -170,7 +182,7 @@ def test_source_boundary_allows_artifact_commit_but_rejects_gate_drift(
 
     _verify_source_boundary(source_commit, repo_root=repo)
 
-    gate.write_text("FROZEN = False\n", encoding="utf-8")
+    runtime.write_text("FROZEN = False\n", encoding="utf-8")
     subprocess.run(["git", "add", "."], cwd=repo, check=True)
     subprocess.run(
         ["git", "commit", "-q", "-m", "drift gate"],
@@ -192,7 +204,31 @@ def test_failed_attempt_blocks_rerun_until_single_evidenced_replay(
     monkeypatch.setenv("M0_V13_SEALED_ROOT", str(sealed))
     attempt_id = execution_attempt_id(run_manifest, replicate=1, epoch=1)
     partial_path = sealed / "M0_V13_PARTIAL_R1_E1.json"
-    partial_path.write_text('{"sealed":"partial"}\n', encoding="utf-8")
+    failure_time = "2026-08-18T20:00:00Z"
+    partial = {
+        "run_manifest_sha256": run_manifest.sha256,
+        "replicate": 1,
+        "epoch": 1,
+        "execution_attempt_id": attempt_id,
+        "failure_recorded_at_utc": failure_time,
+        "records": [
+            {
+                "execution_attempt_id": attempt_id,
+                "status": "provider_failure",
+                "attempts": [
+                    {
+                        "request_id": "logical-request-1",
+                        "provider_request_id": "provider-request-1",
+                    }
+                ],
+            }
+        ],
+    }
+    partial_path.write_text(json.dumps(partial) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unbound partial artifact"):
+        _incident_state(run_manifest)
+    _incident_state(run_manifest, allow_orphan_attempt_id=attempt_id)
     resolve_run_incident(
         run_manifest,
         RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
@@ -203,13 +239,62 @@ def test_failed_attempt_blocks_rerun_until_single_evidenced_replay(
 
     with pytest.raises(ValueError, match="awaits API incident classification"):
         _incident_state(run_manifest)
+    outage_body = {
+        "schema_version": "m0-v1.3-outage-classification-v1",
+        "classification": "CONFIRMED_PROVIDER_OUTAGE",
+        "provider": run_manifest.provider,
+        "run_manifest_sha256": run_manifest.sha256,
+        "execution_attempt_id": attempt_id,
+        "failed_request_ids": ["logical-request-1"],
+        "failed_provider_request_ids": ["provider-request-1"],
+        "failure_recorded_at_utc": failure_time,
+        "outage_started_at_utc": "2026-08-18T19:55:00Z",
+        "outage_ended_at_utc": "2026-08-18T20:05:00Z",
+        "external_reference": "provider-status-incident-6150",
+    }
+    body_sha256 = canonical_sha256(outage_body)
+    outage = {
+        **outage_body,
+        "classification_body_sha256": body_sha256,
+        "signoffs": [
+            {
+                "role": "execution_operator",
+                "signer": "operator-a",
+                "signed_at_utc": "2026-08-18T20:10:00Z",
+                "signed_body_sha256": body_sha256,
+            },
+            {
+                "role": "independent_reviewer",
+                "signer": "reviewer-b",
+                "signed_at_utc": "2026-08-18T20:11:00Z",
+                "signed_body_sha256": body_sha256,
+            },
+        ],
+    }
+    outage_path = tmp_path / "outage.json"
+    outage_path.write_text(json.dumps(outage) + "\n", encoding="utf-8")
+    _validate_outage_classification(
+        outage_path,
+        run_manifest=run_manifest,
+        attempt_id=attempt_id,
+        partial=partial,
+    )
+    empty_path = tmp_path / "empty-outage.json"
+    empty_path.write_text("", encoding="utf-8")
+    with pytest.raises(ValueError):
+        _validate_outage_classification(
+            empty_path,
+            run_manifest=run_manifest,
+            attempt_id=attempt_id,
+            partial=partial,
+        )
     assert (
         resolve_run_incident(
             run_manifest,
             RunIncident.API_FAILURE,
             current_run_manifest_sha256=run_manifest.sha256,
             external_outage_evidence=True,
-            evidence_sha256=canonical_sha256("external outage evidence"),
+            evidence_sha256=file_sha256(outage_path),
             execution_attempt_id=attempt_id,
         )
         == IncidentDisposition.REPLAY_IDENTICAL_MANIFEST

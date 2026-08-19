@@ -39,6 +39,8 @@ def _response(content, *, finish_reason="stop", request_id="provider-123"):
         _response(""),
         _response("   "),
         _response('{"response_action":', finish_reason="length"),
+        _response('{"response_action":', finish_reason="content_filter"),
+        _response('{"response_action":', finish_reason="tool_calls"),
         SimpleNamespace(id="provider-123", choices=[]),
     ],
 )

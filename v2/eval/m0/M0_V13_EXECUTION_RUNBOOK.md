@@ -104,22 +104,42 @@ hash. Do not:
 Classify the pending incident exactly once:
 
 ```bash
-# With contemporaneous external outage evidence: authorizes the sole replay.
+# A validated, dual-signed outage classification may authorize the sole replay.
 uv run python scripts/run_m0_v13_reliability.py classify-api-failure \
-  --replicate 1 --external-outage-evidence /absolute/path/to/evidence
+  --replicate 1 \
+  --outage-classification-artifact /absolute/path/to/outage-classification.json
 
 # Without external evidence: terminates as INCONCLUSIVE_API_FAILURE.
 uv run python scripts/run_m0_v13_reliability.py classify-api-failure \
   --replicate 1
 ```
 
+The outage-classification artifact is not an arbitrary attachment. Its frozen
+schema binds the provider, run-manifest hash, execution-attempt ID, all failed
+logical/provider request IDs, failure timestamp, containing outage time window,
+and external incident reference. Its canonical body hash must be signed by two
+different named roles: `execution_operator` and `independent_reviewer`.
+
+If the process stops after the create-only partial is persisted but before its
+incident is appended, every execution preflight fails on the orphan artifact.
+The only permitted recovery is to validate and register that exact partial:
+
+```bash
+uv run python scripts/run_m0_v13_reliability.py recover-partial-incident \
+  --replicate 1 --epoch 1
+```
+
+Recovery does not authorize replay. It leaves a pending incident that must be
+classified by one of the two commands above.
+
 Only the first failed attempt can receive
 `REPLAY_IDENTICAL_MANIFEST`, and only with contemporaneous external outage
-evidence. The replay uses epoch 2 of the same frozen run manifest; a second
-provider failure terminates. Missing, empty, or explicitly truncated provider
-content remains a missing cell and follows the frozen retries. A syntactically
-complete but enum/schema-invalid response is a terminal wrong output, not a
-provider failure and not retryable.
+classification. The replay uses epoch 2 of the same frozen run manifest; a
+second provider failure terminates. Only nonempty content with the frozen
+provider's `finish_reason="stop"` is complete. Any other finish reason remains
+a missing cell and follows the frozen retries. A `stop` response that is
+syntactically complete but enum/schema-invalid is a terminal wrong output, not
+a provider failure and not retryable.
 
 ## Variance escalation
 

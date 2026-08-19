@@ -60,7 +60,7 @@ def require_complete_content(response: Any, *, operation: str) -> str:
         )
         raise ProviderCallError(operation, incomplete) from error
     if (
-        finish_reason == "length"
+        finish_reason != "stop"
         or not isinstance(content, str)
         or not content.strip()
     ):
