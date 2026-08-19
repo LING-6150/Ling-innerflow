@@ -1016,9 +1016,7 @@ def initialize_invalidation_history(
 ) -> InvalidationHistory:
     history_path = Path(manifest.invalidation_history_path)
     history = InvalidationHistory(
-        signed_manifest_sha256=canonical_sha256(
-            manifest.model_dump(mode="json")
-        )
+        signed_manifest_sha256=signed_conformance_manifest_sha256(manifest)
     )
     with history_path.open("x", encoding="utf-8") as stream:
         stream.write(history.model_dump_json(indent=2) + "\n")
@@ -1621,7 +1619,11 @@ def selection_manifest_sha256(manifest: SelectionManifestV13) -> str:
 def signed_conformance_manifest_sha256(
     manifest: SignedConformanceManifest,
 ) -> str:
-    return canonical_sha256(manifest.model_dump(mode="json"))
+    payload = manifest.model_dump(mode="json")
+    payload["allowed_invalidation_predicates"] = sorted(
+        predicate.value for predicate in manifest.allowed_invalidation_predicates
+    )
+    return canonical_sha256(payload)
 
 
 def validate_authoritative_selection(
@@ -1668,7 +1670,7 @@ def request_post_split_invalidation(
 ) -> InvalidationIncident:
     history_path = Path(manifest.invalidation_history_path)
     history = load_invalidation_history(history_path)
-    manifest_sha = canonical_sha256(manifest.model_dump(mode="json"))
+    manifest_sha = signed_conformance_manifest_sha256(manifest)
     if history.signed_manifest_sha256 != manifest_sha:
         raise ValueError("invalidation history is bound to another signed manifest")
     if any(

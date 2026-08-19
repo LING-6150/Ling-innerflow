@@ -26,6 +26,52 @@ class EmbeddingBackend(Protocol):
     def embed(self, texts: list[str]) -> list[list[float]]: ...
 
 
+class ProviderCallError(RuntimeError):
+    def __init__(self, operation: str, cause: Exception) -> None:
+        super().__init__(f"{operation} provider call failed: {type(cause).__name__}")
+        self.operation = operation
+        self.provider_request_id = getattr(cause, "request_id", None)
+        self.cause_type = type(cause).__name__
+        self.__cause__ = cause
+
+
+class IncompleteProviderResponse(RuntimeError):
+    def __init__(
+        self,
+        *,
+        request_id: str | None,
+        finish_reason: str | None,
+    ) -> None:
+        super().__init__("provider returned no complete response content")
+        self.request_id = request_id
+        self.finish_reason = finish_reason
+
+
+def require_complete_content(response: Any, *, operation: str) -> str:
+    request_id = getattr(response, "id", None)
+    try:
+        choice = response.choices[0]
+        content = choice.message.content
+        finish_reason = getattr(choice, "finish_reason", None)
+    except (AttributeError, IndexError, TypeError) as error:
+        incomplete = IncompleteProviderResponse(
+            request_id=request_id,
+            finish_reason=None,
+        )
+        raise ProviderCallError(operation, incomplete) from error
+    if (
+        finish_reason != "stop"
+        or not isinstance(content, str)
+        or not content.strip()
+    ):
+        incomplete = IncompleteProviderResponse(
+            request_id=request_id,
+            finish_reason=finish_reason,
+        )
+        raise ProviderCallError(operation, incomplete)
+    return content
+
+
 class OpenAICompatibleBackend:
     """Small adapter; importing OpenAI is deferred so deterministic tests stay offline."""
 
@@ -52,22 +98,28 @@ class OpenAICompatibleBackend:
         temperature: float,
         max_tokens: int,
     ) -> Completion:
-        response = self._client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-        content = response.choices[0].message.content or ""
+        try:
+            response = self._client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except Exception as error:
+            raise ProviderCallError(operation, error) from error
+        content = require_complete_content(response, operation=operation)
         return Completion(content=content, request_id=response.id)
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not self.embedding_model:
             raise RuntimeError("embedding model is not configured")
-        response = self._client.embeddings.create(
-            model=self.embedding_model,
-            input=texts,
-        )
+        try:
+            response = self._client.embeddings.create(
+                model=self.embedding_model,
+                input=texts,
+            )
+        except Exception as error:
+            raise ProviderCallError("memory.trigger.embedding", error) from error
         return [row.embedding for row in response.data]
 
 

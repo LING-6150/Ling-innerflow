@@ -521,7 +521,17 @@ def test_post_split_invalidation_is_binding_and_allows_only_one_signed_predicate
         allowed_invalidation_predicates=set(ConformancePredicate),
     )
     history_path = Path(manifest.invalidation_history_path)
-    initialize_invalidation_history(manifest)
+    initialized = initialize_invalidation_history(manifest)
+    expected_payload = manifest.model_dump(mode="json")
+    expected_payload["allowed_invalidation_predicates"] = sorted(
+        predicate.value for predicate in ConformancePredicate
+    )
+    assert signed_conformance_manifest_sha256(manifest) == canonical_sha256(
+        expected_payload
+    )
+    assert initialized.signed_manifest_sha256 == (
+        signed_conformance_manifest_sha256(manifest)
+    )
     with pytest.raises(FileExistsError):
         initialize_invalidation_history(manifest)
     rejected = request_post_split_invalidation(

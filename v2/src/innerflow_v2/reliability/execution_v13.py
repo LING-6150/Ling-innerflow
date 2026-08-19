@@ -146,6 +146,7 @@ class RequestCell:
 class AttemptV13(StrictModel):
     attempt: int = Field(ge=1)
     request_id: str = Field(min_length=1)
+    provider_request_id: str | None = None
     outcome: Literal["response", "provider_failure"]
     raw_response: str | None = None
     error_type: str | None = None
@@ -157,6 +158,20 @@ class AttemptV13(StrictModel):
                 raise ValueError("response attempt must retain raw response only")
         elif self.raw_response is not None or not self.error_type:
             raise ValueError("provider failure attempt must retain error type only")
+        return self
+
+
+class FormationCallV13(StrictModel):
+    attempt: int = Field(ge=1)
+    operation: str = Field(min_length=1)
+    provider_request_id: str | None = None
+    prompt_sha256: str
+    raw_response: str
+
+    @model_validator(mode="after")
+    def _prompt_hash(self) -> "FormationCallV13":
+        if not re.fullmatch(r"[0-9a-f]{64}", self.prompt_sha256):
+            raise ValueError("formation prompt hash must be lowercase SHA-256")
         return self
 
 
@@ -174,6 +189,7 @@ class WorldResultV13(StrictModel):
     response_action: ResponseAction | None = None
     request_id: str | None = None
     attempts: list[AttemptV13] = Field(min_length=1)
+    formation_calls: list[FormationCallV13] = Field(default_factory=list)
     rendered_context: str | None = None
 
     @model_validator(mode="after")
@@ -332,14 +348,17 @@ def record_model_response(
     *,
     raw_response: str,
     request_id: str,
+    provider_request_id: str | None = None,
     rendered_context: str,
     prior_failures: list[AttemptV13] | None = None,
+    formation_calls: list[FormationCallV13] | None = None,
 ) -> WorldResultV13:
     attempts = list(prior_failures or ())
     attempts.append(
         AttemptV13(
             attempt=len(attempts) + 1,
             request_id=request_id,
+            provider_request_id=provider_request_id,
             outcome="response",
             raw_response=raw_response,
         )
@@ -359,6 +378,7 @@ def record_model_response(
         response_action=grade.action,
         request_id=request_id,
         attempts=attempts,
+        formation_calls=list(formation_calls or ()),
         rendered_context=rendered_context,
     )
 
@@ -368,7 +388,12 @@ def record_provider_failure(
     *,
     request_ids: list[str],
     error_type: str,
+    provider_request_ids: list[str | None] | None = None,
+    formation_calls: list[FormationCallV13] | None = None,
 ) -> WorldResultV13:
+    provider_ids = provider_request_ids or [None] * len(request_ids)
+    if len(provider_ids) != len(request_ids):
+        raise ValueError("provider request-id ledger length drift")
     return WorldResultV13(
         candidate_id=cell.candidate_id,
         category=cell.category,
@@ -385,11 +410,13 @@ def record_provider_failure(
             AttemptV13(
                 attempt=index,
                 request_id=request_id,
+                provider_request_id=provider_ids[index - 1],
                 outcome="provider_failure",
                 error_type=error_type,
             )
             for index, request_id in enumerate(request_ids, start=1)
         ],
+        formation_calls=list(formation_calls or ()),
         rendered_context=None,
     )
 
@@ -569,6 +596,7 @@ def next_resume_replicate(checkpoint: SealedCheckpoint | None) -> int:
 
 class FrozenRunManifestV13(StrictModel):
     protocol_version: Literal["v1.3"] = "v1.3"
+    source_commit: str
     selection_sha256: str
     signed_conformance_manifest_sha256: str
     candidate_pool_sha256: str
@@ -577,6 +605,9 @@ class FrozenRunManifestV13(StrictModel):
     model_id: str = Field(min_length=1)
     provider_model_version: str = Field(min_length=1)
     provider: str = Field(min_length=1)
+    provider_base_url: str = Field(min_length=1)
+    provider_model_metadata_sha256: str
+    embedding_model_id: str = Field(min_length=1)
     formation_temperature: float = Field(gt=0)
     response_temperature: float = Field(gt=0)
     token_limits: dict[str, int]
@@ -585,9 +616,15 @@ class FrozenRunManifestV13(StrictModel):
     normalizer_sha256: str
     executor_sha256: str
     dependency_lock_sha256: str
+    implementation_source_hashes: dict[str, str]
     order_seed: int
+    initial_replicates: Literal[3] = 3
+    variance_replicates: Literal[5] = 5
+    compression_threshold_rounds: Literal[10] = 10
+    keep_recent_rounds: Literal[4] = 4
     retry_attempts: int = Field(ge=1)
     retry_backoff_seconds: float = Field(ge=0)
+    request_timeout_seconds: float = Field(gt=0)
 
     @property
     def sha256(self) -> str:
@@ -596,16 +633,20 @@ class FrozenRunManifestV13(StrictModel):
     @model_validator(mode="after")
     def _hashes_are_sha256(self) -> "FrozenRunManifestV13":
         for field_name in (
+            "source_commit",
             "selection_sha256",
             "signed_conformance_manifest_sha256",
             "candidate_pool_sha256",
+            "provider_model_metadata_sha256",
             "ontology_sha256",
             "normalizer_sha256",
             "executor_sha256",
             "dependency_lock_sha256",
         ):
-            if not re.fullmatch(r"[0-9a-f]{64}", getattr(self, field_name)):
-                raise ValueError(f"{field_name} must be lowercase SHA-256")
+            expected = r"[0-9a-f]{40}" if field_name == "source_commit" else r"[0-9a-f]{64}"
+            if not re.fullmatch(expected, getattr(self, field_name)):
+                label = "Git commit" if field_name == "source_commit" else "SHA-256"
+                raise ValueError(f"{field_name} must be lowercase {label}")
         if not self.token_limits or any(
             value <= 0 for value in self.token_limits.values()
         ):
@@ -618,6 +659,11 @@ class FrozenRunManifestV13(StrictModel):
             for value in self.prompt_hashes.values()
         ):
             raise ValueError("prompt hashes must bind every frozen stage")
+        if not self.implementation_source_hashes or any(
+            not re.fullmatch(r"[0-9a-f]{64}", value)
+            for value in self.implementation_source_hashes.values()
+        ):
+            raise ValueError("implementation source hashes must be SHA-256")
         if not Path(self.incident_history_path).is_absolute():
             raise ValueError("run incident history path must be absolute")
         return self
@@ -900,12 +946,25 @@ class RunIncidentEvent(StrictModel):
             r"[0-9a-f]{64}", self.execution_attempt_id
         ):
             raise ValueError("incident execution attempt id must be SHA-256")
-        if (
-            self.disposition == IncidentDisposition.VOID_PARTIAL_REPLICATE
-        ) != (self.execution_attempt_id is not None):
+        attempt_bound = self.incident in {
+            RunIncident.PARTIAL_REPLICATE_INTERRUPTION,
+            RunIncident.API_FAILURE,
+        }
+        if attempt_bound != (self.execution_attempt_id is not None):
             raise ValueError(
-                "partial-replicate disposition must bind exactly one attempt"
+                "partial/API incidents must bind exactly one execution attempt"
             )
+        if (
+            self.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION
+            and self.disposition
+            != IncidentDisposition.VOID_PARTIAL_REPLICATE
+        ):
+            raise ValueError("partial interruption must void its attempt")
+        if (
+            self.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION
+            and self.evidence_sha256 is None
+        ):
+            raise ValueError("partial interruption must bind its artifact hash")
         return self
 
 
@@ -937,6 +996,24 @@ class RunIncidentHistory(StrictModel):
             > 1
         ):
             raise ValueError("incident history exceeds one replay or repair")
+        partial_attempts: set[str] = set()
+        classified_attempts: set[str] = set()
+        for event in self.events:
+            attempt_id = event.execution_attempt_id
+            if event.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION:
+                if attempt_id in partial_attempts:
+                    raise ValueError("execution attempt was voided more than once")
+                partial_attempts.add(attempt_id)  # type: ignore[arg-type]
+            elif event.incident == RunIncident.API_FAILURE:
+                if attempt_id not in partial_attempts:
+                    raise ValueError(
+                        "API failure must classify a prior partial attempt"
+                    )
+                if attempt_id in classified_attempts:
+                    raise ValueError(
+                        "execution attempt API failure was classified twice"
+                    )
+                classified_attempts.add(attempt_id)  # type: ignore[arg-type]
         return self
 
     @property
@@ -998,9 +1075,7 @@ def resolve_run_incident(
         for event in history.events
     )
     if terminal_history:
-        if execution_attempt_id is not None:
-            raise ValueError("terminal run cannot accept a replicate attempt")
-        disposition = IncidentDisposition.TERMINATE_NO_M1
+        raise ValueError("terminal run cannot accept another incident")
     elif incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION:
         if execution_attempt_id is None or not re.fullmatch(
             r"[0-9a-f]{64}", execution_attempt_id
@@ -1012,13 +1087,29 @@ def resolve_run_incident(
         ):
             raise ValueError("execution attempt already has an incident")
         disposition = IncidentDisposition.VOID_PARTIAL_REPLICATE
-    elif execution_attempt_id is not None:
-        raise ValueError("only partial interruption may bind an attempt id")
     elif current_run_manifest_sha256 != history.bound_run_manifest_sha256:
         disposition = IncidentDisposition.TERMINATE_NO_M1
     elif incident == RunIncident.GO_PATH:
         disposition = IncidentDisposition.AUTHORIZE_M1
     elif incident == RunIncident.API_FAILURE:
+        if execution_attempt_id is None or not re.fullmatch(
+            r"[0-9a-f]{64}", execution_attempt_id
+        ):
+            raise ValueError("API failure must identify its failed attempt")
+        partial_events = [
+            event
+            for event in history.events
+            if event.incident == RunIncident.PARTIAL_REPLICATE_INTERRUPTION
+            and event.execution_attempt_id == execution_attempt_id
+        ]
+        if len(partial_events) != 1:
+            raise ValueError("API failure must classify one prior partial attempt")
+        if any(
+            event.incident == RunIncident.API_FAILURE
+            and event.execution_attempt_id == execution_attempt_id
+            for event in history.events
+        ):
+            raise ValueError("failed attempt was already classified")
         prior_replays = sum(
             event.disposition == IncidentDisposition.REPLAY_IDENTICAL_MANIFEST
             for event in history.events
@@ -1032,6 +1123,8 @@ def resolve_run_incident(
             disposition = IncidentDisposition.REPLAY_IDENTICAL_MANIFEST
         else:
             disposition = IncidentDisposition.TERMINATE_NO_M1
+    elif execution_attempt_id is not None:
+        raise ValueError("only partial/API incidents may bind an attempt id")
     elif incident == RunIncident.IMPLEMENTATION_NONCONFORMANCE:
         prior_repairs = sum(
             event.disposition

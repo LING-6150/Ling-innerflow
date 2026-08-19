@@ -1,0 +1,53 @@
+{
+  "protocol_version": "v1.3",
+  "source_commit": "3fd84cf90e5ff81a8dc95a5d3435ce83892cf4ab",
+  "selection_sha256": "01655a903f3f63c15abb24b29d8d151a8c079427ce8e84b4203be8bd63f7e253",
+  "signed_conformance_manifest_sha256": "31dc9bd5655cd8a798b8eb5abe6e9f4eb83c64bd0a999ec486bb932dc0fd3601",
+  "candidate_pool_sha256": "316fd2a18f84c759f447f9d3c68d8b1d6b7cb4730a9ca5d030ac0635268ba9b2",
+  "incident_history_path": "/Users/lingduan/Desktop/Ling-innerflow/.sealed/execution/M0_V13_RUN_INCIDENT_HISTORY.json",
+  "run_date": "2026-08-03",
+  "model_id": "gemini-2.5-flash",
+  "provider_model_version": "ModelVerse alias gemini-2.5-flash; immutable upstream snapshot not exposed",
+  "provider": "ModelVerse",
+  "provider_base_url": "https://api.modelverse.cn/v1",
+  "provider_model_metadata_sha256": "5355c1e17e7af443363a43917c3ca96d67ceb04c7a10ccd1d4acdcf1f54c0015",
+  "embedding_model_id": "text-embedding-3-large",
+  "formation_temperature": 0.2,
+  "response_temperature": 0.4,
+  "token_limits": {
+    "summary": 2048,
+    "wiki": 4096,
+    "reflection": 2048,
+    "response": 1024
+  },
+  "prompt_hashes": {
+    "summary": "da3c5f0baa2863c368e384241566c98bd96f66ddf16b3576de599a9411754aa7",
+    "wiki": "326a2c85a0d4729f6e9ab386ddeee5d8e7007933c7838d7a22d74f5a0d22b0e9",
+    "reflection": "2bccd46218d4055094f31ac55fdd5023748e48a55e0251cb6dc252ef13ed5989",
+    "response": "5d254c6f34428be7ed3dba47d33255bae47ca59c73a97c76bcac1cd2bc53df14"
+  },
+  "ontology_sha256": "182500b1b8a9b9c27b8eb5ec980bf1d8e678a2870ccf695ab3756de6c109394d",
+  "normalizer_sha256": "a1d5941eee67d25062d6ad9ee49be00319ee6df8c245e1eccf7336e512111c8f",
+  "executor_sha256": "1abe404415d06ea546a1d6089785aa4c720d16bb437075aa51dc2a8a975ec0b1",
+  "dependency_lock_sha256": "b0acc91523e26b2599d8364fe86a90a948e1243a0ee692c502226e4b3367cf6d",
+  "implementation_source_hashes": {
+    "v2/scripts/run_m0_v13_reliability.py": "e21819f0a4ca91565ed47febd2ea317f0a236aaae9e4e3072695e46de70c9115",
+    "v2/src/innerflow_v2/reliability/baselines.py": "e7737a9285035842879f7ab8a5cbfa0d45732a821d4b1f4676e4a3e7e6679bb1",
+    "v2/src/innerflow_v2/reliability/beacon_v2.py": "e1f8399a59bab029e232308cffa46de559961e2d72624220783c4e74787d4c19",
+    "v2/src/innerflow_v2/reliability/client.py": "10fb60b2a68288317fdc6cee9d10141e5e7b9b08dcce73c9cdb6e158fa93f5f2",
+    "v2/src/innerflow_v2/reliability/execution_freeze_v13.py": "369d99f5dcc70b616b7f2425ac270848b81595a9e8b2392f5accfbd9d7836eec",
+    "v2/src/innerflow_v2/reliability/execution_v13.py": "dd34790606e7476def3258f9e5f27fa4fa424dd6bcd6054a6ec1af26519657ce",
+    "v2/src/innerflow_v2/reliability/gate.py": "2bedec11381930deca13d0ab70595ffe4b12f34619d9c1ae295b9246d119dd3c",
+    "v2/src/innerflow_v2/reliability/prompts.py": "79dc37c93e0280af207991e7bb10ccf08ce5f76f115148ed764a6a399bfa876e",
+    "v2/src/innerflow_v2/reliability/protocol_v13.py": "c4b1264f3c61e24042eb450a4aa72498b51709d2891ad104fd576a0d1caa2c9f",
+    "v2/src/innerflow_v2/reliability/runner_v13.py": "8dab4c5f94aaa536158a6776625f9d902b8913f389455c47a4b3fe256c749471"
+  },
+  "order_seed": 6150,
+  "initial_replicates": 3,
+  "variance_replicates": 5,
+  "compression_threshold_rounds": 10,
+  "keep_recent_rounds": 4,
+  "retry_attempts": 3,
+  "retry_backoff_seconds": 2.0,
+  "request_timeout_seconds": 120.0
+}

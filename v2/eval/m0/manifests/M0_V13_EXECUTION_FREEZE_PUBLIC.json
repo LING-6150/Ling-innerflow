@@ -1,0 +1,31 @@
+{
+  "protocol_version": "v1.3",
+  "status": "FROZEN_BEFORE_FIRST_MODEL_REQUEST",
+  "selection_sha256": "01655a903f3f63c15abb24b29d8d151a8c079427ce8e84b4203be8bd63f7e253",
+  "candidate_pool_sha256": "316fd2a18f84c759f447f9d3c68d8b1d6b7cb4730a9ca5d030ac0635268ba9b2",
+  "signed_conformance_manifest_sha256": "31dc9bd5655cd8a798b8eb5abe6e9f4eb83c64bd0a999ec486bb932dc0fd3601",
+  "run_manifest_sha256": "a2756b5e04299bb5991e03ebd4c8b4a88d7ad77f1ecd3e210d29fa8cb9b58548",
+  "sealed_request_plan_sha256": "4a5ad2f003f5e18276122a35807bf8b492b923bc5e1ff94c8b05a491596c480c",
+  "request_order_sha256_by_replicate": {
+    "1": "71181f17cdcf05031e69a353913c3c8b76b2f48bada9974058fede0c015d6d04",
+    "2": "dd2e73f80bf1613fd40e6937a54b203ea61fb621b417e74148a908c0db418c71",
+    "3": "d9dea418dbaa85847db686d78dc48673f844a8284f60a6bfac12185330a1e91c"
+  },
+  "execution_attempt_id_by_replicate": {
+    "1": "7e60dae6a9c3e4882d9ee74516b0b1ef73794c110d14ca30fd090843061d0691",
+    "2": "2fd4f1059c9c63d8c2dfcca3092726dc904b94eca1c5cf7c7d7b5e3e3a87cf63",
+    "3": "ff00e02a495b6b1171ae130cae635ea132d785bcee35dfd497460c21df57791b"
+  },
+  "visible_count": 16,
+  "holdout": {
+    "count": 8,
+    "aggregate_sha256": "ceb0e7353f72b3a752a55368af7c2d40bc8bcc1c393a6b2b9ee7376b293ced08"
+  },
+  "provider_model_metadata_sha256": "5355c1e17e7af443363a43917c3ca96d67ceb04c7a10ccd1d4acdcf1f54c0015",
+  "holdout_disclosure": "aggregate-only",
+  "limitations": [
+    "ModelVerse exposes gemini-2.5-flash as a mutable alias and does not expose an immutable upstream snapshot version.",
+    "The sealed holdout is a process control, not cryptographic or organizational isolation from the repository owner."
+  ],
+  "authorization_boundary": "No model request until this freeze receives FREEZE_EXECUTION and the execution-freeze PR is merged."
+}
