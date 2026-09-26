@@ -1,10 +1,12 @@
 # 🌊 InnerFlow — An Eval-First Clinical Mental-Health Agent Platform
 
+> **Status:** Feature-complete and no longer under active development (since September 2026). The hosted demo has been taken offline; everything below remains reproducible from this repo.
+
 A full-stack agentic platform for mental-health support and clinician hand-off — multimodal emotion sensing, LangGraph4j stateful routing, a ReAct agent over 6 clinical tools, three-layer memory, hybrid RAG, and HL7 FHIR / MCP interop.
 
 What makes it different is **how it's built**: every core capability is backed by a **frozen-test-set evaluation, measured against baselines, and reported honestly** — including the negative results. The numbers below are real and reproducible from this repo; none are estimated.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-online-blue?style=flat-square)](http://35.170.192.217)
+![Live Demo](https://img.shields.io/badge/Live%20Demo-offline-lightgrey?style=flat-square)
 [![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=java)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-green?style=flat-square&logo=springboot)](https://spring.io/)
 [![Vue](https://img.shields.io/badge/Vue-3-4FC08D?style=flat-square&logo=vue.js)](https://vuejs.org/)
